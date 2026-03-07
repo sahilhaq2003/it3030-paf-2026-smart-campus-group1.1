@@ -152,7 +152,7 @@ npm install  # Install all dependencies (React, Vite, Tailwind CSS, etc.)
 cd backend
 
 # Windows
-mvnw.cmd spring-boot:run
+.\mvnw.cmd spring-boot:run
 
 # Linux / macOS
 ./mvnw spring-boot:run
