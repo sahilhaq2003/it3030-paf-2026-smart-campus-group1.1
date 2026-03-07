@@ -1,4 +1,4 @@
-# Smart Campus Maintenance System
+# Smart Campus 
 
 A comprehensive full-stack application for managing facility maintenance requests and tickets at Smart Campus. The system includes a Spring Boot REST API backend and a modern React frontend.
 
