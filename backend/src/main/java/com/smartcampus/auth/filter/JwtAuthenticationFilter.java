@@ -12,12 +12,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @Component
@@ -61,9 +64,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 filterChain.doFilter(request, response);
                 return;
             }
-            List<String> roles = toRoleNames(claims.get(JwtService.CLAIM_ROLES));
-            UserPrincipal principal = UserPrincipal.of(userId, email, roles);
-            var auth = new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+            Collection<? extends GrantedAuthority> authorities =
+                    authoritiesFromRolesClaim(claims.get(JwtService.CLAIM_ROLES));
+            UserPrincipal principal = new UserPrincipal(userId, email, "", authorities);
+            var auth =
+                    new UsernamePasswordAuthenticationToken(
+                            principal, null, principal.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(auth);
         } catch (JwtException | IllegalArgumentException ignored) {
             // Invalid token: leave unauthenticated; secured endpoints will reject the request.
@@ -86,16 +92,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 
-    private static List<String> toRoleNames(Object rolesClaim) {
-        if (!(rolesClaim instanceof List<?> raw)) {
-            return List.of();
-        }
-        List<String> out = new ArrayList<>(raw.size());
-        for (Object o : raw) {
-            if (o != null) {
-                out.add(o.toString());
+    /**
+     * Reads the JWT {@value JwtService#CLAIM_ROLES} claim and returns Spring Security authorities
+     * with the {@code ROLE_} prefix (no duplicate prefix if already present).
+     */
+    private static List<GrantedAuthority> authoritiesFromRolesClaim(Object rolesClaim) {
+        List<String> rawNames = new ArrayList<>();
+        if (rolesClaim instanceof Collection<?> coll) {
+            for (Object o : coll) {
+                if (o != null && !o.toString().isBlank()) {
+                    rawNames.add(o.toString().trim());
+                }
             }
+        } else if (rolesClaim instanceof String s && !s.isBlank()) {
+            rawNames.add(s.trim());
         }
-        return out;
+        List<GrantedAuthority> authorities = new ArrayList<>(rawNames.size());
+        for (String name : rawNames) {
+            authorities.add(new SimpleGrantedAuthority(withRolePrefix(name)));
+        }
+        return authorities;
+    }
+
+    private static String withRolePrefix(String role) {
+        return role.startsWith("ROLE_") ? role : "ROLE_" + role;
     }
 }
