@@ -4,11 +4,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartcampus.auth.dto.AuthResponseDTO;
 import com.smartcampus.auth.dto.UserResponseDTO;
+import com.smartcampus.auth.model.UserPrincipal;
 import com.smartcampus.user.model.Role;
 import com.smartcampus.user.model.User;
 import com.smartcampus.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -43,6 +46,20 @@ public class AuthService {
         userRepository.flush();
         String token = jwtService.generateToken(user);
         return AuthResponseDTO.builder().token(token).user(toUserResponse(user)).build();
+    }
+
+    /** Resolves the current user from the security context (JWT) and returns the persisted profile. */
+    @Transactional(readOnly = true)
+    public UserResponseDTO getCurrentUserProfile() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+        User user =
+                userRepository
+                        .findById(principal.getId())
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        return toUserResponse(user);
     }
 
     private User syncGoogleProfile(User user, SimulatedGoogleProfile profile) {
