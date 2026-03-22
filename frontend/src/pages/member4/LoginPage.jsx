@@ -4,12 +4,17 @@ import { useAuth } from "../../context/AuthContext";
 const BRAND = "#1E3A5F";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginLoading, loginError, clearLoginError } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    login();
-    navigate("/home");
+  const handleLogin = async () => {
+    clearLoginError();
+    try {
+      await login();
+      navigate("/home");
+    } catch {
+      /* loginError set in AuthContext */
+    }
   };
 
   return (
@@ -89,15 +94,28 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <div className="mt-2 lg:mt-10">
+            <div className="mt-2 lg:mt-10 space-y-3">
+              {loginError ? (
+                <div
+                  role="alert"
+                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                >
+                  {loginError}
+                </div>
+              ) : null}
               <button
                 type="button"
                 onClick={handleLogin}
-                className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                disabled={loginLoading}
+                className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-60"
                 style={{ outlineColor: BRAND }}
               >
-                <GoogleGlyph className="h-5 w-5 shrink-0" />
-                Continue with Google
+                {loginLoading ? (
+                  <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-slate-600" />
+                ) : (
+                  <GoogleGlyph className="h-5 w-5 shrink-0" />
+                )}
+                {loginLoading ? "Signing in…" : "Continue with Google"}
               </button>
             </div>
 
