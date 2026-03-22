@@ -1,14 +1,16 @@
-import axios from 'axios';
+import axios from "axios";
+import { AUTH_TOKEN_STORAGE_KEY } from "../constants/authStorage";
 
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:8080/api',
-  headers: { 'Content-Type': 'application/json' },
+  baseURL: "http://localhost:8081/api",
+  headers: { "Content-Type": "application/json" },
 });
 
-// Attach JWT token to every request
 axiosInstance.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const token = sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 
