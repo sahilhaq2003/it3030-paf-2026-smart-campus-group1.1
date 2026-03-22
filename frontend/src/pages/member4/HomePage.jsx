@@ -7,7 +7,7 @@ export default function HomePage() {
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
+    navigate("/");
   };
 
   const displayName = user?.name ?? "there";
