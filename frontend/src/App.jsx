@@ -5,6 +5,7 @@ import TicketDetailPage from './pages/member3/TicketDetailPage';
 import AdminTicketsPage from './pages/member3/AdminTicketsPage';
 import TechnicianDashboard from './pages/member3/TechnicianDashboard';
 import LoginPage from './pages/member4/LoginPage';
+import ProtectedRoute from './routes/ProtectedRoute';
 
 function Sidebar() {
   const loc = useLocation();
@@ -49,7 +50,13 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route element={<AppShell />}>
+        <Route
+          element={
+            <ProtectedRoute>
+              <AppShell />
+            </ProtectedRoute>
+          }
+        >
           <Route path="/" element={<MyTicketsPage />} />
           <Route path="/tickets" element={<MyTicketsPage />} />
           <Route path="/tickets/create" element={<CreateTicketPage />} />
