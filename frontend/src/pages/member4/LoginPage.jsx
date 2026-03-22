@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useLayoutEffect } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -20,6 +20,21 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const googleWrapRef = useRef(null);
+  const [googleBtnWidth, setGoogleBtnWidth] = useState(320);
+
+  useLayoutEffect(() => {
+    const el = googleWrapRef.current;
+    if (!el) return;
+    const measure = () => {
+      const w = Math.floor(el.getBoundingClientRect().width);
+      if (w > 0) setGoogleBtnWidth(w);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const handleEmailPassword = async (e) => {
     e.preventDefault();
@@ -211,9 +226,9 @@ export default function LoginPage() {
                   Signing in…
                 </div>
               ) : (
-                <div className="w-full [&>div]:w-full [&_iframe]:max-w-none">
+                <div ref={googleWrapRef} className="w-full min-w-0">
                   <GoogleLogin
-                    width="384"
+                    width={googleBtnWidth}
                     size="large"
                     text="continue_with"
                     shape="rectangular"
