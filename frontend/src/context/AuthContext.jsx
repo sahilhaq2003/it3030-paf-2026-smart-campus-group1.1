@@ -1,22 +1,30 @@
-// Temporary mock auth context — Member 4 will replace this with real OAuth
-import { createContext, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  // Mock user for testing your module independently
-  const [user] = useState({
-    id: 1,
-    name: 'Test User',
-    email: 'test@sliit.lk',
-    roles: ['USER'],
-  });
+  const [user, setUser] = useState(null);
 
-  return (
-    <AuthContext.Provider value={{ user, isAuthenticated: true }}>
-      {children}
-    </AuthContext.Provider>
+  /** Mock Google sign-in — replace with real OAuth + API when ready. */
+  const login = useCallback(() => {
+    setUser({
+      id: 1,
+      name: 'Demo Student',
+      email: 'demo@smartcampus.edu',
+      roles: ['USER'],
+    });
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      user,
+      isAuthenticated: Boolean(user),
+      login,
+    }),
+    [user, login],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

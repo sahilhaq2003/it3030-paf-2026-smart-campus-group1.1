@@ -1,9 +1,10 @@
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useLocation, Outlet } from 'react-router-dom';
 import MyTicketsPage from './pages/member3/MyTicketsPage';
 import CreateTicketPage from './pages/member3/CreateTicketPage';
 import TicketDetailPage from './pages/member3/TicketDetailPage';
 import AdminTicketsPage from './pages/member3/AdminTicketsPage';
 import TechnicianDashboard from './pages/member3/TechnicianDashboard';
+import LoginPage from './pages/member4/LoginPage';
 
 function Sidebar() {
   const loc = useLocation();
@@ -32,22 +33,31 @@ function Sidebar() {
   );
 }
 
+function AppShell() {
+  return (
+    <div className="flex">
+      <Sidebar />
+      <main className="ml-56 flex-1 min-h-screen bg-[#F8FAFC]">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="flex">
-        <Sidebar />
-        <main className="ml-56 flex-1 min-h-screen bg-[#F8FAFC]">
-          <Routes>
-            <Route path="/" element={<MyTicketsPage />} />
-            <Route path="/tickets" element={<MyTicketsPage />} />
-            <Route path="/tickets/create" element={<CreateTicketPage />} />
-            <Route path="/tickets/:id" element={<TicketDetailPage />} />
-            <Route path="/admin/tickets" element={<AdminTicketsPage />} />
-            <Route path="/technician" element={<TechnicianDashboard />} />
-          </Routes>
-        </main>
-      </div>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route element={<AppShell />}>
+          <Route path="/" element={<MyTicketsPage />} />
+          <Route path="/tickets" element={<MyTicketsPage />} />
+          <Route path="/tickets/create" element={<CreateTicketPage />} />
+          <Route path="/tickets/:id" element={<TicketDetailPage />} />
+          <Route path="/admin/tickets" element={<AdminTicketsPage />} />
+          <Route path="/technician" element={<TechnicianDashboard />} />
+        </Route>
+      </Routes>
     </BrowserRouter>
   );
 }
