@@ -53,26 +53,19 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
-        <!-- H2 Database (in-memory, for development) -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- PostgreSQL Driver (optional, for production) -->
+        <!-- PostgreSQL (Supabase) -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
-            <!-- MySQL Driver -->
-            <dependency>
-                <groupId>mysql</groupId>
-                <artifactId>mysql-connector-java</artifactId>
-                <version>8.0.33</version>
-                <scope>runtime</scope>
-            </dependency>
+
+        <!-- Load backend/.env into JVM system properties before Spring starts -->
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>3.0.0</version>
+        </dependency>
 
         <!-- Lombok (reduces boilerplate) -->
         <dependency>
@@ -122,6 +115,10 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- Helps some Windows setups reach db.*.supabase.co (often IPv6-only in DNS) -->
+                    <jvmArguments>-Djava.net.preferIPv6Addresses=true</jvmArguments>
+                </configuration>
             </plugin>
         </plugins>
     </build>
