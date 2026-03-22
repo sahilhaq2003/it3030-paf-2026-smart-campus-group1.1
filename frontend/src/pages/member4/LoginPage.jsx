@@ -1,7 +1,14 @@
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogin = () => {
+    login();
+    navigate("/");
+  };
 
   return (
     <div className="flex items-center justify-center h-screen bg-gray-100">
@@ -12,7 +19,7 @@ export default function LoginPage() {
         <p className="text-gray-500 mb-6">Login to continue</p>
 
         <button
-          onClick={login}
+          onClick={handleLogin}
           className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
         >
           Sign in with Google

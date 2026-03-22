@@ -5,11 +5,13 @@ import TicketDetailPage from './pages/member3/TicketDetailPage';
 import AdminTicketsPage from './pages/member3/AdminTicketsPage';
 import TechnicianDashboard from './pages/member3/TechnicianDashboard';
 import LoginPage from './pages/member4/LoginPage';
+import HomePage from './pages/member4/HomePage';
 import ProtectedRoute from './routes/ProtectedRoute';
 
 function Sidebar() {
   const loc = useLocation();
   const links = [
+    { to: '/', label: '🏠 Home' },
     { to: '/tickets', label: '🎫 My Tickets' },
     { to: '/tickets/create', label: '➕ New Ticket' },
     { to: '/admin/tickets', label: '🛠 Admin View' },
@@ -57,7 +59,7 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<MyTicketsPage />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/tickets" element={<MyTicketsPage />} />
           <Route path="/tickets/create" element={<CreateTicketPage />} />
           <Route path="/tickets/:id" element={<TicketDetailPage />} />
