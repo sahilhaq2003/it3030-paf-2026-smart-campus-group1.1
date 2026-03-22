@@ -3,6 +3,8 @@ package com.smartcampus.auth.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartcampus.auth.dto.AuthResponseDTO;
+import com.smartcampus.auth.dto.GoogleUserClaims;
+import com.smartcampus.auth.dto.LoginRequestDTO;
 import com.smartcampus.auth.dto.UserResponseDTO;
 import com.smartcampus.auth.model.UserPrincipal;
 import com.smartcampus.user.model.Role;
@@ -12,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -30,20 +34,76 @@ public class AuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final ObjectMapper objectMapper;
+    private final PasswordEncoder passwordEncoder;
+    private final GoogleOAuthTokenVerifier googleOAuthTokenVerifier;
 
     /**
-     * Simulated Google ID token handling: accepts a JWT-shaped string (payload decoded without
-     * signature verification) or a raw JSON object {@code {"email","name"[, "picture"]}}.
+     * Google Sign-In: when {@code app.google.client-id} is set, verifies the credential JWT with
+     * Google. Otherwise accepts {@code dummy-google-token} or a decoded/simulated payload for local
+     * development only.
      */
     @Transactional
     public AuthResponseDTO signInWithGoogle(String idToken) {
-        SimulatedGoogleProfile profile = parseSimulatedGoogleIdToken(idToken);
+        SimulatedGoogleProfile profile = resolveGoogleProfile(idToken);
         User user =
                 userRepository
-                        .findByEmail(profile.email())
+                        .findByEmailWithRoles(profile.email())
                         .map(u -> syncGoogleProfile(u, profile))
                         .orElseGet(() -> createGoogleUser(profile));
         userRepository.flush();
+        String token = jwtService.generateToken(user);
+        return AuthResponseDTO.builder().token(token).user(toUserResponse(user)).build();
+    }
+
+    private SimulatedGoogleProfile resolveGoogleProfile(String idToken) {
+        if (idToken == null || idToken.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "idToken is required");
+        }
+        String trimmed = idToken.trim();
+        if ("dummy-google-token".equals(trimmed)) {
+            return new SimulatedGoogleProfile("dev@smartcampus.local", "Dev User", null);
+        }
+        if (googleOAuthTokenVerifier.isEnabled()) {
+            Optional<GoogleUserClaims> verified = googleOAuthTokenVerifier.verify(trimmed);
+            if (verified.isPresent()) {
+                GoogleUserClaims c = verified.get();
+                return new SimulatedGoogleProfile(c.email(), c.name(), c.picture());
+            }
+            if (looksLikeJwt(trimmed)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Google credential");
+            }
+        }
+        return parseSimulatedGoogleIdToken(trimmed);
+    }
+
+    private static boolean looksLikeJwt(String value) {
+        String[] parts = value.split("\\.");
+        return parts.length == 3;
+    }
+
+    @Transactional(readOnly = true)
+    public AuthResponseDTO signInWithPassword(LoginRequestDTO body) {
+        String email = body.getEmail() != null ? body.getEmail().trim() : "";
+        String rawPassword = body.getPassword();
+        if (email.isEmpty() || rawPassword == null || rawPassword.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email and password required");
+        }
+        User user =
+                userRepository
+                        .findByEmailWithRoles(email)
+                        .orElseThrow(
+                                () ->
+                                        new ResponseStatusException(
+                                                HttpStatus.UNAUTHORIZED, "Invalid email or password"));
+        if (!user.isEnabled()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
+        }
+        if (user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
+        }
+        if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
+        }
         String token = jwtService.generateToken(user);
         return AuthResponseDTO.builder().token(token).user(toUserResponse(user)).build();
     }

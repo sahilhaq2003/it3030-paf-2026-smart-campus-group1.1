@@ -21,7 +21,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString(exclude = "roles")
+@ToString(exclude = {"roles", "passwordHash"})
 public class User {
 
     public enum AuthProvider {
@@ -45,6 +45,10 @@ public class User {
 
     @Column(name = "avatar_url")
     private String avatarUrl;
+
+    /** BCrypt hash for local (email/password) sign-in; null for OAuth-only accounts. */
+    @Column(name = "password_hash")
+    private String passwordHash;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

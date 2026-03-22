@@ -1,17 +1,48 @@
+import { useState } from "react";
+import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { GOOGLE_CLIENT_ID } from "../../constants/googleAuth";
 import { getDashboardRoute } from "../../utils/getDashboardRoute";
 
 const BRAND = "#1E3A5F";
 
-export default function LoginPage() {
-  const { login, loginLoading, loginError, clearLoginError } = useAuth();
-  const navigate = useNavigate();
+function isValidEmail(value) {
+  const v = value.trim();
+  if (!v) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
 
-  const handleLogin = async () => {
+export default function LoginPage() {
+  const { loginWithPassword, loginWithGoogle, loginLoading, loginError, clearLoginError } =
+    useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const handleEmailPassword = async (e) => {
+    e.preventDefault();
     clearLoginError();
+    const next = {};
+    if (!isValidEmail(email)) next.email = "Enter a valid email address";
+    if (!password) next.password = "Password is required";
+    setFieldErrors(next);
+    if (Object.keys(next).length) return;
+
     try {
-      const signedIn = await login();
+      const signedIn = await loginWithPassword(email.trim(), password);
+      navigate(getDashboardRoute(signedIn?.roles));
+    } catch {
+      /* loginError set in AuthContext */
+    }
+  };
+
+  const handleGoogle = async () => {
+    clearLoginError();
+    setFieldErrors({});
+    try {
+      const signedIn = await loginWithGoogle();
       navigate(getDashboardRoute(signedIn?.roles));
     } catch {
       /* loginError set in AuthContext */
@@ -91,11 +122,11 @@ export default function LoginPage() {
                 Welcome back
               </h2>
               <p className="mt-2 text-sm text-slate-500">
-                Use your campus Google account to continue
+                Sign in with your campus email and password
               </p>
             </div>
 
-            <div className="mt-2 lg:mt-10 space-y-3">
+            <form onSubmit={handleEmailPassword} className="mt-2 lg:mt-10 space-y-4" noValidate>
               {loginError ? (
                 <div
                   role="alert"
@@ -104,9 +135,110 @@ export default function LoginPage() {
                   {loginError}
                 </div>
               ) : null}
+
+              <div>
+                <label htmlFor="login-email" className="block text-sm font-medium text-slate-700">
+                  Email
+                </label>
+                <input
+                  id="login-email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(ev) => {
+                    setEmail(ev.target.value);
+                    if (fieldErrors.email) setFieldErrors((f) => ({ ...f, email: undefined }));
+                  }}
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                  placeholder="you@campus.edu"
+                  disabled={loginLoading}
+                />
+                {fieldErrors.email ? (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>
+                ) : null}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="login-password"
+                  className="block text-sm font-medium text-slate-700"
+                >
+                  Password
+                </label>
+                <input
+                  id="login-password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(ev) => {
+                    setPassword(ev.target.value);
+                    if (fieldErrors.password) setFieldErrors((f) => ({ ...f, password: undefined }));
+                  }}
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                  placeholder="••••••••"
+                  disabled={loginLoading}
+                />
+                {fieldErrors.password ? (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>
+                ) : null}
+              </div>
+
+              <button
+                type="submit"
+                disabled={loginLoading}
+                className="w-full rounded-xl px-4 py-3.5 text-sm font-semibold text-white shadow-md transition hover:opacity-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-60"
+                style={{ backgroundColor: BRAND, outlineColor: BRAND }}
+              >
+                {loginLoading ? "Signing in…" : "Sign in"}
+              </button>
+            </form>
+
+            <div className="relative my-8">
+              <div className="absolute inset-0 flex items-center" aria-hidden>
+                <div className="w-full border-t border-slate-100" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-white px-3 font-medium text-slate-400">Or continue with</span>
+              </div>
+            </div>
+
+            {GOOGLE_CLIENT_ID ? (
+              loginLoading ? (
+                <div className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-600">
+                  <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-slate-600" />
+                  Signing in…
+                </div>
+              ) : (
+                <div className="w-full [&>div]:w-full [&_iframe]:max-w-none">
+                  <GoogleLogin
+                    width="384"
+                    size="large"
+                    text="continue_with"
+                    shape="rectangular"
+                    onSuccess={(credentialResponse) => {
+                      clearLoginError();
+                      setFieldErrors({});
+                      const cred = credentialResponse?.credential;
+                      if (!cred) return;
+                      void (async () => {
+                        try {
+                          const signedIn = await loginWithGoogle(cred);
+                          navigate(getDashboardRoute(signedIn?.roles));
+                        } catch {
+                          /* loginError set in AuthContext */
+                        }
+                      })();
+                    }}
+                    onError={() => clearLoginError()}
+                  />
+                </div>
+              )
+            ) : (
               <button
                 type="button"
-                onClick={handleLogin}
+                onClick={handleGoogle}
                 disabled={loginLoading}
                 className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-60"
                 style={{ outlineColor: BRAND }}
@@ -116,25 +248,10 @@ export default function LoginPage() {
                 ) : (
                   <GoogleGlyph className="h-5 w-5 shrink-0" />
                 )}
-                {loginLoading ? "Signing in…" : "Continue with Google"}
+                Continue with Google (demo — set VITE_GOOGLE_CLIENT_ID)
               </button>
-            </div>
+            )}
 
-            <div className="relative my-8">
-              <div className="absolute inset-0 flex items-center" aria-hidden>
-                <div className="w-full border-t border-slate-100" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-white px-3 font-medium text-slate-400">
-                  Demo authentication
-                </span>
-              </div>
-            </div>
-
-            <p className="text-center text-xs leading-relaxed text-slate-500">
-              This build uses a simulated Google sign-in for development. Production will use
-              your institution&apos;s OAuth configuration.
-            </p>
           </div>
 
           <p className="mt-8 text-center text-xs text-slate-400">
