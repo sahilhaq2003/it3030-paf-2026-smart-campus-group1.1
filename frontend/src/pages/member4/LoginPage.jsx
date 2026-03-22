@@ -1,5 +1,6 @@
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { getDashboardRoute } from "../../utils/getDashboardRoute";
 
 const BRAND = "#1E3A5F";
 
@@ -10,8 +11,8 @@ export default function LoginPage() {
   const handleLogin = async () => {
     clearLoginError();
     try {
-      await login();
-      navigate("/home");
+      const signedIn = await login();
+      navigate(getDashboardRoute(signedIn?.roles));
     } catch {
       /* loginError set in AuthContext */
     }

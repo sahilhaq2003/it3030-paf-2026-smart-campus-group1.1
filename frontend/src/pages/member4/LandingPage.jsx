@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ClipboardList, Shield, Users } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { getDashboardRoute } from "../../utils/getDashboardRoute";
 
 const BRAND = "#1E3A5F";
 
@@ -11,7 +12,8 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (user) {
-      navigate("/home", { replace: true });
+      const roles = user.roles ?? (user.role != null ? [user.role] : []);
+      navigate(getDashboardRoute(roles), { replace: true });
     }
   }, [user, navigate]);
 

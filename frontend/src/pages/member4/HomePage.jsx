@@ -13,9 +13,9 @@ export default function HomePage() {
   const displayName = user?.name ?? "there";
 
   const cards = [
-    { to: "/dashboard/user", title: "User dashboard", desc: "Your overview, activity, and shortcuts", emoji: "👤" },
-    { to: "/dashboard/admin", title: "Admin dashboard", desc: "Operations metrics and system health", emoji: "🛡" },
-    { to: "/dashboard/technician", title: "Technician dashboard", desc: "Assignments and field work queue", emoji: "👷" },
+    { to: "/dashboard", title: "User dashboard", desc: "Your overview, activity, and shortcuts", emoji: "👤" },
+    { to: "/admin-dashboard", title: "Admin dashboard", desc: "Operations metrics and system health", emoji: "🛡" },
+    { to: "/technician-dashboard", title: "Technician dashboard", desc: "Assignments and field work queue", emoji: "👷" },
     { to: "/tickets", title: "My tickets", desc: "View and track your maintenance requests", emoji: "🎫" },
     { to: "/tickets/create", title: "New ticket", desc: "Report an issue on campus", emoji: "➕" },
     { to: "/admin/tickets", title: "Admin tickets", desc: "Review and manage all tickets", emoji: "📋" },

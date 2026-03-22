@@ -66,6 +66,7 @@ export function AuthProvider({ children }) {
       sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, accessToken);
       setToken(accessToken);
       setUser(nextUser);
+      return nextUser;
     } catch (err) {
       const message = resolveAuthErrorMessage(err);
       setLoginError(message);

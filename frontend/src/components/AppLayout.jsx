@@ -11,7 +11,7 @@ export default function AppLayout({ children }) {
     { label: 'My Tickets', href: '/tickets', icon: Home },
     { label: 'Create Ticket', href: '/tickets/create', icon: Plus },
     { label: 'Admin', href: '/admin/tickets', icon: Users },
-    { label: 'Technician', href: '/technician', icon: Wrench },
+    { label: 'Technician', href: '/technician-dashboard', icon: Wrench },
   ];
 
   const isActive = (href) => location.pathname === href;

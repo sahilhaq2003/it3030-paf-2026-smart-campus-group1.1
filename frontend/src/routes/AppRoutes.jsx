@@ -14,9 +14,9 @@ import ProtectedRoute from "./ProtectedRoute";
 
 /**
  * Router setup:
- * - / → public landing (login button)
+ * - / → public landing
  * - /login → LoginPage
- * - /home + app routes → ProtectedRoute + AppShell
+ * - Role dashboards: /dashboard, /admin-dashboard, /technician-dashboard
  */
 export default function AppRoutes() {
   return (
@@ -32,10 +32,25 @@ export default function AppRoutes() {
         }
       >
         <Route path="/home" element={<HomePage />} />
-        <Route path="/dashboard/user" element={<UserDashboard />} />
-        <Route path="/dashboard/admin" element={<AdminDashboard />} />
-        <Route path="/dashboard/technician" element={<TechnicianDashboard />} />
-        <Route path="/technician" element={<Navigate to="/dashboard/technician" replace />} />
+        <Route path="/dashboard" element={<UserDashboard />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route path="/technician-dashboard" element={<TechnicianDashboard />} />
+        <Route
+          path="/dashboard/user"
+          element={<Navigate to="/dashboard" replace />}
+        />
+        <Route
+          path="/dashboard/admin"
+          element={<Navigate to="/admin-dashboard" replace />}
+        />
+        <Route
+          path="/dashboard/technician"
+          element={<Navigate to="/technician-dashboard" replace />}
+        />
+        <Route
+          path="/technician"
+          element={<Navigate to="/technician-dashboard" replace />}
+        />
         <Route path="/tickets" element={<MyTicketsPage />} />
         <Route path="/tickets/create" element={<CreateTicketPage />} />
         <Route path="/tickets/:id" element={<TicketDetailPage />} />
