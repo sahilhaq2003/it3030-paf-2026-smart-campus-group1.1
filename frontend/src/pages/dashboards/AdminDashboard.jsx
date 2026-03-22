@@ -6,6 +6,7 @@ import {
   DashboardPageLayout,
   DashboardSection,
   DashboardStatCard,
+  campusTextLink,
 } from "../../components/dashboard/DashboardPrimitives";
 import { DashboardInlineMessage } from "../../components/dashboard/DashboardCards";
 
@@ -58,7 +59,7 @@ export default function AdminDashboard() {
       title="Operations control"
       subtitle="Cross-campus metrics. Ticket and user figures require an admin account; bookings total is sample data for now."
     >
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3 lg:gap-6">
         <DashboardStatCard
           label="Total bookings"
           value={TOTAL_BOOKINGS_SAMPLE}
@@ -83,7 +84,7 @@ export default function AdminDashboard() {
       </div>
 
       {(ticketsError || usersError) && (
-        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="mt-6 rounded-2xl border border-amber-200/80 bg-amber-50/95 px-5 py-4 text-sm leading-relaxed text-amber-950 shadow-sm ring-1 ring-amber-900/[0.06]">
           {ticketsError ? (
             <p>
               Some ticket metrics could not be loaded (check admin role and API).
@@ -97,7 +98,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+      <div className="mt-10 grid gap-6 lg:grid-cols-2 lg:gap-8">
         <DashboardSection
           title="Ticket pipeline"
           description="Total records in the maintenance system (all statuses)."
@@ -110,11 +111,11 @@ export default function AdminDashboard() {
           <DashboardInlineMessage>
             Use Admin tickets to filter, assign, and resolve work in detail.
           </DashboardInlineMessage>
-          <Link
-            to="/admin/tickets"
-            className="mt-4 inline-flex text-sm font-semibold text-blue-700 hover:text-blue-900"
-          >
-            Open admin ticket view →
+          <Link to="/admin/tickets" className={`mt-5 inline-flex items-center gap-1 text-sm ${campusTextLink}`}>
+            Open admin ticket view
+            <span aria-hidden className="text-base leading-none">
+              →
+            </span>
           </Link>
         </DashboardSection>
 

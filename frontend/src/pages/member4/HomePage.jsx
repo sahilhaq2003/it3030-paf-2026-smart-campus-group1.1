@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import {
   DASHBOARD_PATHS,
@@ -7,13 +7,7 @@ import {
 } from "../../utils/getDashboardRoute";
 
 export default function HomePage() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
+  const { user } = useAuth();
 
   const displayName = user?.name ?? "there";
   const roles = user?.roles ?? (user?.role != null ? [user.role] : []);
@@ -67,45 +61,38 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-full flex flex-col bg-slate-50">
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white shadow-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
-          <h1 className="text-lg font-semibold text-blue-900 sm:text-xl">
-            Smart Campus Hub
-          </h1>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
-
-      <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
-        <div className="mb-8">
-          <p className="text-sm font-medium text-blue-600">Dashboard</p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+    <div className="relative min-h-full bg-slate-100">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.3]"
+        aria-hidden
+        style={{
+          backgroundImage: `radial-gradient(circle at 1px 1px, rgb(203 213 225 / 0.5) 1px, transparent 0)`,
+          backgroundSize: "24px 24px",
+        }}
+      />
+      <div className="relative mx-auto max-w-6xl px-6 py-8 sm:py-10">
+        <div className="mb-10">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Overview</p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             Welcome back, {displayName}
-          </h2>
-          <p className="mt-2 max-w-xl text-slate-600">
-            Here’s a quick overview. Use the shortcuts below or the sidebar to move around the app.
+          </h1>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-600">
+            Shortcuts to your dashboard and tickets. Use the sidebar for full navigation — log out anytime from the top bar.
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
           {cards.map((c) => (
             <Link
               key={c.to}
               to={c.to}
-              className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md"
+              className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm shadow-slate-900/[0.04] ring-1 ring-slate-900/[0.03] transition duration-200 hover:border-slate-300/90 hover:shadow-md hover:ring-slate-900/[0.05]"
             >
-              <div className="text-2xl">{c.emoji}</div>
-              <h3 className="mt-3 font-semibold text-slate-900 group-hover:text-blue-800">
+              <div className="text-2xl leading-none opacity-90">{c.emoji}</div>
+              <h2 className="mt-4 text-base font-semibold text-slate-900 group-hover:text-[#1E3A5F]">
                 {c.title}
-              </h3>
-              <p className="mt-1 text-sm text-slate-500">{c.desc}</p>
+              </h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{c.desc}</p>
             </Link>
           ))}
         </div>

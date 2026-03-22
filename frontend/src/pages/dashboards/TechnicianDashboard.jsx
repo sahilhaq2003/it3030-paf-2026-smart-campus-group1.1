@@ -4,6 +4,7 @@ import { ticketApi } from "../../api/ticketApi";
 import {
   DashboardPageLayout,
   DashboardStatCard,
+  campusTextLink,
 } from "../../components/dashboard/DashboardPrimitives";
 import {
   DashboardSummaryCard,
@@ -40,7 +41,7 @@ export default function TechnicianDashboard() {
       title="Field work queue"
       subtitle="Tickets assigned to you. Update status as work progresses — invalid transitions are rejected by the server."
     >
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3 lg:gap-6">
         <DashboardStatCard
           label="Assigned total"
           value={isLoading ? "…" : total}
@@ -58,16 +59,13 @@ export default function TechnicianDashboard() {
         />
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+      <div className="mt-10 grid gap-6 lg:grid-cols-2 lg:gap-8">
         <DashboardSummaryCard
           title="Assigned tickets"
           description="Newest first. Open a row to see full detail and attachments."
           icon={Wrench}
           headerAction={
-            <Link
-              to="/tickets"
-              className="text-sm font-medium text-blue-700 hover:text-blue-900"
-            >
+            <Link to="/tickets" className={`text-sm ${campusTextLink}`}>
               Browse all
             </Link>
           }

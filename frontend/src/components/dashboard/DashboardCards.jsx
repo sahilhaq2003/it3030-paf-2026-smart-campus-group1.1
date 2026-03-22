@@ -4,6 +4,12 @@ import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { ChevronRight } from "lucide-react";
 import { ticketApi } from "../../api/ticketApi";
+import {
+  campusBtnPrimary,
+  campusInputFocus,
+  campusTextLink,
+  dashboardCardShell,
+} from "./DashboardPrimitives";
 
 /**
  * Primary summary panel: icon, title, optional action, body.
@@ -16,24 +22,24 @@ export function DashboardSummaryCard({
   children,
 }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className={`${dashboardCardShell} p-6 sm:p-7`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 items-start gap-3">
+        <div className="flex min-w-0 items-start gap-4">
           {Icon ? (
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#1E3A5F]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 text-[#1E3A5F] shadow-inner shadow-slate-900/[0.04] ring-1 ring-slate-200/60">
               <Icon className="h-5 w-5" strokeWidth={2} />
             </div>
           ) : null}
           <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
             {description ? (
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">{description}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{description}</p>
             ) : null}
           </div>
         </div>
         {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
       </div>
-      <div className="mt-5">{children}</div>
+      <div className="mt-6">{children}</div>
     </section>
   );
 }
@@ -41,30 +47,28 @@ export function DashboardSummaryCard({
 /** Compact metric inside a summary card */
 export function DashboardSummaryStat({ label, value, hint }) {
   return (
-    <div className="rounded-lg border border-slate-100 bg-slate-50/90 px-4 py-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+    <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3.5 ring-1 ring-slate-900/[0.02] transition hover:bg-slate-50">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
         {label}
       </p>
-      <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">{value}</p>
-      {hint ? <p className="mt-1 text-xs text-slate-400">{hint}</p> : null}
+      <p className="mt-1.5 text-2xl font-bold tabular-nums tracking-tight text-slate-900">{value}</p>
+      {hint ? <p className="mt-1.5 text-xs leading-relaxed text-slate-400">{hint}</p> : null}
     </div>
   );
 }
 
 export function DashboardSummaryStatGrid({ children, columnsClass = "sm:grid-cols-3" }) {
-  return (
-    <div className={`grid gap-3 ${columnsClass}`}>{children}</div>
-  );
+  return <div className={`grid gap-3 ${columnsClass}`}>{children}</div>;
 }
 
 /** Inline error / empty helpers */
 export function DashboardInlineMessage({ variant = "muted", children }) {
   const cls =
-    variant === "error"
-      ? "text-sm text-red-600"
-      : "text-sm text-slate-500";
+    variant === "error" ? "text-sm font-medium text-red-600" : "text-sm leading-relaxed text-slate-500";
   return <p className={cls}>{children}</p>;
 }
+
+const inputClass = `w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm shadow-slate-900/[0.02] ${campusInputFocus}`;
 
 /** Scrollable ticket rows with optional “View all” */
 export function DashboardTicketList({
@@ -78,12 +82,9 @@ export function DashboardTicketList({
 }) {
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-14 animate-pulse rounded-lg bg-slate-100"
-          />
+      <div className="space-y-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-[3.25rem] animate-pulse rounded-xl bg-slate-100/90" />
         ))}
       </div>
     );
@@ -95,9 +96,7 @@ export function DashboardTicketList({
       (typeof error.response?.data === "string" ? error.response.data : null) ||
       error.message ||
       "Could not load tickets.";
-    return (
-      <DashboardInlineMessage variant="error">{msg}</DashboardInlineMessage>
-    );
+    return <DashboardInlineMessage variant="error">{msg}</DashboardInlineMessage>;
   }
 
   const rows = (tickets || []).slice(0, maxRows);
@@ -108,21 +107,30 @@ export function DashboardTicketList({
 
   return (
     <div>
-      <ul className="divide-y divide-slate-100 rounded-lg border border-slate-100">
+      <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/80 bg-white ring-1 ring-slate-900/[0.03]">
         {rows.map((t) => (
           <li key={t.id}>
             <Link
               to={`/tickets/${t.id}`}
-              className="flex items-center justify-between gap-3 px-3 py-3 transition hover:bg-slate-50"
+              className="group flex items-center justify-between gap-3 px-4 py-3.5 transition hover:bg-slate-50/90"
             >
-              <div className="min-w-0">
-                <p className="truncate font-medium text-slate-900">{t.title}</p>
-                <p className="text-xs text-slate-500">
-                  #{t.id} · {t.status}
-                  {t.priority ? ` · ${t.priority}` : ""}
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium text-slate-900 transition group-hover:text-[#1E3A5F]">
+                  {t.title}
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  <span className="tabular-nums text-slate-600">#{t.id}</span>
+                  <span className="mx-1.5 text-slate-300">·</span>
+                  <span>{t.status}</span>
+                  {t.priority ? (
+                    <>
+                      <span className="mx-1.5 text-slate-300">·</span>
+                      {t.priority}
+                    </>
+                  ) : null}
                 </p>
               </div>
-              <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-[#1E3A5F]" />
             </Link>
           </li>
         ))}
@@ -130,23 +138,17 @@ export function DashboardTicketList({
       {viewAllHref ? (
         <Link
           to={viewAllHref}
-          className="mt-3 inline-flex items-center text-sm font-medium text-blue-700 hover:text-blue-900"
+          className={`mt-4 inline-flex items-center gap-0.5 text-sm ${campusTextLink}`}
         >
           {viewAllLabel}
-          <ChevronRight className="ml-0.5 h-4 w-4" />
+          <ChevronRight className="h-4 w-4" strokeWidth={2} />
         </Link>
       ) : null}
     </div>
   );
 }
 
-const STATUS_OPTIONS = [
-  "OPEN",
-  "IN_PROGRESS",
-  "RESOLVED",
-  "CLOSED",
-  "REJECTED",
-];
+const STATUS_OPTIONS = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED", "REJECTED"];
 
 /**
  * Technician / admin: pick assigned ticket and push a new status.
@@ -193,7 +195,7 @@ export function DashboardStatusUpdateCard({ tickets, isLoading }) {
   if (isLoading) {
     return (
       <DashboardSummaryCard title="Update ticket status" description="Loading…">
-        <div className="h-24 animate-pulse rounded-lg bg-slate-100" />
+        <div className="h-28 animate-pulse rounded-xl bg-slate-100/90" />
       </DashboardSummaryCard>
     );
   }
@@ -235,14 +237,10 @@ export function DashboardStatusUpdateCard({ tickets, isLoading }) {
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
             Ticket
           </label>
-          <select
-            value={ticketId}
-            onChange={(e) => setTicketId(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
+          <select value={ticketId} onChange={(e) => setTicketId(e.target.value)} className={`mt-1.5 ${inputClass}`}>
             <option value="">Choose ticket…</option>
             {options.map((t) => (
               <option key={t.id} value={t.id}>
@@ -253,14 +251,10 @@ export function DashboardStatusUpdateCard({ tickets, isLoading }) {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
             New status
           </label>
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className={`mt-1.5 ${inputClass}`}>
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
                 {s.replace(/_/g, " ")}
@@ -270,28 +264,28 @@ export function DashboardStatusUpdateCard({ tickets, isLoading }) {
         </div>
         {status === "RESOLVED" ? (
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
               Resolution notes (required)
             </label>
             <textarea
               value={resolutionNotes}
               onChange={(e) => setResolutionNotes(e.target.value)}
               rows={3}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className={`mt-1.5 ${inputClass}`}
               placeholder="What was done to resolve the issue?"
             />
           </div>
         ) : null}
         {status === "REJECTED" ? (
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
               Rejection reason (required)
             </label>
             <textarea
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               rows={2}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className={`mt-1.5 ${inputClass}`}
               placeholder="Why is this ticket rejected?"
             />
           </div>
@@ -299,7 +293,7 @@ export function DashboardStatusUpdateCard({ tickets, isLoading }) {
         <button
           type="submit"
           disabled={mutation.isPending}
-          className="w-full rounded-lg bg-[#1E3A5F] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#162d4a] disabled:opacity-60"
+          className={`w-full py-3 text-sm ${campusBtnPrimary}`}
         >
           {mutation.isPending ? "Saving…" : "Apply status update"}
         </button>
