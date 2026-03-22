@@ -48,13 +48,13 @@ public class UserService {
     }
 
     @Transactional
-    public void toggleUserStatus(Long id) {
+    public UserProfileDTO toggleUserStatus(Long id) {
         User user =
                 userRepository
-                        .findById(id)
+                        .findByIdWithRoles(id)
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         user.setEnabled(!user.isEnabled());
-        userRepository.save(user);
+        return toProfileDto(userRepository.save(user));
     }
 
     private UserProfileDTO toProfileDto(User user) {
