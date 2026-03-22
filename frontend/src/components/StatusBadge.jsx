@@ -1,7 +1,7 @@
 import React from 'react';
 
 const statusStyles = {
-  OPEN: "border border-[#152a45] bg-[#1E3A5F] text-white shadow-sm",
+  OPEN: "border border-campus-brand-pressed bg-campus-brand text-white shadow-sm",
   IN_PROGRESS: "border border-blue-800 bg-blue-700 text-white shadow-sm",
   RESOLVED: 'bg-emerald-600 text-white border border-emerald-700 shadow-sm',
   PENDING: 'bg-amber-600 text-white border border-amber-700 shadow-sm',

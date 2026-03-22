@@ -1,19 +1,20 @@
 /**
- * Dashboard design system — modern, restrained enterprise UI.
+ * Dashboard design system — uses Tailwind `campus.*` theme tokens.
  */
 
-export const CAMPUS_NAVY = "#1E3A5F";
+/** For rare inline styles / SVG (matches campus.brand) */
+export const CAMPUS_BRAND_HEX = "#4f46e5";
 
 export const campusInputFocus =
-  "focus:border-slate-400 focus:ring-2 focus:ring-slate-200/80 focus:outline-none";
+  "focus:border-slate-400 focus:ring-2 focus:ring-campus-brand/15 focus:outline-none";
 
 export const campusBtnPrimary =
-  "rounded-xl bg-[#1E3A5F] font-semibold text-white shadow-md shadow-slate-900/10 transition hover:bg-[#162d4a] disabled:pointer-events-none disabled:opacity-60";
+  "rounded-xl bg-campus-brand font-semibold text-white shadow-md shadow-slate-900/10 transition hover:bg-campus-brand-hover active:bg-campus-brand-pressed disabled:pointer-events-none disabled:opacity-60";
 
-export const campusAccentFill = "bg-[#1E3A5F]";
+export const campusAccentFill = "bg-campus-brand";
 
 export const campusTextLink =
-  "font-semibold text-[#1E3A5F] transition hover:text-[#152a45]";
+  "font-semibold text-campus-brand-hover transition hover:text-campus-brand-pressed";
 
 /** Secondary actions on dashboard pages */
 export const dashboardBtnSecondary =
@@ -25,23 +26,23 @@ export const dashboardCardShell =
 
 export function DashboardPageLayout({ eyebrow = "Dashboard", title, subtitle, children }) {
   return (
-    <div className="relative min-h-full bg-slate-100">
+    <div className="relative min-h-full bg-zinc-100">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.35]"
         aria-hidden
         style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, rgb(203 213 225 / 0.55) 1px, transparent 0)`,
+          backgroundImage: `radial-gradient(circle at 1px 1px, rgb(228 228 231 / 0.55) 1px, transparent 0)`,
           backgroundSize: "24px 24px",
         }}
       />
       <div className="relative">
-        <header className="border-b border-slate-200/80 bg-white/85 backdrop-blur-md">
+        <header className="border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
           <div className="relative mx-auto max-w-6xl px-6 py-6 sm:py-7">
-            <div className="absolute bottom-0 left-6 right-6 h-px max-w-2xl bg-gradient-to-r from-[#1E3A5F]/25 via-slate-200/60 to-transparent sm:left-6" />
+            <div className="absolute bottom-0 left-6 right-6 h-px max-w-2xl bg-gradient-to-r from-campus-brand/20 via-slate-200/70 to-transparent sm:left-6" />
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
               {eyebrow}
             </p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem] sm:leading-[1.2]">
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-zinc-900 sm:text-[1.75rem] sm:leading-[1.2]">
               {title}
             </h1>
             {subtitle ? (
@@ -59,13 +60,13 @@ export function DashboardStatCard({ label, value, hint }) {
   return (
     <div className={`${dashboardCardShell} p-5 sm:p-6`}>
       <div
-        className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[#1E3A5F]/[0.06]"
+        className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-campus-brand/10"
         aria-hidden
       />
       <p className="relative text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
         {label}
       </p>
-      <p className="relative mt-2 text-3xl font-bold tabular-nums tracking-tight text-slate-900">
+      <p className="relative mt-2 text-3xl font-bold tabular-nums tracking-tight text-zinc-900">
         {value}
       </p>
       {hint ? <p className="relative mt-2 text-xs leading-relaxed text-slate-500">{hint}</p> : null}
@@ -76,7 +77,7 @@ export function DashboardStatCard({ label, value, hint }) {
 export function DashboardSection({ title, description, children }) {
   return (
     <section className={`${dashboardCardShell} p-6 sm:p-7`}>
-      <h2 className="text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
+      <h2 className="text-lg font-semibold tracking-tight text-zinc-900">{title}</h2>
       {description ? (
         <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{description}</p>
       ) : null}
@@ -87,7 +88,7 @@ export function DashboardSection({ title, description, children }) {
 
 export function PlaceholderBlock({ children }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-300/80 bg-slate-50/60 px-4 py-10 text-center text-sm text-slate-500">
+    <div className="rounded-xl border border-dashed border-zinc-300/80 bg-zinc-50/80 px-4 py-10 text-center text-sm text-zinc-500">
       {children}
     </div>
   );

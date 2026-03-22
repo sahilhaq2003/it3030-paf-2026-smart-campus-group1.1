@@ -52,7 +52,7 @@ export default function TechnicianDashboard() {
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-sm font-medium text-slate-600">Assigned</span>
-              <Zap className="h-5 w-5 text-[#1E3A5F]" />
+              <Zap className="h-5 w-5 text-campus-brand" />
             </div>
             <p className="text-2xl font-bold text-slate-900">{metrics.assigned}</p>
           </div>
@@ -106,7 +106,7 @@ export default function TechnicianDashboard() {
             <div className="space-y-3">
               {scheduleStatus.map((item, idx) => (
                 <div key={idx} className="pb-3 border-b border-slate-200 last:border-0">
-                  <p className="text-xs font-bold text-[#1E3A5F]">{item.time}</p>
+                  <p className="text-xs font-bold text-campus-brand">{item.time}</p>
                   <p className="text-sm text-slate-900 mt-1">{item.title}</p>
                   <span className={`text-xs mt-1 inline-block px-2 py-1 rounded font-medium ${
                     item.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
@@ -193,7 +193,7 @@ export default function TechnicianDashboard() {
                   onClick={() => setActiveTab(tab)}
                   className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
                     activeTab === tab
-                      ? "bg-[#1E3A5F] text-white shadow-sm"
+                      ? "bg-campus-brand text-white shadow-sm"
                       : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                   }`}
                 >
@@ -227,7 +227,7 @@ export default function TechnicianDashboard() {
                         : `Open for ${ticket.daysOpen} days`}
                     </p>
                   </div>
-                  <Target className="h-5 w-5 text-slate-400 transition-colors group-hover:text-[#1E3A5F]" />
+                  <Target className="h-5 w-5 text-slate-400 transition-colors group-hover:text-campus-brand" />
                 </div>
               ))}
           </div>

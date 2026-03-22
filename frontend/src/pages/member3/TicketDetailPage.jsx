@@ -101,7 +101,7 @@ export default function TicketDetailPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-full items-center justify-center bg-slate-50">
-        <div className="h-9 w-9 animate-spin rounded-full border-2 border-slate-200 border-t-[#1E3A5F]" />
+        <div className="h-9 w-9 animate-spin rounded-full border-2 border-slate-200 border-t-campus-brand" />
       </div>
     );
   }
@@ -139,7 +139,7 @@ export default function TicketDetailPage() {
       <button
         type="button"
         onClick={() => navigate(-1)}
-        className="mb-6 flex items-center text-sm font-medium text-[#1E3A5F] transition hover:opacity-90"
+        className="mb-6 flex items-center text-sm font-medium text-campus-brand-hover transition hover:opacity-90"
       >
         <ChevronLeft size={16} className="mr-1" /> Back
       </button>
@@ -198,7 +198,7 @@ export default function TicketDetailPage() {
                 <div key={step} className="flex flex-1 items-center">
                   <div
                     className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all ${
-                      i <= stepIndex ? "bg-[#1E3A5F] text-white shadow-sm" : "bg-slate-300 text-slate-600"
+                      i <= stepIndex ? "bg-campus-brand text-white shadow-sm" : "bg-slate-300 text-slate-600"
                     }`}
                   >
                     {i < stepIndex ? "✓" : i + 1}
@@ -206,7 +206,7 @@ export default function TicketDetailPage() {
                   <div className="mx-1 flex-1">
                     <div
                       className={`h-1 rounded transition-colors ${
-                        i < stepIndex ? "bg-[#1E3A5F]" : "bg-slate-300"
+                        i < stepIndex ? "bg-campus-brand" : "bg-slate-300"
                       }`}
                     />
                   </div>
@@ -270,7 +270,7 @@ export default function TicketDetailPage() {
           <div className="mb-6 space-y-4">
             {comments.map((c) => (
               <div key={c.id} className="flex gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1E3A5F] text-xs font-bold text-white shadow-sm">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-campus-brand text-xs font-bold text-white shadow-sm">
                   {c.authorName?.[0]?.toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -319,7 +319,7 @@ export default function TicketDetailPage() {
                                 setEditingCommentId(c.id);
                                 setEditContent(c.content);
                               }}
-                              className="p-1 text-slate-400 transition-colors hover:text-[#1E3A5F]"
+                              className="p-1 text-slate-400 transition-colors hover:text-campus-brand-hover"
                             >
                               <Edit2 size={13} />
                             </button>
@@ -344,7 +344,7 @@ export default function TicketDetailPage() {
           </div>
 
           <div className="flex gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1E3A5F] text-xs font-bold text-white shadow-sm">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-campus-brand text-xs font-bold text-white shadow-sm">
               {user?.name?.[0]?.toUpperCase()}
             </div>
             <div className="flex flex-1 gap-2">

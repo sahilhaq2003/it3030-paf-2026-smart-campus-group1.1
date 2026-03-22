@@ -89,7 +89,7 @@ export default function HomePage() {
               className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm shadow-slate-900/[0.04] ring-1 ring-slate-900/[0.03] transition duration-200 hover:border-slate-300/90 hover:shadow-md hover:ring-slate-900/[0.05]"
             >
               <div className="text-2xl leading-none opacity-90">{c.emoji}</div>
-              <h2 className="mt-4 text-base font-semibold text-slate-900 group-hover:text-[#1E3A5F]">
+              <h2 className="mt-4 text-base font-semibold text-slate-900 group-hover:text-campus-brand-hover">
                 {c.title}
               </h2>
               <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{c.desc}</p>

@@ -147,7 +147,7 @@ export default function AdminTicketsPage() {
               onClick={() => setSortBy(option)}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                 sortBy === option
-                  ? "bg-[#1E3A5F] text-white shadow-sm"
+                  ? "bg-campus-brand text-white shadow-sm"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
@@ -164,7 +164,7 @@ export default function AdminTicketsPage() {
             <button
               type="button"
               onClick={bulkAssign}
-              className="rounded-lg bg-[#1E3A5F] px-4 py-2 text-sm font-medium text-white transition hover:opacity-95"
+              className="rounded-lg bg-campus-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-campus-brand-hover"
             >
               Assign
             </button>
@@ -221,7 +221,7 @@ export default function AdminTicketsPage() {
                   <div>
                     <button
                       type="button"
-                      className="text-left font-semibold text-slate-900 transition hover:text-[#1E3A5F]"
+                      className="text-left font-semibold text-slate-900 transition hover:text-campus-brand-hover"
                       onClick={() => navigate(`/tickets/${ticket.id}`)}
                     >
                       {ticket.title}
@@ -244,7 +244,7 @@ export default function AdminTicketsPage() {
                     {ticket.priority}
                   </div>
                 </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-[#1E3A5F]" />
+                <ChevronRight className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-campus-brand" />
               </div>
             ))}
           </div>

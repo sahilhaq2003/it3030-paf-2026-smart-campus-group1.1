@@ -8,7 +8,7 @@ import {
 import { AlertCircle, CheckCircle, Upload, ChevronRight, ChevronLeft } from "lucide-react";
 
 const focusOk = `border-slate-200 ${campusInputFocus}`;
-const brandBar = "h-full bg-[#1E3A5F] transition-all duration-300 rounded-full";
+const brandBar = "h-full rounded-full bg-campus-brand transition-all duration-300";
 
 export default function CreateTicketPage() {
   const navigate = useNavigate();
@@ -103,7 +103,7 @@ export default function CreateTicketPage() {
                       s < step
                         ? "bg-emerald-600 text-white shadow-md"
                         : s === step
-                          ? "bg-[#1E3A5F] text-white shadow-md ring-4 ring-slate-200"
+                          ? "bg-campus-brand text-white shadow-md ring-4 ring-slate-200"
                           : "bg-slate-200 text-slate-600"
                     }`}
                   >
@@ -260,7 +260,7 @@ export default function CreateTicketPage() {
                 <div>
                   <label className="block text-sm font-bold text-slate-900 mb-2">Evidence Images (optional, max 3)</label>
                   <div className="cursor-pointer rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center shadow-sm transition hover:border-slate-400 hover:bg-slate-100">
-                    <Upload className="mx-auto mb-2 h-8 w-8 text-[#1E3A5F]" />
+                    <Upload className="mx-auto mb-2 h-8 w-8 text-campus-brand" />
                     <p className="text-sm font-semibold text-slate-800">Drag & drop images, or click to select</p>
                     <p className="text-xs text-slate-600 mt-1 font-medium">JPEG, PNG, WEBP — max 5MB each</p>
                   </div>

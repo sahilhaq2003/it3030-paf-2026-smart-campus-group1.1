@@ -119,7 +119,7 @@ export default function MyTicketsPage() {
               onClick={() => setSortBy(option)}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                 sortBy === option
-                  ? "bg-[#1E3A5F] text-white shadow-sm"
+                  ? "bg-campus-brand text-white shadow-sm"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
@@ -155,7 +155,7 @@ export default function MyTicketsPage() {
                     </span>
                     <StatusBadge status={ticket.status} />
                   </div>
-                  <p className="font-semibold text-slate-900 transition group-hover:text-[#1E3A5F]">{ticket.title}</p>
+                  <p className="font-semibold text-slate-900 transition group-hover:text-campus-brand-hover">{ticket.title}</p>
                   <p className="mt-1 text-xs text-slate-500">
                     {ticket.category} · Open {ticket.daysOpen} {ticket.daysOpen === 1 ? "day" : "days"}
                   </p>

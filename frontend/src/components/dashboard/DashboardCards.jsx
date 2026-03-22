@@ -26,7 +26,7 @@ export function DashboardSummaryCard({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-4">
           {Icon ? (
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 text-[#1E3A5F] shadow-inner shadow-slate-900/[0.04] ring-1 ring-slate-200/60">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-campus-brand-soft to-white text-campus-brand shadow-inner shadow-slate-900/[0.04] ring-1 ring-campus-brand-muted/40">
               <Icon className="h-5 w-5" strokeWidth={2} />
             </div>
           ) : null}
@@ -115,7 +115,7 @@ export function DashboardTicketList({
               className="group flex items-center justify-between gap-3 px-4 py-3.5 transition hover:bg-slate-50/90"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-slate-900 transition group-hover:text-[#1E3A5F]">
+                <p className="truncate font-medium text-slate-900 transition group-hover:text-campus-brand-hover">
                   {t.title}
                 </p>
                 <p className="mt-0.5 text-xs text-slate-500">
@@ -130,7 +130,7 @@ export function DashboardTicketList({
                   ) : null}
                 </p>
               </div>
-              <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-[#1E3A5F]" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-campus-brand" />
             </Link>
           </li>
         ))}

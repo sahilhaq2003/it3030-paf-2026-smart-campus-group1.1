@@ -59,7 +59,7 @@ function AppHeader() {
         <button
           type="button"
           onClick={handleLogout}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E3A5F]"
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand"
         >
           <LogOut className="h-4 w-4 text-slate-500" strokeWidth={2} />
           <span className="hidden sm:inline">Log out</span>
@@ -116,9 +116,9 @@ function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-56 flex-col border-r border-slate-800/20 bg-[#1E3A5F] text-white">
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-56 flex-col border-r border-campus-line bg-campus-shell text-white">
       <div className="border-b border-white/10 px-4 py-5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-200/70">Campus</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">Campus</p>
         <p className="mt-0.5 text-base font-bold tracking-tight">Smart Campus</p>
       </div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-4">
@@ -131,7 +131,7 @@ function Sidebar() {
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 on
                   ? "bg-white/12 text-white shadow-sm ring-1 ring-white/10"
-                  : "text-sky-100/90 hover:bg-white/8 hover:text-white"
+                  : "text-zinc-300 hover:bg-white/8 hover:text-white"
               }`}
             >
               <Icon className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2} />
@@ -141,7 +141,7 @@ function Sidebar() {
         })}
       </nav>
       <div className="border-t border-white/10 px-4 py-3">
-        <p className="text-[11px] leading-relaxed text-sky-200/50">Maintenance & service desk</p>
+        <p className="text-[11px] leading-relaxed text-zinc-500">Maintenance & service desk</p>
       </div>
     </aside>
   );
