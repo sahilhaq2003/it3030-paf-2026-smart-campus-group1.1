@@ -10,7 +10,7 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.smartcampus")
 @EnableScheduling
 @EntityScan(basePackages = {"com.smartcampus.maintenance", "com.smartcampus.user", "com.smartcampus.facilities"})
 @EnableJpaRepositories(basePackages = {"com.smartcampus.maintenance", "com.smartcampus.user", "com.smartcampus.facilities"})

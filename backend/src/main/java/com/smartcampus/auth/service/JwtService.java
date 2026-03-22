@@ -72,6 +72,11 @@ public class JwtService {
         }
     }
 
+    /** Verifies signature and expiry and returns claims. */
+    public Claims parseToken(String token) {
+        return parseClaims(token);
+    }
+
     private Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(secretKey)
