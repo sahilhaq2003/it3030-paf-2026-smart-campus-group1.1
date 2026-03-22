@@ -1,4 +1,4 @@
-import { useState, useRef, useLayoutEffect } from "react";
+import { useState, useCallback } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -18,29 +18,25 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
-  const googleWrapRef = useRef(null);
-  /** Measured once after layout so GoogleLogin does not re-call gsi.initialize() on every resize. */
-  const [googleBtnWidth, setGoogleBtnWidth] = useState(null);
 
-  useLayoutEffect(() => {
-    const el = googleWrapRef.current;
-    if (!el) return undefined;
-    let cancelled = false;
-    let rafInner = 0;
-    const apply = () => {
-      if (cancelled) return;
-      const w = Math.floor(el.getBoundingClientRect().width);
-      setGoogleBtnWidth(w > 0 ? w : 320);
-    };
-    const rafOuter = requestAnimationFrame(() => {
-      rafInner = requestAnimationFrame(apply);
-    });
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(rafOuter);
-      cancelAnimationFrame(rafInner);
-    };
-  }, []);
+  /** Stable callback so @react-oauth/google effect deps do not churn (avoids duplicate GSI initialize). */
+  const onGoogleCredential = useCallback(
+    (credentialResponse) => {
+      clearLoginError();
+      setFieldErrors({});
+      const cred = credentialResponse?.credential;
+      if (!cred) return;
+      void (async () => {
+        try {
+          const signedIn = await loginWithGoogle(cred);
+          navigate(getPostLoginRoute(signedIn?.roles, { viaGoogle: true }));
+        } catch {
+          /* loginError set in AuthContext */
+        }
+      })();
+    },
+    [clearLoginError, loginWithGoogle, navigate],
+  );
 
   const handleEmailPassword = async (e) => {
     e.preventDefault();
@@ -224,41 +220,25 @@ export default function LoginPage() {
                   Signing in…
                 </div>
               ) : (
-                <div ref={googleWrapRef} className="w-full min-w-0">
-                  {googleBtnWidth == null ? (
-                    <div
-                      className="min-h-10 w-full animate-pulse rounded-md bg-slate-100/90"
-                      aria-hidden
-                    />
-                  ) : (
-                    <GoogleLogin
-                      width={googleBtnWidth}
-                      type="standard"
-                      theme="outline"
-                      size="large"
-                      text="signin_with"
-                      shape="rectangular"
-                      logo_alignment="left"
-                      containerProps={{
-                        className: "login-google-inner flex w-full items-center justify-center p-0",
-                      }}
-                      onSuccess={(credentialResponse) => {
-                        clearLoginError();
-                        setFieldErrors({});
-                        const cred = credentialResponse?.credential;
-                        if (!cred) return;
-                        void (async () => {
-                          try {
-                            const signedIn = await loginWithGoogle(cred);
-                            navigate(getPostLoginRoute(signedIn?.roles, { viaGoogle: true }));
-                          } catch {
-                            /* loginError set in AuthContext */
-                          }
-                        })();
-                      }}
-                      onError={() => clearLoginError()}
-                    />
-                  )}
+                <div className="w-full min-w-0">
+                  {/*
+                    Fixed width: GSI re-runs initialize() when `width` changes; measuring the
+                    container caused a second init and console warnings.
+                  */}
+                  <GoogleLogin
+                    width={400}
+                    type="standard"
+                    theme="outline"
+                    size="large"
+                    text="signin_with"
+                    shape="rectangular"
+                    logo_alignment="left"
+                    containerProps={{
+                      className: "login-google-inner flex w-full max-w-full items-center justify-center p-0",
+                    }}
+                    onSuccess={onGoogleCredential}
+                    onError={clearLoginError}
+                  />
                 </div>
               )
             ) : (

@@ -5,8 +5,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     headers: {
-      // Lets Google Sign-In popup communicate with the opener (avoids COOP postMessage warnings).
-      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      // Dev: GSI / FedCM popups use postMessage; strict COOP blocks it in some browsers.
+      // Harden this in production (e.g. same-origin-allow-popups) at the reverse proxy.
+      'Cross-Origin-Opener-Policy': 'unsafe-none',
     },
   },
 });

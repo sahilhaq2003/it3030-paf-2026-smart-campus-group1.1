@@ -1,17 +1,22 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import {
   DashboardPageLayout,
   campusBtnPrimary,
   campusInputFocus,
 } from "../../components/dashboard/DashboardPrimitives";
 import { AlertCircle, CheckCircle, Upload, ChevronRight, ChevronLeft } from "lucide-react";
+import { ticketApi } from "../../api/ticketApi";
 
 const focusOk = `border-slate-200 ${campusInputFocus}`;
 const brandBar = "h-full rounded-full bg-campus-brand transition-all duration-300";
 
 export default function CreateTicketPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef(null);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     title: '',
@@ -25,6 +30,44 @@ export default function CreateTicketPage() {
 
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+
+  const createTicketMutation = useMutation({
+    mutationFn: async () => {
+      const ticketJson = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        category: formData.category,
+        priority: formData.priority,
+        location: formData.location.trim(),
+        preferredContact: formData.contact.trim(),
+      };
+      const fd = new FormData();
+      fd.append(
+        "ticket",
+        new Blob([JSON.stringify(ticketJson)], { type: "application/json" }),
+      );
+      const files = formData.images || [];
+      for (let i = 0; i < Math.min(files.length, 3); i++) {
+        fd.append("files", files[i]);
+      }
+      const { data } = await ticketApi.createTicket(fd);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Ticket created");
+      queryClient.invalidateQueries({ queryKey: ["tickets", "my"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "myTickets"] });
+      navigate("/tickets");
+    },
+    onError: (err) => {
+      const msg =
+        err?.response?.data?.message ||
+        (typeof err?.response?.data === "string" ? err.response.data : null) ||
+        err?.message ||
+        "Could not create ticket";
+      toast.error(typeof msg === "string" ? msg : "Could not create ticket");
+    },
+  });
 
   // Validation rules
   const validate = (field, value) => {
@@ -79,10 +122,28 @@ export default function CreateTicketPage() {
   const canProceedStep1 = formData.title && formData.description && formData.category && !errors.title && !errors.description && !errors.category;
   const canProceedStep2 = formData.location && formData.contact;
 
+  const handlePickFiles = (e) => {
+    const list = Array.from(e.target.files || []);
+    const next = [];
+    for (const f of list.slice(0, 3)) {
+      if (f.size > 5 * 1024 * 1024) {
+        toast.error(`${f.name} is over 5MB`);
+        continue;
+      }
+      if (!/^image\/(jpeg|png|webp)$/i.test(f.type)) {
+        toast.error("Use JPEG, PNG, or WEBP images only");
+        continue;
+      }
+      next.push(f);
+    }
+    setFormData((prev) => ({ ...prev, images: next }));
+    e.target.value = "";
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert('Ticket created successfully!');
-    navigate('/tickets');
+    if (step !== 3) return;
+    createTicketMutation.mutate();
   };
 
   const progressPercentage = (step / 3) * 100;
@@ -259,11 +320,30 @@ export default function CreateTicketPage() {
                 {/* Upload Images */}
                 <div>
                   <label className="block text-sm font-bold text-slate-900 mb-2">Evidence Images (optional, max 3)</label>
-                  <div className="cursor-pointer rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center shadow-sm transition hover:border-slate-400 hover:bg-slate-100">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    className="hidden"
+                    onChange={handlePickFiles}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full cursor-pointer rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center shadow-sm transition hover:border-slate-400 hover:bg-slate-100"
+                  >
                     <Upload className="mx-auto mb-2 h-8 w-8 text-campus-brand" />
-                    <p className="text-sm font-semibold text-slate-800">Drag & drop images, or click to select</p>
+                    <p className="text-sm font-semibold text-slate-800">Click to select up to 3 images</p>
                     <p className="text-xs text-slate-600 mt-1 font-medium">JPEG, PNG, WEBP — max 5MB each</p>
-                  </div>
+                  </button>
+                  {formData.images?.length ? (
+                    <ul className="mt-2 space-y-1 text-xs text-slate-600">
+                      {formData.images.map((f) => (
+                        <li key={f.name}>{f.name}</li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
               </div>
             )}
@@ -334,9 +414,11 @@ export default function CreateTicketPage() {
               ) : (
                 <button
                   type="submit"
-                  className="flex items-center gap-2 rounded-xl bg-emerald-700 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-800"
+                  disabled={createTicketMutation.isPending}
+                  className="flex items-center gap-2 rounded-xl bg-emerald-700 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-800 disabled:pointer-events-none disabled:opacity-60"
                 >
-                  <CheckCircle size={16} /> Submit Ticket
+                  <CheckCircle size={16} />{" "}
+                  {createTicketMutation.isPending ? "Submitting…" : "Submit Ticket"}
                 </button>
               )}
             </div>
