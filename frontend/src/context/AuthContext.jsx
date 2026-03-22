@@ -1,32 +1,30 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
 
-  /** Mock Google sign-in — replace with real OAuth + API when ready. */
-  const login = useCallback(() => {
+  const login = () => {
+    // TEMP fake login
     setUser({
-      id: 1,
-      name: 'Demo Student',
-      email: 'demo@smartcampus.edu',
-      roles: ['USER'],
+      name: "Test User",
+      role: "ADMIN",
     });
-  }, []);
+    setToken("fake-jwt-token-demo");
+  };
 
-  const value = useMemo(
-    () => ({
-      user,
-      isAuthenticated: Boolean(user),
-      login,
-    }),
-    [user, login],
+  const logout = () => {
+    setUser(null);
+    setToken(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, token, login, logout }}>
+      {children}
+    </AuthContext.Provider>
   );
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export const useAuth = () => useContext(AuthContext);
