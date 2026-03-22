@@ -4,9 +4,9 @@ function Sidebar() {
   const loc = useLocation();
   const links = [
     { to: "/home", label: "🏠 Home", active: (p) => p === "/home" },
-    { to: "/dashboard/user", label: "👤 User dashboard", active: (p) => p.startsWith("/dashboard/user") },
-    { to: "/dashboard/admin", label: "🛡 Admin dashboard", active: (p) => p.startsWith("/dashboard/admin") },
-    { to: "/dashboard/technician", label: "👷 Tech dashboard", active: (p) => p.startsWith("/dashboard/technician") },
+    { to: "/dashboard", label: "👤 User dashboard", active: (p) => p === "/dashboard" },
+    { to: "/admin-dashboard", label: "🛡 Admin dashboard", active: (p) => p.startsWith("/admin-dashboard") },
+    { to: "/technician-dashboard", label: "👷 Tech dashboard", active: (p) => p.startsWith("/technician-dashboard") },
     { to: "/tickets", label: "🎫 My Tickets", active: (p) => p === "/tickets" },
     { to: "/tickets/create", label: "➕ New Ticket", active: (p) => p === "/tickets/create" },
     { to: "/admin/tickets", label: "🛠 Admin tickets", active: (p) => p.startsWith("/admin/tickets") },
