@@ -1,16 +1,50 @@
 import { Link, useLocation, Outlet } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import {
+  DASHBOARD_PATHS,
+  canAccessAdminTickets,
+  getDashboardRoute,
+} from "../utils/getDashboardRoute";
 
 function Sidebar() {
   const loc = useLocation();
+  const { user } = useAuth();
+  const roles = user?.roles ?? (user?.role != null ? [user.role] : []);
+  const primaryDash = getDashboardRoute(roles);
+
+  const dashLink =
+    primaryDash === DASHBOARD_PATHS.ADMIN
+      ? {
+          to: DASHBOARD_PATHS.ADMIN,
+          label: "🛡 Admin dashboard",
+          active: (p) => p.startsWith("/AdminDashboard"),
+        }
+      : primaryDash === DASHBOARD_PATHS.TECHNICIAN
+        ? {
+            to: DASHBOARD_PATHS.TECHNICIAN,
+            label: "👷 Tech dashboard",
+            active: (p) => p.startsWith("/TechnicianDashboard"),
+          }
+        : {
+            to: DASHBOARD_PATHS.USER,
+            label: "👤 User dashboard",
+            active: (p) => p === "/UserDashboard",
+          };
+
   const links = [
     { to: "/home", label: "🏠 Home", active: (p) => p === "/home" },
-    { to: "/dashboard", label: "👤 User dashboard", active: (p) => p === "/dashboard" },
-    { to: "/admin-dashboard", label: "🛡 Admin dashboard", active: (p) => p.startsWith("/admin-dashboard") },
-    { to: "/technician-dashboard", label: "👷 Tech dashboard", active: (p) => p.startsWith("/technician-dashboard") },
+    dashLink,
     { to: "/tickets", label: "🎫 My Tickets", active: (p) => p === "/tickets" },
     { to: "/tickets/create", label: "➕ New Ticket", active: (p) => p === "/tickets/create" },
-    { to: "/admin/tickets", label: "🛠 Admin tickets", active: (p) => p.startsWith("/admin/tickets") },
   ];
+
+  if (canAccessAdminTickets(roles)) {
+    links.push({
+      to: "/admin/tickets",
+      label: "🛠 Admin tickets",
+      active: (p) => p.startsWith("/admin/tickets"),
+    });
+  }
   return (
     <div className="w-56 min-h-screen bg-[#1E3A5F] text-white flex flex-col py-6 px-4 fixed left-0 top-0">
       <div className="text-xl font-bold mb-8 px-2">🏫 Smart Campus</div>

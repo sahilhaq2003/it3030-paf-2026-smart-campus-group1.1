@@ -1,18 +1,31 @@
-import React, { useState } from 'react';
-import { Menu, X, Home, Plus, Users, Wrench, LogOut, Bell, Settings } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Menu, X, Home, Plus, Users, LayoutDashboard, LogOut, Bell, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import {
+  canAccessAdminTickets,
+  getDashboardRoute,
+} from '../utils/getDashboardRoute';
 
 export default function AppLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-  const navItems = [
-    { label: 'My Tickets', href: '/tickets', icon: Home },
-    { label: 'Create Ticket', href: '/tickets/create', icon: Plus },
-    { label: 'Admin', href: '/admin/tickets', icon: Users },
-    { label: 'Technician', href: '/technician-dashboard', icon: Wrench },
-  ];
+  const navItems = useMemo(() => {
+    const roles = user?.roles ?? (user?.role != null ? [user.role] : []);
+    const dash = getDashboardRoute(roles);
+    const items = [
+      { label: 'Dashboard', href: dash, icon: LayoutDashboard },
+      { label: 'My Tickets', href: '/tickets', icon: Home },
+      { label: 'Create Ticket', href: '/tickets/create', icon: Plus },
+    ];
+    if (canAccessAdminTickets(roles)) {
+      items.push({ label: 'Admin tickets', href: '/admin/tickets', icon: Users });
+    }
+    return items;
+  }, [user]);
 
   const isActive = (href) => location.pathname === href;
 
@@ -68,12 +81,19 @@ export default function AppLayout({ children }) {
               alt="avatar" 
               className="w-10 h-10 rounded-full ring-2 ring-cyan-400" 
             />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-white">John Doe</p>
-              <p className="text-xs text-slate-400">Admin</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white truncate">{user?.name ?? 'User'}</p>
+              <p className="text-xs text-slate-400 truncate">{user?.email ?? ''}</p>
             </div>
           </div>
-          <button className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-600/20 text-red-300 hover:bg-red-600/40 transition-colors text-sm font-medium">
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              navigate('/');
+            }}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-600/20 text-red-300 hover:bg-red-600/40 transition-colors text-sm font-medium"
+          >
             <LogOut size={16} /> Logout
           </button>
         </div>

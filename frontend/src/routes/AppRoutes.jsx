@@ -11,12 +11,15 @@ import UserDashboard from "../pages/dashboards/UserDashboard";
 import AdminDashboard from "../pages/dashboards/AdminDashboard";
 import TechnicianDashboard from "../pages/dashboards/TechnicianDashboard";
 import ProtectedRoute from "./ProtectedRoute";
+import RoleProtectedDashboard from "./RoleProtectedDashboard";
+import StaffTicketsRoute from "./StaffTicketsRoute";
+import { DASHBOARD_PATHS } from "../utils/getDashboardRoute";
 
 /**
  * Router setup:
  * - / → public landing
  * - /login → LoginPage
- * - Role dashboards: /dashboard, /admin-dashboard, /technician-dashboard
+ * - Role dashboards: /UserDashboard, /AdminDashboard, /TechnicianDashboard
  */
 export default function AppRoutes() {
   return (
@@ -32,29 +35,60 @@ export default function AppRoutes() {
         }
       >
         <Route path="/home" element={<HomePage />} />
-        <Route path="/dashboard" element={<UserDashboard />} />
-        <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        <Route path="/technician-dashboard" element={<TechnicianDashboard />} />
+        <Route
+          path="/UserDashboard"
+          element={
+            <RoleProtectedDashboard dashboardPath={DASHBOARD_PATHS.USER}>
+              <UserDashboard />
+            </RoleProtectedDashboard>
+          }
+        />
+        <Route
+          path="/AdminDashboard"
+          element={
+            <RoleProtectedDashboard dashboardPath={DASHBOARD_PATHS.ADMIN}>
+              <AdminDashboard />
+            </RoleProtectedDashboard>
+          }
+        />
+        <Route
+          path="/TechnicianDashboard"
+          element={
+            <RoleProtectedDashboard dashboardPath={DASHBOARD_PATHS.TECHNICIAN}>
+              <TechnicianDashboard />
+            </RoleProtectedDashboard>
+          }
+        />
+        <Route path="/dashboard" element={<Navigate to="/UserDashboard" replace />} />
+        <Route path="/admin-dashboard" element={<Navigate to="/AdminDashboard" replace />} />
+        <Route path="/technician-dashboard" element={<Navigate to="/TechnicianDashboard" replace />} />
         <Route
           path="/dashboard/user"
-          element={<Navigate to="/dashboard" replace />}
+          element={<Navigate to="/UserDashboard" replace />}
         />
         <Route
           path="/dashboard/admin"
-          element={<Navigate to="/admin-dashboard" replace />}
+          element={<Navigate to="/AdminDashboard" replace />}
         />
         <Route
           path="/dashboard/technician"
-          element={<Navigate to="/technician-dashboard" replace />}
+          element={<Navigate to="/TechnicianDashboard" replace />}
         />
         <Route
           path="/technician"
-          element={<Navigate to="/technician-dashboard" replace />}
+          element={<Navigate to="/TechnicianDashboard" replace />}
         />
         <Route path="/tickets" element={<MyTicketsPage />} />
         <Route path="/tickets/create" element={<CreateTicketPage />} />
         <Route path="/tickets/:id" element={<TicketDetailPage />} />
-        <Route path="/admin/tickets" element={<AdminTicketsPage />} />
+        <Route
+          path="/admin/tickets"
+          element={
+            <StaffTicketsRoute>
+              <AdminTicketsPage />
+            </StaffTicketsRoute>
+          }
+        />
       </Route>
     </Routes>
   );

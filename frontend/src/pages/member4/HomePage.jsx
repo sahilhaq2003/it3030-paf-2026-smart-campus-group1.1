@@ -1,5 +1,10 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import {
+  DASHBOARD_PATHS,
+  canAccessAdminTickets,
+  getDashboardRoute,
+} from "../../utils/getDashboardRoute";
 
 export default function HomePage() {
   const { user, logout } = useAuth();
@@ -11,15 +16,55 @@ export default function HomePage() {
   };
 
   const displayName = user?.name ?? "there";
+  const roles = user?.roles ?? (user?.role != null ? [user.role] : []);
+  const primaryDash = getDashboardRoute(roles);
+
+  const dashCard =
+    primaryDash === DASHBOARD_PATHS.ADMIN
+      ? {
+          to: DASHBOARD_PATHS.ADMIN,
+          title: "Admin dashboard",
+          desc: "Operations metrics and system health",
+          emoji: "🛡",
+        }
+      : primaryDash === DASHBOARD_PATHS.TECHNICIAN
+        ? {
+            to: DASHBOARD_PATHS.TECHNICIAN,
+            title: "Technician dashboard",
+            desc: "Assignments and field work queue",
+            emoji: "👷",
+          }
+        : {
+            to: DASHBOARD_PATHS.USER,
+            title: "User dashboard",
+            desc: "Your overview, activity, and shortcuts",
+            emoji: "👤",
+          };
 
   const cards = [
-    { to: "/dashboard", title: "User dashboard", desc: "Your overview, activity, and shortcuts", emoji: "👤" },
-    { to: "/admin-dashboard", title: "Admin dashboard", desc: "Operations metrics and system health", emoji: "🛡" },
-    { to: "/technician-dashboard", title: "Technician dashboard", desc: "Assignments and field work queue", emoji: "👷" },
-    { to: "/tickets", title: "My tickets", desc: "View and track your maintenance requests", emoji: "🎫" },
-    { to: "/tickets/create", title: "New ticket", desc: "Report an issue on campus", emoji: "➕" },
-    { to: "/admin/tickets", title: "Admin tickets", desc: "Review and manage all tickets", emoji: "📋" },
+    dashCard,
+    {
+      to: "/tickets",
+      title: "My tickets",
+      desc: "View and track your maintenance requests",
+      emoji: "🎫",
+    },
+    {
+      to: "/tickets/create",
+      title: "New ticket",
+      desc: "Report an issue on campus",
+      emoji: "➕",
+    },
   ];
+
+  if (canAccessAdminTickets(roles)) {
+    cards.push({
+      to: "/admin/tickets",
+      title: "Admin tickets",
+      desc: "Review and manage all tickets",
+      emoji: "📋",
+    });
+  }
 
   return (
     <div className="min-h-full flex flex-col bg-slate-50">

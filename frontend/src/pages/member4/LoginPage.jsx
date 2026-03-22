@@ -3,7 +3,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { GOOGLE_CLIENT_ID } from "../../constants/googleAuth";
-import { getDashboardRoute } from "../../utils/getDashboardRoute";
+import { getDashboardRoute, getPostLoginRoute } from "../../utils/getDashboardRoute";
 
 const BRAND = "#1E3A5F";
 
@@ -21,19 +21,27 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const googleWrapRef = useRef(null);
-  const [googleBtnWidth, setGoogleBtnWidth] = useState(320);
+  /** Measured once after layout so GoogleLogin does not re-call gsi.initialize() on every resize. */
+  const [googleBtnWidth, setGoogleBtnWidth] = useState(null);
 
   useLayoutEffect(() => {
     const el = googleWrapRef.current;
-    if (!el) return;
-    const measure = () => {
+    if (!el) return undefined;
+    let cancelled = false;
+    let rafInner = 0;
+    const apply = () => {
+      if (cancelled) return;
       const w = Math.floor(el.getBoundingClientRect().width);
-      if (w > 0) setGoogleBtnWidth(w);
+      setGoogleBtnWidth(w > 0 ? w : 320);
     };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
+    const rafOuter = requestAnimationFrame(() => {
+      rafInner = requestAnimationFrame(apply);
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafOuter);
+      cancelAnimationFrame(rafInner);
+    };
   }, []);
 
   const handleEmailPassword = async (e) => {
@@ -58,7 +66,7 @@ export default function LoginPage() {
     setFieldErrors({});
     try {
       const signedIn = await loginWithGoogle();
-      navigate(getDashboardRoute(signedIn?.roles));
+      navigate(getPostLoginRoute(signedIn?.roles, { viaGoogle: true }));
     } catch {
       /* loginError set in AuthContext */
     }
@@ -227,6 +235,13 @@ export default function LoginPage() {
                 </div>
               ) : (
                 <div ref={googleWrapRef} className="w-full min-w-0">
+                  {googleBtnWidth == null ? (
+                    <div
+                      className="flex h-10 w-full items-center justify-center rounded-md border border-slate-200 bg-slate-50"
+                      aria-hidden
+                    />
+                  ) : null}
+                  {googleBtnWidth != null ? (
                   <GoogleLogin
                     width={googleBtnWidth}
                     size="large"
@@ -240,7 +255,7 @@ export default function LoginPage() {
                       void (async () => {
                         try {
                           const signedIn = await loginWithGoogle(cred);
-                          navigate(getDashboardRoute(signedIn?.roles));
+                          navigate(getPostLoginRoute(signedIn?.roles, { viaGoogle: true }));
                         } catch {
                           /* loginError set in AuthContext */
                         }
@@ -248,6 +263,7 @@ export default function LoginPage() {
                     }}
                     onError={() => clearLoginError()}
                   />
+                  ) : null}
                 </div>
               )
             ) : (
