@@ -1,7 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 @import "tailwindcss";
+@config "../tailwind.config.js";
 
 * {
   box-sizing: border-box;
@@ -9,5 +7,15 @@
 
 body {
   margin: 0;
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Login: stretch GSI wrapper to full card width (no outer chrome — avoids double border) */
+.login-google-inner > div {
+  width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
 }
