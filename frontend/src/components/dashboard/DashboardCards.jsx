@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { ChevronRight } from "lucide-react";
@@ -10,6 +10,7 @@ import {
   campusTextLink,
   dashboardCardShell,
 } from "./DashboardPrimitives";
+import { ticketStatusLabel } from "../../utils/ticketStatusDisplay";
 
 /**
  * Primary summary panel: icon, title, optional action, body.
@@ -121,7 +122,7 @@ export function DashboardTicketList({
                 <p className="mt-0.5 text-xs text-slate-500">
                   <span className="tabular-nums text-slate-600">#{t.id}</span>
                   <span className="mx-1.5 text-slate-300">·</span>
-                  <span>{t.status}</span>
+                  <span>{ticketStatusLabel(t)}</span>
                   {t.priority ? (
                     <>
                       <span className="mx-1.5 text-slate-300">·</span>
@@ -148,19 +149,56 @@ export function DashboardTicketList({
   );
 }
 
-const STATUS_OPTIONS = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED", "REJECTED"];
+/** Valid next statuses from current (must match server TicketServiceImpl.validateStatusTransition). */
+function allowedNextStatuses(current, isAdminWorkflow) {
+  if (!current) return [];
+  switch (current) {
+    case "OPEN":
+      return ["IN_PROGRESS", "REJECTED"];
+    case "IN_PROGRESS":
+      return ["RESOLVED", "REJECTED"];
+    case "RESOLVED":
+      return isAdminWorkflow ? ["CLOSED"] : [];
+    case "CLOSED":
+    case "REJECTED":
+    default:
+      return [];
+  }
+}
 
 /**
  * Technician / admin: pick assigned ticket and push a new status.
+ * Technicians use Resolved (closes automatically); they cannot pick CLOSED directly.
  */
-export function DashboardStatusUpdateCard({ tickets, isLoading }) {
+export function DashboardStatusUpdateCard({ tickets, isLoading, isAdminWorkflow = true }) {
   const qc = useQueryClient();
   const [ticketId, setTicketId] = useState("");
-  const [status, setStatus] = useState("IN_PROGRESS");
+  const [status, setStatus] = useState("");
   const [resolutionNotes, setResolutionNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
 
   const options = useMemo(() => tickets || [], [tickets]);
+  const selectedTicket = useMemo(
+    () => options.find((t) => String(t.id) === String(ticketId)),
+    [options, ticketId],
+  );
+  const allowed = useMemo(
+    () => allowedNextStatuses(selectedTicket?.status, isAdminWorkflow),
+    [selectedTicket?.status, isAdminWorkflow],
+  );
+
+  useEffect(() => {
+    if (!ticketId || !selectedTicket) {
+      setStatus("");
+      return;
+    }
+    const next = allowedNextStatuses(selectedTicket.status, isAdminWorkflow);
+    if (!next.length) {
+      setStatus("");
+      return;
+    }
+    setStatus((prev) => (next.includes(prev) ? prev : next[0]));
+  }, [ticketId, selectedTicket?.id, selectedTicket?.status, isAdminWorkflow]);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -179,6 +217,8 @@ export function DashboardStatusUpdateCard({ tickets, isLoading }) {
       toast.success("Ticket status updated");
       qc.invalidateQueries({ queryKey: ["dashboard", "assignedTickets"] });
       qc.invalidateQueries({ queryKey: ["tickets"] });
+      qc.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
+      qc.invalidateQueries({ queryKey: ["ticket"] });
       setResolutionNotes("");
       setRejectionReason("");
     },
@@ -219,6 +259,14 @@ export function DashboardStatusUpdateCard({ tickets, isLoading }) {
       toast.error("Select a ticket");
       return;
     }
+    if (!allowed.length) {
+      toast.error("No status changes are available for this ticket from here.");
+      return;
+    }
+    if (!allowed.includes(status)) {
+      toast.error("Pick a valid next status for the ticket’s current state.");
+      return;
+    }
     if (status === "RESOLVED" && !resolutionNotes.trim()) {
       toast.error("Resolution notes are required for RESOLVED");
       return;
@@ -233,7 +281,11 @@ export function DashboardStatusUpdateCard({ tickets, isLoading }) {
   return (
     <DashboardSummaryCard
       title="Update ticket status"
-      description="Select a ticket you are assigned to and move it through the workflow."
+      description={
+        isAdminWorkflow
+          ? "Select a ticket and move it through the workflow (Resolved closes the ticket automatically)."
+          : "Use Resolved with notes to finish a ticket — it closes automatically. You cannot set Closed directly."
+      }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -254,13 +306,25 @@ export function DashboardStatusUpdateCard({ tickets, isLoading }) {
           <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
             New status
           </label>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className={`mt-1.5 ${inputClass}`}>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {s.replace(/_/g, " ")}
-              </option>
-            ))}
-          </select>
+          {!ticketId ? (
+            <p className="mt-1.5 text-sm text-slate-500">Select a ticket first.</p>
+          ) : !allowed.length ? (
+            <p className="mt-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              This ticket is already finished or has no transitions from here (e.g. closed or rejected).
+            </p>
+          ) : (
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className={`mt-1.5 ${inputClass}`}
+            >
+              {allowed.map((s) => (
+                <option key={s} value={s}>
+                  {s === "RESOLVED" ? "Resolved (closes ticket)" : s.replace(/_/g, " ")}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         {status === "RESOLVED" ? (
           <div>
@@ -292,7 +356,7 @@ export function DashboardStatusUpdateCard({ tickets, isLoading }) {
         ) : null}
         <button
           type="submit"
-          disabled={mutation.isPending}
+          disabled={mutation.isPending || !ticketId || !allowed.length}
           className={`w-full py-3 text-sm ${campusBtnPrimary}`}
         >
           {mutation.isPending ? "Saving…" : "Apply status update"}

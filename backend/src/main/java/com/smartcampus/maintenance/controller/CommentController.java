@@ -1,5 +1,6 @@
 package com.smartcampus.maintenance.controller;
 
+import com.smartcampus.auth.util.Authz;
 import com.smartcampus.maintenance.dto.CommentDTO;
 import com.smartcampus.maintenance.service.CommentService;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +21,11 @@ public class CommentController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<CommentDTO>> getComments(@PathVariable Long ticketId) {
-        return ResponseEntity.ok(commentService.getComments(ticketId));
+    public ResponseEntity<List<CommentDTO>> getComments(
+            @PathVariable Long ticketId, Authentication auth) {
+        return ResponseEntity.ok(
+                commentService.getComments(
+                        ticketId, getUserId(auth), Authz.isTicketStaff(auth)));
     }
 
     @PostMapping
@@ -33,7 +37,13 @@ public class CommentController {
     ) {
         Long userId = getUserId(auth);
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(commentService.addComment(ticketId, body.get("content"), userId));
+            .body(
+                    commentService.addComment(
+                            ticketId,
+                            body.get("content"),
+                            userId,
+                            Authz.isAdmin(auth),
+                            Authz.isTechnician(auth)));
     }
 
     @PutMapping("/{commentId}")
@@ -55,8 +65,7 @@ public class CommentController {
         @PathVariable Long commentId,
         Authentication auth
     ) {
-        String role = auth.getAuthorities().iterator().next().getAuthority();
-        commentService.deleteComment(ticketId, commentId, getUserId(auth), role);
+        commentService.deleteComment(ticketId, commentId, getUserId(auth), Authz.isAdmin(auth));
         return ResponseEntity.noContent().build();
     }
 

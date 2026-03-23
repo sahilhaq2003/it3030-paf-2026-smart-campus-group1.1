@@ -9,6 +9,9 @@ import {
 import StatusBadge from "../../components/StatusBadge";
 import { Search, Clock, CheckCircle, ChevronRight, AlertCircle } from "lucide-react";
 import { ticketApi } from "../../api/ticketApi";
+import { isResolvedLikeTicket } from "../../utils/ticketStatusDisplay";
+import { useAuth } from "../../context/AuthContext";
+import { canCreateTickets } from "../../utils/getDashboardRoute";
 
 const PRIORITY_ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
 
@@ -26,6 +29,10 @@ export default function MyTicketsPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [priorityFilter, setPriorityFilter] = useState("ALL");
   const [sortBy, setSortBy] = useState("created");
+
+  const { user } = useAuth();
+  const roles = user?.roles ?? (user?.role != null ? [user.role] : []);
+  const showCreateTicket = canCreateTickets(roles);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["tickets", "my"],
@@ -45,12 +52,20 @@ export default function MyTicketsPage() {
       category: t.category,
       created: t.createdAt,
       daysOpen: daysOpenSince(t.createdAt),
+      resolutionNotes: t.resolutionNotes,
+      resolvedAt: t.resolvedAt,
     }));
   }, [data]);
 
   const filtered = useMemo(() => {
     let result = tickets.filter((t) => {
-      if (statusFilter !== "ALL" && t.status !== statusFilter) return false;
+      if (statusFilter !== "ALL") {
+        if (statusFilter === "RESOLVED") {
+          if (!isResolvedLikeTicket(t)) return false;
+        } else if (t.status !== statusFilter) {
+          return false;
+        }
+      }
       if (priorityFilter !== "ALL" && t.priority !== priorityFilter) return false;
       if (searchTerm && !t.title.toLowerCase().includes(searchTerm.toLowerCase())) return false;
       return true;
@@ -111,7 +126,11 @@ export default function MyTicketsPage() {
     <DashboardPageLayout
       eyebrow="Tickets"
       title="My tickets"
-      subtitle="Requests tied to your signed-in account (including Google). Create tickets while logged in to see them here on your next visit."
+      subtitle={
+        showCreateTicket
+          ? "Requests tied to your signed-in account (including Google). Create tickets while logged in to see them here on your next visit."
+          : "Tickets tied to your account. New requests are submitted by campus users through the user portal."
+      }
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {stats.map((stat, idx) => (
@@ -215,7 +234,9 @@ export default function MyTicketsPage() {
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-slate-500">
             {tickets.length === 0
-              ? "You have no tickets yet. Create one to see it here whenever you sign in."
+              ? showCreateTicket
+                ? "You have no tickets yet. Create one to see it here whenever you sign in."
+                : "No tickets in your list yet."
               : "No tickets match your filters."}
           </div>
         ) : (
@@ -237,7 +258,11 @@ export default function MyTicketsPage() {
                     >
                       {ticket.priority}
                     </span>
-                    <StatusBadge status={ticket.status} />
+                    <StatusBadge
+                      status={ticket.status}
+                      resolutionNotes={ticket.resolutionNotes}
+                      resolvedAt={ticket.resolvedAt}
+                    />
                   </div>
                   <p className="font-semibold text-slate-900 transition group-hover:text-campus-brand-hover">
                     {ticket.title}
@@ -253,15 +278,17 @@ export default function MyTicketsPage() {
         )}
       </div>
 
-      <div className="mt-8">
-        <button
-          type="button"
-          onClick={() => navigate("/tickets/create")}
-          className={`px-6 py-3 text-sm ${campusBtnPrimary}`}
-        >
-          + Create new ticket
-        </button>
-      </div>
+      {showCreateTicket ? (
+        <div className="mt-8">
+          <button
+            type="button"
+            onClick={() => navigate("/tickets/create")}
+            className={`px-6 py-3 text-sm ${campusBtnPrimary}`}
+          >
+            + Create new ticket
+          </button>
+        </div>
+      ) : null}
     </DashboardPageLayout>
   );
 }

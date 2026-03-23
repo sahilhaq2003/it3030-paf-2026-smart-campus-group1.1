@@ -17,7 +17,11 @@ function summarizeAssigned(content) {
   const list = content || [];
   const open = list.filter((t) => t.status === "OPEN").length;
   const inProgress = list.filter((t) => t.status === "IN_PROGRESS").length;
-  const resolved = list.filter((t) => t.status === "RESOLVED").length;
+  const resolved = list.filter(
+    (t) =>
+      t.status === "RESOLVED" ||
+      (t.status === "CLOSED" && (t.resolutionNotes || t.resolvedAt)),
+  ).length;
   return { list, open, inProgress, resolved, active: open + inProgress };
 }
 
@@ -65,8 +69,8 @@ export default function TechnicianDashboard() {
           description="Newest first. Open a row to see full detail and attachments."
           icon={Wrench}
           headerAction={
-            <Link to="/tickets" className={`text-sm ${campusTextLink}`}>
-              Browse all
+            <Link to="/admin/tickets" className={`text-sm ${campusTextLink}`}>
+              Admin ticket desk
             </Link>
           }
         >
@@ -75,8 +79,8 @@ export default function TechnicianDashboard() {
             isLoading={isLoading}
             error={error}
             emptyText="No tickets are assigned to you right now."
-            viewAllHref="/tickets"
-            viewAllLabel="Go to ticket search"
+            viewAllHref="/admin/tickets"
+            viewAllLabel="Open admin ticket desk"
             maxRows={8}
           />
           <p className="mt-3 text-xs text-slate-400">
@@ -85,7 +89,7 @@ export default function TechnicianDashboard() {
           </p>
         </DashboardSummaryCard>
 
-        <DashboardStatusUpdateCard tickets={list} isLoading={isLoading} />
+        <DashboardStatusUpdateCard tickets={list} isLoading={isLoading} isAdminWorkflow={false} />
       </div>
     </DashboardPageLayout>
   );

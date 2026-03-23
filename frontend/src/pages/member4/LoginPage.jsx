@@ -214,33 +214,38 @@ export default function LoginPage() {
             </div>
 
             {GOOGLE_CLIENT_ID ? (
-              loginLoading ? (
-                <div className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-600">
-                  <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-campus-brand" />
-                  Signing in…
-                </div>
-              ) : (
-                <div className="w-full min-w-0">
-                  {/*
-                    Fixed width: GSI re-runs initialize() when `width` changes; measuring the
-                    container caused a second init and console warnings.
-                  */}
-                  <GoogleLogin
-                    width={400}
-                    type="standard"
-                    theme="outline"
-                    size="large"
-                    text="signin_with"
-                    shape="rectangular"
-                    logo_alignment="left"
-                    containerProps={{
-                      className: "login-google-inner flex w-full max-w-full items-center justify-center p-0",
-                    }}
-                    onSuccess={onGoogleCredential}
-                    onError={clearLoginError}
-                  />
-                </div>
-              )
+              <div
+                className={`relative w-full min-w-0 ${loginLoading ? "pointer-events-none opacity-60" : ""}`}
+              >
+                {/*
+                  Keep GoogleLogin mounted while signing in so google.accounts.id.initialize()
+                  is not called again (avoids GSI_LOGGER duplicate init warnings).
+                  Fixed width: GSI re-inits when `width` changes.
+                */}
+                <GoogleLogin
+                  width={400}
+                  type="standard"
+                  theme="outline"
+                  size="large"
+                  text="signin_with"
+                  shape="rectangular"
+                  logo_alignment="left"
+                  containerProps={{
+                    className: "login-google-inner flex w-full max-w-full items-center justify-center p-0",
+                  }}
+                  onSuccess={onGoogleCredential}
+                  onError={clearLoginError}
+                />
+                {loginLoading ? (
+                  <div
+                    className="absolute inset-0 flex items-center justify-center gap-2 rounded-md bg-white/80 text-sm font-semibold text-slate-700 backdrop-blur-[1px]"
+                    aria-live="polite"
+                  >
+                    <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-campus-brand" />
+                    Signing in…
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <button
                 type="button"

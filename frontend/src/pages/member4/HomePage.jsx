@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import {
   DASHBOARD_PATHS,
   canAccessAdminTickets,
+  canCreateTickets,
   getDashboardRoute,
 } from "../../utils/getDashboardRoute";
 
@@ -35,21 +36,24 @@ export default function HomePage() {
             emoji: "👤",
           };
 
-  const cards = [
-    dashCard,
-    {
-      to: "/tickets",
-      title: "My tickets",
-      desc: "View and track your maintenance requests",
-      emoji: "🎫",
-    },
-    {
-      to: "/tickets/create",
-      title: "New ticket",
-      desc: "Report an issue on campus",
-      emoji: "➕",
-    },
-  ];
+  const cards = [dashCard];
+
+  if (canCreateTickets(roles)) {
+    cards.push(
+      {
+        to: "/tickets",
+        title: "My tickets",
+        desc: "View and track your maintenance requests",
+        emoji: "🎫",
+      },
+      {
+        to: "/tickets/create",
+        title: "New ticket",
+        desc: "Report an issue on campus",
+        emoji: "➕",
+      },
+    );
+  }
 
   if (canAccessAdminTickets(roles)) {
     cards.push({

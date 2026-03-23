@@ -12,6 +12,7 @@ import { useAuth } from "../context/AuthContext";
 import {
   DASHBOARD_PATHS,
   canAccessAdminTickets,
+  canCreateTickets,
   getDashboardRoute,
 } from "../utils/getDashboardRoute";
 
@@ -97,14 +98,22 @@ function Sidebar() {
   const items = [
     { to: "/home", label: "Home", icon: Home, active: (p) => p === "/home" },
     { to: dash.to, label: dash.label, icon: LayoutDashboard, active: dash.active },
-    { to: "/tickets", label: "My tickets", icon: Ticket, active: (p) => p === "/tickets" },
-    {
+  ];
+
+  if (canCreateTickets(roles)) {
+    items.push({
+      to: "/tickets",
+      label: "My tickets",
+      icon: Ticket,
+      active: (p) => p === "/tickets",
+    });
+    items.push({
       to: "/tickets/create",
       label: "New ticket",
       icon: PlusCircle,
       active: (p) => p === "/tickets/create",
-    },
-  ];
+    });
+  }
 
   if (canAccessAdminTickets(roles)) {
     items.push({

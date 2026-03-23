@@ -66,12 +66,10 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     @Transactional(readOnly = true)
-    public TicketResponseDTO getTicketById(Long id, Long currentUserId, String currentUserRole) {
+    public TicketResponseDTO getTicketById(Long id, Long currentUserId, boolean ticketStaff) {
         var ticket = findTicketOrThrow(id);
 
-        // Users can only see their own tickets; admins/techs see all
-        if (currentUserRole.equals("ROLE_USER") &&
-            !ticket.getReportedBy().getId().equals(currentUserId)) {
+        if (!ticketStaff && !ticket.getReportedBy().getId().equals(currentUserId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
         }
         return mapToResponse(ticket);
@@ -92,8 +90,25 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    public TicketResponseDTO updateStatus(Long id, TicketStatusUpdateDTO dto, Long currentUserId) {
+    public TicketResponseDTO updateStatus(
+            Long id, TicketStatusUpdateDTO dto, Long currentUserId, boolean isAdmin, boolean isTechnician) {
         var ticket = findTicketOrThrow(id);
+
+        if (isTechnician && !isAdmin) {
+            if (ticket.getAssignedTo() == null
+                    || !ticket.getAssignedTo().getId().equals(currentUserId)) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "Only the technician assigned to this ticket can update its status");
+            }
+            if (dto.getStatus() == TicketStatus.CLOSED) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "Use Resolved with resolution notes to finish this ticket. "
+                                + "It closes automatically — only admins can archive legacy tickets as Closed.");
+            }
+        }
+
         validateStatusTransition(ticket.getStatus(), dto.getStatus());
 
         if (dto.getStatus() == TicketStatus.RESOLVED) {
@@ -112,14 +127,19 @@ public class TicketServiceImpl implements TicketService {
         }
 
         var previousStatus = ticket.getStatus();
-        ticket.setStatus(dto.getStatus());
+        // Resolve completes the lifecycle in one step (no extra admin RESOLVED → CLOSED action).
+        TicketStatus persistedStatus =
+                dto.getStatus() == TicketStatus.RESOLVED ? TicketStatus.CLOSED : dto.getStatus();
+        ticket.setStatus(persistedStatus);
         var saved = ticketRepo.save(ticket);
 
-        // Publish event for notification system (Member 4 listens to this)
-        eventPublisher.publishEvent(new TicketStatusChangedEvent(
-            this, saved.getId(), saved.getReportedBy().getId(),
-            previousStatus, dto.getStatus()
-        ));
+        eventPublisher.publishEvent(
+                new TicketStatusChangedEvent(
+                        this,
+                        saved.getId(),
+                        saved.getReportedBy().getId(),
+                        previousStatus,
+                        persistedStatus));
 
         return mapToResponse(saved);
     }

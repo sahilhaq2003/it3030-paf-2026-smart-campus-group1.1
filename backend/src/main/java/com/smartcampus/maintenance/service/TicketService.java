@@ -12,14 +12,15 @@ public interface TicketService {
 
     TicketResponseDTO createTicket(TicketRequestDTO dto, List<MultipartFile> files, Long userId);
 
-    TicketResponseDTO getTicketById(Long id, Long currentUserId, String currentUserRole);
+    TicketResponseDTO getTicketById(Long id, Long currentUserId, boolean ticketStaff);
 
     Page<TicketResponseDTO> getMyTickets(Long userId, Pageable pageable);
 
     Page<TicketResponseDTO> getAllTickets(TicketStatus status, TicketCategory category,
                                           Priority priority, Long assignedToId, Pageable pageable);
 
-    TicketResponseDTO updateStatus(Long id, TicketStatusUpdateDTO dto, Long currentUserId);
+    TicketResponseDTO updateStatus(
+            Long id, TicketStatusUpdateDTO dto, Long currentUserId, boolean isAdmin, boolean isTechnician);
 
     TicketResponseDTO assignTechnician(Long id, Long technicianId);
 

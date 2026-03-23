@@ -11,6 +11,8 @@ import UserDashboard from "../pages/dashboards/UserDashboard";
 import AdminDashboard from "../pages/dashboards/AdminDashboard";
 import TechnicianDashboard from "../pages/dashboards/TechnicianDashboard";
 import ProtectedRoute from "./ProtectedRoute";
+import CreateTicketRoute from "./CreateTicketRoute";
+import UserMyTicketsRoute from "./UserMyTicketsRoute";
 import RoleProtectedDashboard from "./RoleProtectedDashboard";
 import StaffTicketsRoute from "./StaffTicketsRoute";
 import { DASHBOARD_PATHS } from "../utils/getDashboardRoute";
@@ -78,8 +80,22 @@ export default function AppRoutes() {
           path="/technician"
           element={<Navigate to="/TechnicianDashboard" replace />}
         />
-        <Route path="/tickets" element={<MyTicketsPage />} />
-        <Route path="/tickets/create" element={<CreateTicketPage />} />
+        <Route
+          path="/tickets"
+          element={
+            <UserMyTicketsRoute>
+              <MyTicketsPage />
+            </UserMyTicketsRoute>
+          }
+        />
+        <Route
+          path="/tickets/create"
+          element={
+            <CreateTicketRoute>
+              <CreateTicketPage />
+            </CreateTicketRoute>
+          }
+        />
         <Route path="/tickets/:id" element={<TicketDetailPage />} />
         <Route
           path="/admin/tickets"

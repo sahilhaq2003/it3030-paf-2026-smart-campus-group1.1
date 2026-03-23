@@ -54,6 +54,12 @@ export function canAccessAdminTickets(roles) {
   return n.has("ADMIN") || n.has("TECHNICIAN");
 }
 
+/** Only campus users (not admin/technician staff) may open the create-ticket flow. */
+export function canCreateTickets(roles) {
+  const n = normalizeRoles(roles);
+  return !n.has("ADMIN") && !n.has("TECHNICIAN");
+}
+
 /** @param {string[] | Set<string> | string | null | undefined} roles */
 export function normalizeRoles(roles) {
   const set = new Set();
