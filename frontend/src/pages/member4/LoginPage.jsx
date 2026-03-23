@@ -18,6 +18,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [loginMode, setLoginMode] = useState("student");
 
   /** Stable callback so @react-oauth/google effect deps do not churn (avoids duplicate GSI initialize). */
   const onGoogleCredential = useCallback(
@@ -64,6 +65,12 @@ export default function LoginPage() {
     } catch {
       /* loginError set in AuthContext */
     }
+  };
+
+  const switchLoginMode = (mode) => {
+    setLoginMode(mode);
+    clearLoginError();
+    setFieldErrors({});
   };
 
   return (
@@ -132,130 +139,179 @@ export default function LoginPage() {
                 Welcome back
               </h2>
               <p className="mt-2 text-sm text-slate-500">
-                Sign in with your campus email and password
+                Admin and technicians use password login. Students continue with Google.
               </p>
             </div>
 
-            <form onSubmit={handleEmailPassword} className="mt-2 lg:mt-10 space-y-4" noValidate>
-              {loginError ? (
-                <div
-                  role="alert"
-                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+            <div className="mt-2 lg:mt-8">
+              <div className="mx-auto mb-5 grid w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1">
+                <button
+                  type="button"
+                  onClick={() => switchLoginMode("student")}
+                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    loginMode === "student"
+                      ? "bg-white text-campus-brand shadow-sm"
+                      : "text-slate-600 hover:text-slate-800"
+                  }`}
                 >
-                  {loginError}
-                </div>
-              ) : null}
-
-              <div>
-                <label htmlFor="login-email" className="block text-sm font-medium text-slate-700">
-                  Email
-                </label>
-                <input
-                  id="login-email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(ev) => {
-                    setEmail(ev.target.value);
-                    if (fieldErrors.email) setFieldErrors((f) => ({ ...f, email: undefined }));
-                  }}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
-                  placeholder="you@campus.edu"
-                  disabled={loginLoading}
-                />
-                {fieldErrors.email ? (
-                  <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>
-                ) : null}
-              </div>
-
-              <div>
-                <label
-                  htmlFor="login-password"
-                  className="block text-sm font-medium text-slate-700"
+                  Student
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchLoginMode("staff")}
+                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    loginMode === "staff"
+                      ? "bg-white text-campus-brand shadow-sm"
+                      : "text-slate-600 hover:text-slate-800"
+                  }`}
                 >
-                  Password
-                </label>
-                <input
-                  id="login-password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(ev) => {
-                    setPassword(ev.target.value);
-                    if (fieldErrors.password) setFieldErrors((f) => ({ ...f, password: undefined }));
-                  }}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
-                  placeholder="••••••••"
-                  disabled={loginLoading}
-                />
-                {fieldErrors.password ? (
-                  <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>
-                ) : null}
-              </div>
-
-              <button
-                type="submit"
-                disabled={loginLoading}
-                className="w-full rounded-xl bg-campus-brand px-4 py-3.5 text-sm font-semibold text-white shadow-md shadow-slate-900/10 transition hover:bg-campus-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand disabled:pointer-events-none disabled:opacity-60"
-              >
-                {loginLoading ? "Signing in…" : "Sign in"}
-              </button>
-            </form>
-
-            <div className="relative my-8">
-              <div className="absolute inset-0 flex items-center" aria-hidden>
-                <div className="w-full border-t border-slate-100" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-white px-3 font-medium text-slate-400">Or sign in with</span>
+                  Admin / Technician
+                </button>
               </div>
             </div>
 
-            {GOOGLE_CLIENT_ID ? (
-              loginLoading ? (
-                <div className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-600">
-                  <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-campus-brand" />
-                  Signing in…
-                </div>
-              ) : (
-                <div className="w-full min-w-0">
-                  {/*
-                    Fixed width: GSI re-runs initialize() when `width` changes; measuring the
-                    container caused a second init and console warnings.
-                  */}
-                  <GoogleLogin
-                    width={400}
-                    type="standard"
-                    theme="outline"
-                    size="large"
-                    text="signin_with"
-                    shape="rectangular"
-                    logo_alignment="left"
-                    containerProps={{
-                      className: "login-google-inner flex w-full max-w-full items-center justify-center p-0",
+            {loginMode === "staff" ? (
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+              <div className="mb-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-campus-brand">
+                  Staff Login
+                </p>
+                <p className="mt-1 text-sm text-slate-600">For Admin and Technician accounts</p>
+              </div>
+
+              <form onSubmit={handleEmailPassword} className="space-y-4" noValidate>
+                {loginError ? (
+                  <div
+                    role="alert"
+                    className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                  >
+                    {loginError}
+                  </div>
+                ) : null}
+
+                <div>
+                  <label htmlFor="login-email" className="block text-sm font-medium text-slate-700">
+                    Email
+                  </label>
+                  <input
+                    id="login-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(ev) => {
+                      setEmail(ev.target.value);
+                      if (fieldErrors.email) setFieldErrors((f) => ({ ...f, email: undefined }));
                     }}
-                    onSuccess={onGoogleCredential}
-                    onError={clearLoginError}
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
+                    placeholder="staff@campus.edu"
+                    disabled={loginLoading}
                   />
+                  {fieldErrors.email ? (
+                    <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>
+                  ) : null}
                 </div>
-              )
+
+                <div>
+                  <label
+                    htmlFor="login-password"
+                    className="block text-sm font-medium text-slate-700"
+                  >
+                    Password
+                  </label>
+                  <input
+                    id="login-password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(ev) => {
+                      setPassword(ev.target.value);
+                      if (fieldErrors.password) setFieldErrors((f) => ({ ...f, password: undefined }));
+                    }}
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
+                    placeholder="••••••••"
+                    disabled={loginLoading}
+                  />
+                  {fieldErrors.password ? (
+                    <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>
+                  ) : null}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loginLoading}
+                  className="w-full rounded-xl bg-campus-brand px-4 py-3.5 text-sm font-semibold text-white shadow-md shadow-slate-900/10 transition hover:bg-campus-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand disabled:pointer-events-none disabled:opacity-60"
+                >
+                  {loginLoading ? "Signing in…" : "Sign in as Admin / Technician"}
+                </button>
+              </form>
+              </div>
             ) : (
-              <button
-                type="button"
-                onClick={handleGoogle}
-                disabled={loginLoading}
-                className="flex min-h-11 w-full items-center justify-center gap-3 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand disabled:pointer-events-none disabled:opacity-60"
-              >
-                {loginLoading ? (
-                  <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-campus-brand" />
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+                <div className="mb-4 text-center">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-campus-brand">
+                    Student Login
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Students must continue with Google account
+                  </p>
+                </div>
+
+                {GOOGLE_CLIENT_ID ? (
+                  <div
+                    className={`login-google-wrap relative flex w-full min-w-0 justify-center ${loginLoading ? "pointer-events-none opacity-60" : ""}`}
+                  >
+                    {/*
+                      Keep GoogleLogin mounted while signing in so google.accounts.id.initialize()
+                      is not called again (avoids GSI_LOGGER duplicate init warnings).
+                      Fixed width: GSI re-inits when `width` changes.
+                    */}
+                    <GoogleLogin
+                      width={300}
+                      type="standard"
+                      theme="filled_blue"
+                      size="large"
+                      text="continue_with"
+                      shape="pill"
+                      logo_alignment="left"
+                      containerProps={{
+                        className: "login-google-inner flex w-full max-w-full items-center justify-center p-0",
+                      }}
+                      onSuccess={onGoogleCredential}
+                      onError={clearLoginError}
+                    />
+                    {loginLoading ? (
+                      <div
+                        className="absolute inset-0 flex items-center justify-center gap-2 rounded-md bg-white/80 text-sm font-semibold text-slate-700 backdrop-blur-[1px]"
+                        aria-live="polite"
+                      >
+                        <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-campus-brand" />
+                        Signing in…
+                      </div>
+                    ) : null}
+                  </div>
                 ) : (
-                  <GoogleGlyph className="h-5 w-5 shrink-0" />
+                  <button
+                    type="button"
+                    onClick={handleGoogle}
+                    disabled={loginLoading}
+                    className="group flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm shadow-slate-200/70 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand disabled:pointer-events-none disabled:opacity-60"
+                  >
+                    {loginLoading ? (
+                      <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-campus-brand" />
+                    ) : (
+                      <GoogleGlyph className="h-5 w-5 shrink-0 transition-transform group-hover:scale-105" />
+                    )}
+                    Continue with Google (student)
+                  </button>
                 )}
-                Sign in with Google (demo — set VITE_GOOGLE_CLIENT_ID)
-              </button>
+              </div>
             )}
+
+            <p className="mt-3 text-center text-xs text-slate-500">
+              Switch role to choose the correct sign-in method.
+            </p>
 
           </div>
 
