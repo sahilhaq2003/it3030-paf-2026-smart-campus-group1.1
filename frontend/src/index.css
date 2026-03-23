@@ -12,10 +12,31 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Login: stretch GSI wrapper to full card width (no outer chrome — avoids double border) */
-.login-google-inner > div {
-  width: 100% !important;
+/* Login: keep GSI button centered and width-safe inside auth card */
+.login-google-inner {
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
+  width: 100% !important;
+}
+
+.login-google-inner > div {
+  max-width: 100% !important;
+  margin: 0 auto !important;
+}
+
+.login-google-inner iframe {
+  max-width: 100% !important;
+  margin: 0 auto !important;
+}
+
+/* Login: polish wrapper without forcing iframe dimensions */
+.login-google-wrap {
+  border-radius: 14px;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+  overflow: hidden;
+}
+
+.login-google-wrap:not(.pointer-events-none):hover {
+  transform: translateY(-1px);
 }
