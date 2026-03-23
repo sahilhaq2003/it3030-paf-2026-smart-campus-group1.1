@@ -7,6 +7,7 @@ import com.smartcampus.maintenance.model.enums.TicketStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -45,4 +46,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     );
 
     Page<Ticket> findByAssignedToId(Long techId, Pageable pageable);
+
+    long countByReportedById(Long reportedById);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Ticket t SET t.assignedTo = null WHERE t.assignedTo.id = :userId")
+    void clearAssignmentForUser(@Param("userId") Long userId);
 }

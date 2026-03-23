@@ -21,3 +21,17 @@ export function createTechnician(body) {
     })
     .then((r) => r.data);
 }
+
+/**
+ * PATCH /users/technicians/:id — ADMIN only
+ * @param {number} id
+ * @param {{ name?: string; email?: string; password?: string }} body — include only fields to change
+ */
+export function updateTechnician(id, body) {
+  return axiosInstance.patch(`/users/technicians/${id}`, body).then((r) => r.data);
+}
+
+/** DELETE /users/technicians/:id — ADMIN only */
+export function deleteTechnician(id) {
+  return axiosInstance.delete(`/users/technicians/${id}`);
+}
