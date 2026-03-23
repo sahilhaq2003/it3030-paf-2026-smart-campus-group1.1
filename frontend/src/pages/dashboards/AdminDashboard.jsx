@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ticketApi } from "../../api/ticketApi";
 import { fetchUsers } from "../../api/userAdminApi";
+import AdminTechnicianPanel from "../../components/dashboard/AdminTechnicianPanel";
 import {
   DashboardPageLayout,
   DashboardSection,
@@ -140,6 +141,10 @@ export default function AdminDashboard() {
             </>
           )}
         </DashboardSection>
+      </div>
+
+      <div className="mt-12 border-t border-slate-200/90 pt-10">
+        <AdminTechnicianPanel />
       </div>
     </DashboardPageLayout>
   );

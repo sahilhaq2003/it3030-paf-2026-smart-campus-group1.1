@@ -1,5 +1,6 @@
 package com.smartcampus.maintenance.controller;
 
+import com.smartcampus.auth.util.Authz;
 import com.smartcampus.maintenance.dto.*;
 import com.smartcampus.maintenance.model.enums.*;
 import com.smartcampus.maintenance.service.*;
@@ -53,13 +54,12 @@ public class TicketController {
         @PathVariable Long id, Authentication auth
     ) {
         Long userId = getUserId(auth);
-        String role = auth.getAuthorities().iterator().next().getAuthority();
-        return ResponseEntity.ok(ticketService.getTicketById(id, userId, role));
+        return ResponseEntity.ok(ticketService.getTicketById(id, userId, Authz.isTicketStaff(auth)));
     }
 
-    // POST /api/tickets — multipart: JSON fields + up to 3 images
+    // POST /api/tickets — campus users only (not admin/technician staff)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and !hasRole('ADMIN') and !hasRole('TECHNICIAN')")
     public ResponseEntity<TicketResponseDTO> createTicket(
         @Valid @RequestPart("ticket") TicketRequestDTO dto,
         @RequestPart(value = "files", required = false) List<MultipartFile> files,
@@ -78,7 +78,13 @@ public class TicketController {
         @Valid @RequestBody TicketStatusUpdateDTO dto,
         Authentication auth
     ) {
-        return ResponseEntity.ok(ticketService.updateStatus(id, dto, getUserId(auth)));
+        return ResponseEntity.ok(
+                ticketService.updateStatus(
+                        id,
+                        dto,
+                        getUserId(auth),
+                        Authz.isAdmin(auth),
+                        Authz.isTechnician(auth)));
     }
 
     // PATCH /api/tickets/{id}/assign

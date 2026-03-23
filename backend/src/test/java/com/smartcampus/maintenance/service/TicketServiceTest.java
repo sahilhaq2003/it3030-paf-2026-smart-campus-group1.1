@@ -45,7 +45,7 @@ class TicketServiceTest {
 
         when(ticketRepo.findById(1L)).thenReturn(Optional.of(ticket));
 
-        assertThatThrownBy(() -> ticketService.updateStatus(1L, dto, 99L))
+        assertThatThrownBy(() -> ticketService.updateStatus(1L, dto, 99L, true, false))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("Invalid status transition");
     }
@@ -62,7 +62,7 @@ class TicketServiceTest {
 
         when(ticketRepo.findById(2L)).thenReturn(Optional.of(ticket));
 
-        assertThatThrownBy(() -> ticketService.updateStatus(2L, dto, 99L))
+        assertThatThrownBy(() -> ticketService.updateStatus(2L, dto, 99L, true, false))
             .isInstanceOf(ResponseStatusException.class);
     }
 
@@ -79,7 +79,7 @@ class TicketServiceTest {
 
         when(ticketRepo.findById(3L)).thenReturn(Optional.of(ticket));
 
-        assertThatThrownBy(() -> ticketService.updateStatus(3L, dto, 99L))
+        assertThatThrownBy(() -> ticketService.updateStatus(3L, dto, 99L, true, false))
             .isInstanceOf(ResponseStatusException.class)
             .extracting(e -> ((ResponseStatusException) e).getStatusCode())
             .isEqualTo(HttpStatus.BAD_REQUEST);

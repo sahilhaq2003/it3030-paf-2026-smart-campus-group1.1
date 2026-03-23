@@ -54,7 +54,9 @@ export default function CreateTicketPage() {
       return data;
     },
     onSuccess: () => {
-      toast.success("Ticket created");
+      toast.success(
+        "Request submitted. An admin will assign a technician — open your ticket anytime to follow progress and chat.",
+      );
       queryClient.invalidateQueries({ queryKey: ["tickets", "my"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard", "myTickets"] });
       navigate("/tickets");

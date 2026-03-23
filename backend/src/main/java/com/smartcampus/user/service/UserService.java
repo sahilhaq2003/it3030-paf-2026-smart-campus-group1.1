@@ -1,15 +1,18 @@
 package com.smartcampus.user.service;
 
+import com.smartcampus.user.dto.CreateTechnicianDTO;
 import com.smartcampus.user.dto.UserProfileDTO;
 import com.smartcampus.user.model.Role;
 import com.smartcampus.user.model.User;
 import com.smartcampus.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -19,10 +22,42 @@ import java.util.Set;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public List<UserProfileDTO> getAllUsers() {
         return userRepository.findAllWithRoles().stream().map(this::toProfileDto).toList();
+    }
+
+    /** Users with TECHNICIAN role (for assignment UIs). */
+    @Transactional(readOnly = true)
+    public List<UserProfileDTO> getTechnicians() {
+        return userRepository.findAllWithRoles().stream()
+                .filter(u -> u.getRoles() != null && u.getRoles().contains(Role.TECHNICIAN))
+                .sorted(Comparator.comparing(User::getName, String.CASE_INSENSITIVE_ORDER))
+                .map(this::toProfileDto)
+                .toList();
+    }
+
+    @Transactional
+    public UserProfileDTO createTechnician(CreateTechnicianDTO dto) {
+        String email = dto.getEmail().trim().toLowerCase();
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This email is already registered");
+        }
+        Set<Role> roles = new HashSet<>();
+        roles.add(Role.TECHNICIAN);
+        roles.add(Role.USER);
+        User user =
+                User.builder()
+                        .email(email)
+                        .name(dto.getName().trim())
+                        .passwordHash(passwordEncoder.encode(dto.getPassword()))
+                        .provider(User.AuthProvider.LOCAL)
+                        .roles(roles)
+                        .enabled(true)
+                        .build();
+        return toProfileDto(userRepository.save(user));
     }
 
     @Transactional(readOnly = true)

@@ -18,6 +18,14 @@ axiosInstance.interceptors.request.use((config) => {
   if (config.data instanceof FormData) {
     delete config.headers["Content-Type"];
     delete config.headers["content-type"];
+  } else if (
+    config.data != null &&
+    typeof config.data === "object" &&
+    !(config.data instanceof ArrayBuffer) &&
+    !(config.data instanceof Blob)
+  ) {
+    // Required for Spring @RequestBody JSON after we removed the default instance Content-Type.
+    config.headers["Content-Type"] = "application/json";
   }
   return config;
 });
