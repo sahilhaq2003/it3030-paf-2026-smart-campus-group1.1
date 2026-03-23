@@ -2,6 +2,11 @@ package com.smartcampus.facilities.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "facilities")
@@ -14,4 +19,33 @@ public class Facility {
 
     @Column(nullable = false)
     private String name;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ResourceType resourceType;
+
+    @Column(nullable = false)
+    private Integer capacity;
+
+    private String location;
+
+    private String description;
+
+    @Column(name = "availability_start")
+    private LocalTime availabilityStart;
+
+    @Column(name = "availability_end")
+    private LocalTime availabilityEnd;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Status status;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }
