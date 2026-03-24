@@ -18,6 +18,8 @@ import StaffTicketsRoute from "./StaffTicketsRoute";
 import { DASHBOARD_PATHS } from "../utils/getDashboardRoute";
 import FacilitiesListPage from "../pages/member1/FacilitiesListPage";
 import FacilityDetailPage from "../pages/member1/FacilityDetailPage";
+import AdminFacilityRoute from "./AdminFacilityRoute";
+import AdminFacilitiesPage from "../pages/member1/AdminFacilitiesPage";
 
 /**
  * Router setup:
@@ -29,19 +31,15 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      
-      {/* Public Facility Routes */}
-      <Route path="/facilities" element={<FacilitiesListPage />} />
-      <Route path="/facilities/:id" element={<FacilityDetailPage />} />
-
-      <Route
+      <Route path="/login" element={<LoginPage />} />      <Route
         element={
           <ProtectedRoute>
             <AppShell />
           </ProtectedRoute>
         }
       >
+        <Route path="/facilities" element={<FacilitiesListPage />} />
+        <Route path="/facilities/:id" element={<FacilityDetailPage />} />
         <Route path="/home" element={<HomePage />} />
         <Route
           path="/UserDashboard"
@@ -109,6 +107,15 @@ export default function AppRoutes() {
             <StaffTicketsRoute>
               <AdminTicketsPage />
             </StaffTicketsRoute>
+          }
+        />
+        
+        <Route
+          path="/admin/facilities"
+          element={
+            <AdminFacilityRoute>
+              <AdminFacilitiesPage />
+            </AdminFacilityRoute>
           }
         />
       </Route>
