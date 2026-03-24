@@ -12,6 +12,9 @@ import com.smartcampus.facilities.model.ResourceType;
 import com.smartcampus.facilities.model.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.util.StringUtils;
+import com.smartcampus.facilities.exception.ActiveBookingsExistException;
 
 @Service
 @RequiredArgsConstructor
@@ -66,6 +69,11 @@ public class FacilityServiceImpl implements FacilityService {
     public void deleteFacility(Long id) {
         Facility facility = facilityRepository.findById(id)
                 .orElseThrow(() -> new FacilityNotFoundException("Facility not found with id: " + id));
+
+        if (hasActiveBookings(id)) {
+            throw new ActiveBookingsExistException("Cannot delete facility because active bookings exist.");
+        }
+
         facilityRepository.delete(facility);
     }
 
@@ -81,9 +89,31 @@ public class FacilityServiceImpl implements FacilityService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<FacilityDto> searchFacilities(ResourceType type, Integer capacity, String location, Status status, Pageable pageable) {
-        return facilityRepository.searchFacilities(type, capacity, location, status, pageable)
-                .map(this::mapToDto);
+    public Page<FacilityDto> searchFacilities(ResourceType type, Integer capacity, String location, Status status,
+            Pageable pageable) {
+        Specification<Facility> spec = Specification.where(null);
+
+        if (type != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("resourceType"), type));
+        }
+        if (capacity != null) {
+            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("capacity"), capacity));
+        }
+        if (StringUtils.hasText(location)) {
+            spec = spec.and(
+                    (root, query, cb) -> cb.like(cb.lower(root.get("location")), "%" + location.toLowerCase() + "%"));
+        }
+        if (status != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+        }
+
+        return facilityRepository.findAll(spec, pageable).map(this::mapToDto);
+    }
+
+    private boolean hasActiveBookings(Long id) {
+        // TODO: Integrate actual Booking module dependency when available
+        // Return false statically allowing deletions for now
+        return false;
     }
 
     private Facility mapToEntity(FacilityDto dto) {
