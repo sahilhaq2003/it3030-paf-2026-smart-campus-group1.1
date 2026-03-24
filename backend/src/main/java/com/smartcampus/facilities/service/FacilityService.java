@@ -1,12 +1,17 @@
 package com.smartcampus.facilities.service;
 
 import com.smartcampus.facilities.dto.FacilityDto;
-import java.util.List;
+import com.smartcampus.facilities.model.ResourceType;
+import com.smartcampus.facilities.model.Status;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface FacilityService {
     FacilityDto createFacility(FacilityDto facilityDto);
     FacilityDto getFacilityById(Long id);
-    List<FacilityDto> getAllFacilities();
+    Page<FacilityDto> getAllFacilities(Pageable pageable);
     FacilityDto updateFacility(Long id, FacilityDto facilityDto);
+    FacilityDto updateFacilityStatus(Long id, Status status);
     void deleteFacility(Long id);
+    Page<FacilityDto> searchFacilities(ResourceType type, Integer capacity, String location, Status status, Pageable pageable);
 }

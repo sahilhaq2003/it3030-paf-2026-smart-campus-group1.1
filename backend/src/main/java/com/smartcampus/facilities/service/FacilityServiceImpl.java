@@ -8,8 +8,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.smartcampus.facilities.model.ResourceType;
+import com.smartcampus.facilities.model.Status;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -35,10 +37,9 @@ public class FacilityServiceImpl implements FacilityService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<FacilityDto> getAllFacilities() {
-        return facilityRepository.findAll().stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+    public Page<FacilityDto> getAllFacilities(Pageable pageable) {
+        return facilityRepository.findAll(pageable)
+                .map(this::mapToDto);
     }
 
     @Override
@@ -66,6 +67,23 @@ public class FacilityServiceImpl implements FacilityService {
         Facility facility = facilityRepository.findById(id)
                 .orElseThrow(() -> new FacilityNotFoundException("Facility not found with id: " + id));
         facilityRepository.delete(facility);
+    }
+
+    @Override
+    @Transactional
+    public FacilityDto updateFacilityStatus(Long id, Status status) {
+        Facility facility = facilityRepository.findById(id)
+                .orElseThrow(() -> new FacilityNotFoundException("Facility not found with id: " + id));
+        facility.setStatus(status);
+        Facility updatedFacility = facilityRepository.save(facility);
+        return mapToDto(updatedFacility);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<FacilityDto> searchFacilities(ResourceType type, Integer capacity, String location, Status status, Pageable pageable) {
+        return facilityRepository.searchFacilities(type, capacity, location, status, pageable)
+                .map(this::mapToDto);
     }
 
     private Facility mapToEntity(FacilityDto dto) {
