@@ -6,11 +6,11 @@ import toast from 'react-hot-toast';
 
 export default function AdminFacilitiesPage() {
   const queryClient = useQueryClient();
-  
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFacility, setEditingFacility] = useState(null);
-  
+
   // Form State controlled safely mapped to Backend DTOs
   const [formData, setFormData] = useState({
     name: '', resourceType: 'LECTURE_HALL', capacity: 1, location: '',
@@ -70,7 +70,7 @@ export default function AdminFacilitiesPage() {
         name: facility.name, resourceType: facility.resourceType, capacity: facility.capacity,
         location: facility.location || '', description: facility.description || '',
         // Cleanse HH:mm to fit nice input boxes seamlessly
-        availabilityStart: facility.availabilityStart?.substring(0, 5) || '08:00', 
+        availabilityStart: facility.availabilityStart?.substring(0, 5) || '08:00',
         availabilityEnd: facility.availabilityEnd?.substring(0, 5) || '18:00',
         status: facility.status
       });
@@ -126,8 +126,8 @@ export default function AdminFacilitiesPage() {
             <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Facilities Management</h1>
             <p className="text-gray-500 font-medium">Add, Edit, and Override Resources Globally</p>
           </div>
-          <button 
-            onClick={() => openModal()} 
+          <button
+            onClick={() => openModal()}
             className="mt-4 sm:mt-0 flex items-center px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-md transition-all"
           >
             <Plus className="w-5 h-5 mr-2" /> Register Facility
@@ -185,14 +185,13 @@ export default function AdminFacilitiesPage() {
                       <span className="text-sm text-gray-700 bg-gray-100 px-3 py-1 rounded-lg font-medium">{facility.location || '-'}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <button 
+                      <button
                         onClick={() => handleToggleStatus(facility)}
                         disabled={toggleStatusMutation.isPending}
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all ${
-                          facility.status === 'ACTIVE' 
-                            ? 'bg-green-100 text-green-700 hover:ring-green-300' 
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all ${facility.status === 'ACTIVE'
+                            ? 'bg-green-100 text-green-700 hover:ring-green-300'
                             : 'bg-red-100 text-red-700 hover:ring-red-300'
-                        }`}
+                          }`}
                       >
                         {facility.status === 'ACTIVE' ? <CheckCircle className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
                         {facility.status.replace('_', ' ')}
@@ -200,14 +199,14 @@ export default function AdminFacilitiesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-3">
-                        <button 
-                          onClick={() => openModal(facility)} 
+                        <button
+                          onClick={() => openModal(facility)}
                           className="text-indigo-600 hover:text-indigo-900 bg-indigo-50 p-2 rounded-lg hover:bg-indigo-100 transition-colors"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button 
-                          onClick={() => handleDelete(facility.id, facility.name)} 
+                        <button
+                          onClick={() => handleDelete(facility.id, facility.name)}
                           className="text-red-600 hover:text-red-900 bg-red-50 p-2 rounded-lg hover:bg-red-100 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -228,7 +227,7 @@ export default function AdminFacilitiesPage() {
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
             {/* Background Overlay */}
             <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" onClick={closeModal} />
-            
+
             {/* Modal Box */}
             <div className="relative inline-block align-bottom bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-xl w-full">
               <div className="bg-white px-8 pt-8 pb-4">
@@ -245,17 +244,17 @@ export default function AdminFacilitiesPage() {
                   <div className="grid grid-cols-2 gap-5">
                     <div className="col-span-2">
                       <label className="block text-sm font-bold text-gray-700 mb-1">Facility Name</label>
-                      <input 
-                        required type="text" 
-                        value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      <input
+                        required type="text"
+                        value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         className="w-full border-gray-300 bg-gray-50 border focus:bg-white rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1">Architecture Type</label>
-                      <select 
-                        value={formData.resourceType} onChange={(e) => setFormData({...formData, resourceType: e.target.value})}
+                      <select
+                        value={formData.resourceType} onChange={(e) => setFormData({ ...formData, resourceType: e.target.value })}
                         className="w-full border-gray-300 bg-gray-50 border focus:bg-white rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
                       >
                         <option value="LECTURE_HALL">Lecture Hall</option>
@@ -267,45 +266,45 @@ export default function AdminFacilitiesPage() {
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1">Maximum User Capacity</label>
-                      <input 
+                      <input
                         required type="number" min="1"
-                        value={formData.capacity} onChange={(e) => setFormData({...formData, capacity: e.target.value})}
+                        value={formData.capacity} onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
                         className="w-full border-gray-300 bg-gray-50 border focus:bg-white rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
                       />
                     </div>
 
                     <div className="col-span-2">
                       <label className="block text-sm font-bold text-gray-700 mb-1">Exact Location String</label>
-                      <input 
-                        type="text" 
-                        value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})}
+                      <input
+                        type="text"
+                        value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                         className="w-full border-gray-300 bg-gray-50 border focus:bg-white rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1">Open Time</label>
-                      <input 
+                      <input
                         type="time" required
-                        value={formData.availabilityStart} onChange={(e) => setFormData({...formData, availabilityStart: e.target.value})}
+                        value={formData.availabilityStart} onChange={(e) => setFormData({ ...formData, availabilityStart: e.target.value })}
                         className="w-full border-gray-300 bg-gray-50 border focus:bg-white rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1">Close Time</label>
-                      <input 
+                      <input
                         type="time" required
-                        value={formData.availabilityEnd} onChange={(e) => setFormData({...formData, availabilityEnd: e.target.value})}
+                        value={formData.availabilityEnd} onChange={(e) => setFormData({ ...formData, availabilityEnd: e.target.value })}
                         className="w-full border-gray-300 bg-gray-50 border focus:bg-white rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
                       />
                     </div>
 
                     <div className="col-span-2">
                       <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
-                      <textarea 
+                      <textarea
                         rows="3"
-                        value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         className="w-full border-gray-300 bg-gray-50 border focus:bg-white rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
                       />
                     </div>
@@ -313,8 +312,8 @@ export default function AdminFacilitiesPage() {
 
                   <div className="mt-8 flex justify-end gap-3 bg-gray-50 -mx-8 -mb-4 px-8 py-5">
                     <button type="button" onClick={closeModal} className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50">Cancel</button>
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       disabled={createMutation.isPending || updateMutation.isPending}
                       className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-100 transition-all flex items-center"
                     >

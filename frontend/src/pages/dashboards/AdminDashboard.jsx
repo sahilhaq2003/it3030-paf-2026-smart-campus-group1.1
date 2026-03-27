@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { facilityApi } from "../../api/facilityApi";
 import { ticketApi } from "../../api/ticketApi";
 import { fetchUsers } from "../../api/userAdminApi";
 import AdminTechnicianPanel from "../../components/dashboard/AdminTechnicianPanel";
@@ -40,6 +41,11 @@ export default function AdminDashboard() {
   const usersQuery = useQuery({
     queryKey: ["admin", "users", "count"],
     queryFn: fetchUsers,
+  });
+
+  const facilitiesQuery = useQuery({
+    queryKey: ["admin", "facilities", "count"],
+    queryFn: () => facilityApi.getAllFacilities({ page: 0, size: 1 })
   });
 
   const openTickets =
@@ -140,6 +146,46 @@ export default function AdminDashboard() {
               </p>
             </>
           )}
+        </DashboardSection>
+      </div>
+
+      {/* Facility Navigation Widgets */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:gap-8">
+        <DashboardSection
+          title="Campus Directory"
+          description="Public-facing map of all active resources and classrooms."
+        >
+          <DashboardInlineMessage>
+            View the live architectural map available to standard users and students.
+          </DashboardInlineMessage>
+          <Link to="/facilities" className={`mt-5 inline-flex items-center gap-1 text-sm ${campusTextLink}`}>
+            Open campus map
+            <span aria-hidden className="text-base leading-none">
+              →
+            </span>
+          </Link>
+        </DashboardSection>
+
+        <DashboardSection
+          title="Facility Registry"
+          description="Total physical resources configured in the backend server."
+        >
+          {facilitiesQuery.isLoading ? (
+            <div className="h-10 animate-pulse rounded-lg bg-slate-100" />
+          ) : (
+            <p className="text-3xl font-bold tabular-nums text-slate-900">
+              {facilitiesQuery.data?.totalElements ?? "—"} <span className="text-lg text-gray-500 font-medium tracking-tight">Facilities</span>
+            </p>
+          )}
+          <DashboardInlineMessage>
+            Manage capacities, operational limits, types, and physical metadata attributes natively.
+          </DashboardInlineMessage>
+          <Link to="/admin/facilities" className={`mt-5 inline-flex items-center gap-1 text-sm ${campusTextLink}`}>
+            Launch Facility Manager
+            <span aria-hidden className="text-base leading-none">
+              →
+            </span>
+          </Link>
         </DashboardSection>
       </div>
 
