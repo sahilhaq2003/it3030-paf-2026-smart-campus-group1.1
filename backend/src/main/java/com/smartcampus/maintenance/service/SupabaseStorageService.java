@@ -63,7 +63,7 @@ public class SupabaseStorageService {
         HttpEntity<byte[]> entity = new HttpEntity<>(file.getBytes(), headers);
         
         try {
-            ResponseEntity<String> response = restTemplate.exchange(uploadUrl, HttpMethod.POST, entity, String.class);
+            restTemplate.exchange(uploadUrl, HttpMethod.POST, entity, String.class);
             log.info("File uploaded to Supabase: {}", storedName);
         } catch (Exception e) {
             log.error("Failed to upload file to Supabase: {}", storedName, e);
