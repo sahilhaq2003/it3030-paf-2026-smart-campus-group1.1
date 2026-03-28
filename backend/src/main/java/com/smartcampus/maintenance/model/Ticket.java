@@ -74,4 +74,15 @@ public class Ticket {
     private LocalDateTime updatedAt;
 
     private LocalDateTime resolvedAt;
+
+    // SLA deadline: 72 hours (3 days) from creation
+    private LocalDateTime slaDeadline;
+
+    @PostPersist
+    @PostLoad
+    private void initializeSlaDeadline() {
+        if (this.slaDeadline == null && this.createdAt != null) {
+            this.slaDeadline = this.createdAt.plusHours(72);
+        }
+    }
 }
