@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { formatDistanceToNow } from 'date-fns';
 import { AlertCircle, Clock, MapPin } from 'lucide-react';
 import PriorityBadge from './PriorityBadge';
 import StatusBadge from './StatusBadge';
@@ -31,8 +32,19 @@ export default function TicketCard({ ticket, onSelect }) {
     LOW: 'border-l-gray-500',
   };
 
-  const hoursElapsed = ticket.timeElapsed || 0;
   const isOverdue = ticket.slaViolated;
+  const createdLabel =
+    ticket.createdAt != null && !Number.isNaN(new Date(ticket.createdAt).getTime())
+      ? formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true })
+      : '—';
+
+  const slaDeadlineDate = ticket.slaDeadline ? new Date(ticket.slaDeadline) : null;
+  const hoursUntilSla =
+    slaDeadlineDate && !Number.isNaN(slaDeadlineDate.getTime())
+      ? (slaDeadlineDate.getTime() - Date.now()) / (1000 * 60 * 60)
+      : null;
+  const showSlaApproaching =
+    !isOverdue && hoursUntilSla != null && hoursUntilSla > 0 && hoursUntilSla <= 24;
 
   return (
     <div
@@ -66,7 +78,7 @@ export default function TicketCard({ ticket, onSelect }) {
         )}
         <div className="flex items-center gap-1">
           <Clock size={14} />
-          <span>{hoursElapsed}h ago</span>
+          <span>{createdLabel}</span>
         </div>
       </div>
 
@@ -83,8 +95,7 @@ export default function TicketCard({ ticket, onSelect }) {
         )}
       </div>
 
-      {/* SLA warning if close to deadline */}
-      {!isOverdue && ticket.slaDeadline && hoursElapsed > 60 && (
+      {showSlaApproaching && (
         <div className="mt-2 text-xs text-orange-700 bg-orange-50 px-2 py-1 rounded">
           ⚠️ SLA deadline approaching
         </div>

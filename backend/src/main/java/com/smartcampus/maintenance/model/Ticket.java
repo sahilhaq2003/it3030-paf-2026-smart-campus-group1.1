@@ -9,6 +9,8 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.smartcampus.maintenance.policy.SlaPolicy;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -75,14 +77,14 @@ public class Ticket {
 
     private LocalDateTime resolvedAt;
 
-    // SLA deadline: 72 hours (3 days) from creation
+    /** Target resolution time from {@link #createdAt}, derived from {@link #priority} (CRITICAL 2h, HIGH 8h, …). */
     private LocalDateTime slaDeadline;
 
-    @PostPersist
+    /** In-memory backfill for legacy rows where {@code sla_deadline} was never persisted. */
     @PostLoad
-    private void initializeSlaDeadline() {
-        if (this.slaDeadline == null && this.createdAt != null) {
-            this.slaDeadline = this.createdAt.plusHours(72);
+    private void backfillSlaDeadlineIfNull() {
+        if (slaDeadline == null && createdAt != null && priority != null) {
+            slaDeadline = createdAt.plusHours(SlaPolicy.hoursFor(priority));
         }
     }
 }

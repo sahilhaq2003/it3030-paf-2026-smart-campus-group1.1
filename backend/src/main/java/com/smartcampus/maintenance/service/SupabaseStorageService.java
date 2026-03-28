@@ -75,6 +75,28 @@ public class SupabaseStorageService {
     }
 
     /**
+     * Download object bytes (service role). Path matches {@link #uploadFile}.
+     */
+    public byte[] downloadObject(String storedName) throws IOException {
+        validateConfig();
+        String getUrl = supabaseUrl + "/storage/v1/object/" + bucket + "/tickets/" + storedName;
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(serviceKey);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+        try {
+            ResponseEntity<byte[]> response =
+                    restTemplate.exchange(getUrl, HttpMethod.GET, entity, byte[].class);
+            if (response.getBody() == null || response.getBody().length == 0) {
+                throw new IOException("Empty body from Supabase for " + storedName);
+            }
+            return response.getBody();
+        } catch (Exception e) {
+            log.error("Failed to download from Supabase: {}", storedName, e);
+            throw new IOException("Failed to download file from Supabase", e);
+        }
+    }
+
+    /**
      * Delete file from Supabase Storage
      * @param storedName UUID filename to delete
      */
