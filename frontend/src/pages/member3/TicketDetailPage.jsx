@@ -24,6 +24,7 @@ import {
   campusInputFocus,
 } from "../../components/dashboard/DashboardPrimitives";
 import CommentThread from "../../components/CommentThread";
+import TicketAttachmentImage from "../../components/TicketAttachmentImage";
 import TicketStatusStepper from "../../components/TicketStatusStepper";
 import { normalizeRoles } from "../../utils/getDashboardRoute";
 import { isResolvedLikeTicket, ticketStatusLabel } from "../../utils/ticketStatusDisplay";
@@ -365,8 +366,8 @@ export default function TicketDetailPage() {
                     onClick={() => setLightboxImg(a.url)}
                     className="group relative cursor-pointer"
                   >
-                    <img
-                      src={a.url}
+                    <TicketAttachmentImage
+                      url={a.url}
                       alt={a.originalName}
                       className="h-28 w-28 rounded-xl border-2 border-slate-200 object-cover shadow-sm transition-opacity group-hover:opacity-80"
                     />
@@ -487,7 +488,11 @@ export default function TicketDetailPage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
           onClick={() => setLightboxImg(null)}
         >
-          <img src={lightboxImg} alt="" className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain" />
+          <TicketAttachmentImage
+            url={lightboxImg}
+            alt=""
+            className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain"
+          />
         </button>
       ) : null}
     </DashboardPageLayout>

@@ -4,6 +4,7 @@ import com.smartcampus.maintenance.dto.*;
 import com.smartcampus.maintenance.event.TicketStatusChangedEvent;
 import com.smartcampus.maintenance.model.*;
 import com.smartcampus.maintenance.model.enums.*;
+import com.smartcampus.maintenance.policy.SlaPolicy;
 import com.smartcampus.maintenance.repository.*;
 import com.smartcampus.user.repository.UserRepository;
 import com.smartcampus.facilities.repository.FacilityRepository;
@@ -16,6 +17,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -55,6 +64,11 @@ public class TicketServiceImpl implements TicketService {
         }
 
         var saved = ticketRepo.save(ticket);
+        if (saved.getCreatedAt() != null && saved.getPriority() != null) {
+            saved.setSlaDeadline(
+                    saved.getCreatedAt().plusHours(SlaPolicy.hoursFor(saved.getPriority())));
+            saved = ticketRepo.save(saved);
+        }
 
         // Handle file attachments
         if (files != null && !files.isEmpty()) {
@@ -175,7 +189,93 @@ public class TicketServiceImpl implements TicketService {
         return ticketRepo.findByAssignedToId(techId, pageable).map(this::mapToResponse);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<TechnicianPerformanceDTO> getTechnicianPerformance() {
+        return ticketRepo.aggregateTechnicianPerformance().stream()
+                .map(TicketServiceImpl::mapTechnicianPerformanceRow)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] exportTicketsCsv(TicketStatus status, TicketCategory category) {
+        List<Ticket> tickets = ticketRepo.findAllForExport(status, category);
+        CSVFormat fmt = CSVFormat.DEFAULT.builder()
+                .setHeader(
+                        "id",
+                        "title",
+                        "description",
+                        "status",
+                        "category",
+                        "priority",
+                        "location",
+                        "facilityName",
+                        "reportedBy",
+                        "assignedTo",
+                        "createdAt",
+                        "updatedAt",
+                        "resolvedAt",
+                        "slaDeadline")
+                .build();
+        try (var out = new ByteArrayOutputStream();
+                var writer = new OutputStreamWriter(out, StandardCharsets.UTF_8);
+                var printer = new CSVPrinter(writer, fmt)) {
+            for (Ticket t : tickets) {
+                printer.printRecord(
+                        t.getId(),
+                        t.getTitle(),
+                        t.getDescription(),
+                        t.getStatus(),
+                        t.getCategory(),
+                        t.getPriority(),
+                        t.getLocation(),
+                        t.getFacility() != null ? t.getFacility().getName() : "",
+                        t.getReportedBy() != null ? t.getReportedBy().getName() : "",
+                        t.getAssignedTo() != null ? t.getAssignedTo().getName() : "",
+                        t.getCreatedAt(),
+                        t.getUpdatedAt(),
+                        t.getResolvedAt(),
+                        t.getSlaDeadline());
+            }
+            printer.flush();
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static TechnicianPerformanceDTO mapTechnicianPerformanceRow(Object[] row) {
+        Long techId = row[0] == null ? null : ((Number) row[0]).longValue();
+        String name = row[1] != null ? row[1].toString() : "";
+        long count = row[2] == null ? 0L : ((Number) row[2]).longValue();
+        Double avgHours = row[3] == null ? null : ((Number) row[3]).doubleValue();
+        return TechnicianPerformanceDTO.builder()
+                .technicianId(techId)
+                .technicianName(name)
+                .ticketsResolved(count)
+                .avgResolutionHours(avgHours)
+                .build();
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private static String attachmentPublicOrApiUrl(Long ticketId, Attachment a) {
+        if (a.getFileUrl() != null && !a.getFileUrl().isBlank()) {
+            return a.getFileUrl();
+        }
+        return "/api/tickets/" + ticketId + "/attachments/" + a.getStoredName();
+    }
+
+    private static boolean computeSlaViolated(Ticket t, LocalDateTime now) {
+        if (t.getSlaDeadline() == null) {
+            return false;
+        }
+        if (t.getResolvedAt() != null) {
+            return t.getResolvedAt().isAfter(t.getSlaDeadline());
+        }
+        return now.isAfter(t.getSlaDeadline());
+    }
 
     private Ticket findTicketOrThrow(Long id) {
         return ticketRepo.findById(id)
@@ -198,7 +298,7 @@ public class TicketServiceImpl implements TicketService {
     private TicketResponseDTO mapToResponse(Ticket t) {
         LocalDateTime now = LocalDateTime.now();
         long timeElapsed = ChronoUnit.HOURS.between(t.getCreatedAt(), now);
-        boolean slaViolated = t.getSlaDeadline() != null && now.isAfter(t.getSlaDeadline());
+        boolean slaViolated = computeSlaViolated(t, now);
         
         return TicketResponseDTO.builder()
             .id(t.getId())
@@ -220,7 +320,7 @@ public class TicketServiceImpl implements TicketService {
             .attachments(t.getAttachments().stream().map(a -> AttachmentDTO.builder()
                 .id(a.getId())
                 .originalName(a.getOriginalName())
-                .url("/api/tickets/" + t.getId() + "/attachments/" + a.getStoredName())
+                .url(attachmentPublicOrApiUrl(t.getId(), a))
                 .mimeType(a.getMimeType())
                 .size(a.getSize())
                 .build()).toList())

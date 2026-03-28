@@ -98,6 +98,13 @@
             <version>3.0.0</version>
         </dependency>
 
+        <!-- CSV export -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.11.0</version>
+        </dependency>
+
         <!-- Lombok (reduces boilerplate) -->
         <dependency>
             <groupId>org.projectlombok</groupId>

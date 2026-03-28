@@ -3,9 +3,11 @@ package com.smartcampus.maintenance.service;
 import com.smartcampus.maintenance.model.Attachment;
 import com.smartcampus.maintenance.model.Ticket;
 import com.smartcampus.maintenance.repository.AttachmentRepository;
+import com.smartcampus.maintenance.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,7 +21,10 @@ import java.util.*;
 public class AttachmentService {
 
     private final AttachmentRepository attachmentRepo;
+    private final TicketRepository ticketRepo;
     private final SupabaseStorageService supabaseStorageService;
+
+    public record AttachmentContent(byte[] body, String contentType) {}
 
     private static final Set<String> ALLOWED_TYPES = Set.of(
         "image/jpeg", "image/png", "image/webp"
@@ -64,6 +69,33 @@ public class AttachmentService {
         }
 
         return saved;
+    }
+
+    /**
+     * Stream attachment bytes for users who may view the ticket (reporter or ticket staff).
+     */
+    public AttachmentContent loadForDownload(
+            long ticketId, String storedName, long currentUserId, boolean ticketStaff) {
+        var ticket = ticketRepo
+                .findById(ticketId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+        if (!ticketStaff && !ticket.getReportedBy().getId().equals(currentUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+        var att = attachmentRepo
+                .findByTicket_IdAndStoredName(ticketId, storedName)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found"));
+        try {
+            byte[] bytes = supabaseStorageService.downloadObject(storedName);
+            String ct = att.getMimeType() != null && !att.getMimeType().isBlank()
+                    ? att.getMimeType()
+                    : MediaType.APPLICATION_OCTET_STREAM_VALUE;
+            return new AttachmentContent(bytes, ct);
+        } catch (IOException e) {
+            log.error("Attachment download failed ticket={} file={}", ticketId, storedName, e);
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY, "Could not load attachment from storage");
+        }
     }
 
     public void deleteAttachments(List<Attachment> attachments) {
