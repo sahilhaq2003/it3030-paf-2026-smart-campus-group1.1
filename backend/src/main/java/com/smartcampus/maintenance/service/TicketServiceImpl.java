@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -195,6 +196,10 @@ public class TicketServiceImpl implements TicketService {
     }
 
     private TicketResponseDTO mapToResponse(Ticket t) {
+        LocalDateTime now = LocalDateTime.now();
+        long timeElapsed = ChronoUnit.HOURS.between(t.getCreatedAt(), now);
+        boolean slaViolated = t.getSlaDeadline() != null && now.isAfter(t.getSlaDeadline());
+        
         return TicketResponseDTO.builder()
             .id(t.getId())
             .title(t.getTitle())
@@ -222,6 +227,9 @@ public class TicketServiceImpl implements TicketService {
             .createdAt(t.getCreatedAt())
             .updatedAt(t.getUpdatedAt())
             .resolvedAt(t.getResolvedAt())
+            .slaDeadline(t.getSlaDeadline())
+            .slaViolated(slaViolated)
+            .timeElapsed(timeElapsed)
             .build();
     }
 }

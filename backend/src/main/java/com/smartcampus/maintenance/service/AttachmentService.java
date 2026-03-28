@@ -4,24 +4,22 @@ import com.smartcampus.maintenance.model.Attachment;
 import com.smartcampus.maintenance.model.Ticket;
 import com.smartcampus.maintenance.repository.AttachmentRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
-import java.nio.file.*;
 import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AttachmentService {
 
     private final AttachmentRepository attachmentRepo;
-
-    @Value("${app.upload.dir:uploads/tickets}")
-    private String uploadDir;
+    private final SupabaseStorageService supabaseStorageService;
 
     private static final Set<String> ALLOWED_TYPES = Set.of(
         "image/jpeg", "image/png", "image/webp"
@@ -41,15 +39,16 @@ public class AttachmentService {
             validateFile(file);
 
             String storedName = UUID.randomUUID() + getExtension(file.getOriginalFilename());
-            Path dir = Paths.get(uploadDir, String.valueOf(ticket.getId()));
+            String fileUrl = null;
 
             try {
-                Files.createDirectories(dir);
-                Files.copy(file.getInputStream(), dir.resolve(storedName),
-                    StandardCopyOption.REPLACE_EXISTING);
+                // Try to upload to Supabase Storage
+                fileUrl = supabaseStorageService.uploadFile(file, storedName);
+                log.info("File uploaded to Supabase: {} -> {}", file.getOriginalFilename(), fileUrl);
             } catch (IOException e) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Failed to store file: " + file.getOriginalFilename());
+                // If upload fails, log it but still save the attachment record
+                log.warn("Failed to upload file to Supabase: {} - {}", file.getOriginalFilename(), e.getMessage());
+                fileUrl = null; // Allow null fileUrl for now
             }
 
             var attachment = Attachment.builder()
@@ -58,6 +57,7 @@ public class AttachmentService {
                 .storedName(storedName)
                 .mimeType(file.getContentType())
                 .size(file.getSize())
+                .fileUrl(fileUrl)  // Can be null if upload failed
                 .build();
 
             saved.add(attachmentRepo.save(attachment));
@@ -66,28 +66,10 @@ public class AttachmentService {
         return saved;
     }
 
-    public byte[] serveFile(Long ticketId, String filename) {
-        Path filePath = Paths.get(uploadDir, String.valueOf(ticketId), filename);
-        try {
-            return Files.readAllBytes(filePath);
-        } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found");
-        }
-    }
-
-    public String getMimeType(Long ticketId, String filename) {
-        Path filePath = Paths.get(uploadDir, String.valueOf(ticketId), filename);
-        try {
-            return Files.probeContentType(filePath);
-        } catch (IOException e) {
-            return "application/octet-stream";
-        }
-    }
-
     public void deleteAttachments(List<Attachment> attachments) {
         for (Attachment a : attachments) {
-            Path file = Paths.get(uploadDir, String.valueOf(a.getTicket().getId()), a.getStoredName());
-            try { Files.deleteIfExists(file); } catch (IOException ignored) {}
+            // Delete from Supabase Storage
+            supabaseStorageService.deleteFile(a.getStoredName());
         }
     }
 

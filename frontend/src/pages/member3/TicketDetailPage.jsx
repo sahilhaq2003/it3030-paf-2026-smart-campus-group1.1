@@ -23,6 +23,8 @@ import {
   campusBtnPrimary,
   campusInputFocus,
 } from "../../components/dashboard/DashboardPrimitives";
+import CommentThread from "../../components/CommentThread";
+import TicketStatusStepper from "../../components/TicketStatusStepper";
 import { normalizeRoles } from "../../utils/getDashboardRoute";
 import { isResolvedLikeTicket, ticketStatusLabel } from "../../utils/ticketStatusDisplay";
 
@@ -85,7 +87,7 @@ export default function TicketDetailPage() {
   });
 
   const addComment = useMutation({
-    mutationFn: () => ticketApi.addComment(id, comment),
+    mutationFn: (data) => ticketApi.addComment(id, data.content),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["comments", id] });
       setComment("");
@@ -296,8 +298,8 @@ export default function TicketDetailPage() {
         </div>
 
         <div className="border-b border-slate-200 bg-white px-6 py-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Timeline</p>
-          <ul className="mt-4 space-y-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Status Timeline</p>
+          <TicketStatusStepper status={ticket.status} resolvedAt={ticket.resolvedAt} />
             <li className="flex gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-campus-brand/15 text-campus-brand">
                 <CircleDot className="h-4 w-4" strokeWidth={2} />
@@ -325,53 +327,11 @@ export default function TicketDetailPage() {
                 </p>
               </div>
             </li>
-            <li className="flex gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
-                <Wrench className="h-4 w-4" strokeWidth={2} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900">Work & resolution</p>
-                <p className="text-xs text-slate-600">
-                  Current stage:{" "}
-                  <span className="font-medium text-slate-800">
-                    {resolvedLike
-                      ? "Resolved and closed"
-                      : PROCESS_COPY[ticket.status] ?? ticket.status}
-                  </span>
-                  {resolvedLike ? " — thank you for using the campus desk." : null}
-                </p>
-              </div>
-            </li>
-          </ul>
         </div>
 
         {!isRejected ? (
           <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
-            <div className="flex items-center">
-              {STATUS_STEPS.map((step, i) => (
-                <div key={step} className="flex flex-1 items-center">
-                  <div
-                    className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all ${
-                      i <= stepIndex ? "bg-campus-brand text-white shadow-sm" : "bg-slate-300 text-slate-600"
-                    }`}
-                  >
-                    {i < stepIndex ? "✓" : i + 1}
-                  </div>
-                  <div className="mx-1 flex-1">
-                    <div
-                      className={`h-1 rounded transition-colors ${
-                        i < stepIndex ? "bg-campus-brand" : "bg-slate-300"
-                      }`}
-                    />
-                  </div>
-                  <span
-                    className={`hidden text-xs font-bold sm:block ${i <= stepIndex ? "text-slate-900" : "text-slate-400"}`}
-                  >
-                    {STEP_HEADINGS[i] ?? step.replace("_", " ")}
-                  </span>
-                </div>
-              ))}
-            </div>
+            {/* Status stepper is now in Status Timeline section above */}
           </div>
         ) : null}
 
@@ -464,131 +424,54 @@ export default function TicketDetailPage() {
         ) : null}
 
         <div className="border-t border-slate-200 bg-slate-50/50 p-6">
-          <div className="mb-1 flex flex-wrap items-center gap-2">
-            <MessageCircle className="h-4 w-4 text-slate-600" strokeWidth={2} />
-            <h3 className="text-sm font-bold text-slate-900">Conversation</h3>
-            <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500 ring-1 ring-slate-200">
-              {comments.length}
-            </span>
-          </div>
-          <p className="mb-6 text-xs leading-relaxed text-slate-600">{conversationHint}</p>
-
-          <div className="mb-6 space-y-3">
-            {comments.map((c) => {
-              const mine = Number(c.authorId) === Number(user?.id);
-              return (
-                <div key={c.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[min(100%,28rem)] rounded-2xl px-4 py-3 shadow-sm ring-1 ${
-                      mine
-                        ? "bg-campus-brand text-white ring-campus-brand/20"
-                        : "bg-white text-slate-900 ring-slate-200/80"
-                    }`}
-                  >
-                    <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <span className={`text-xs font-bold ${mine ? "text-white/95" : "text-slate-800"}`}>
-                        {c.authorName}
-                        {mine ? " · You" : ""}
-                      </span>
-                      <span className={`text-[10px] font-medium ${mine ? "text-white/75" : "text-slate-500"}`}>
-                        {formatDate(c.createdAt)}
-                      </span>
-                      {c.edited ? (
-                        <span className={`text-[10px] ${mine ? "text-white/70" : "text-slate-400"}`}>
-                          (edited)
-                        </span>
-                      ) : null}
-                    </div>
-                    {editingCommentId === c.id ? (
-                      <div className="space-y-2">
-                        <textarea
-                          value={editContent}
-                          onChange={(e) => setEditContent(e.target.value)}
-                          className={`w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 ${campusInputFocus}`}
-                          rows={2}
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => editComment.mutate({ cid: c.id, content: editContent })}
-                            className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white"
-                          >
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditingCommentId(null)}
-                            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="group relative">
-                        <p className={`text-sm font-medium leading-relaxed ${mine ? "text-white" : "text-slate-800"}`}>
-                          {c.content}
-                        </p>
-                        {(c.authorId === user?.id || isAdmin) && (
-                          <div className="mt-2 flex justify-end gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
-                            {c.authorId === user?.id ? (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingCommentId(c.id);
-                                  setEditContent(c.content);
-                                }}
-                                className={`rounded p-1 ${mine ? "text-white/80 hover:text-white" : "text-slate-400 hover:text-campus-brand-hover"}`}
-                              >
-                                <Edit2 size={13} />
-                              </button>
-                            ) : null}
-                            <button
-                              type="button"
-                              onClick={() => deleteComment.mutate(c.id)}
-                              className={`rounded p-1 ${mine ? "text-white/80 hover:text-red-200" : "text-slate-400 hover:text-red-600"}`}
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            {comments.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-slate-200 bg-white py-8 text-center text-sm text-slate-500">
-                No messages yet — say hello to keep everyone aligned on this ticket.
-              </p>
-            ) : null}
+          <div className="mb-4">
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-slate-600" strokeWidth={2} />
+              <h3 className="text-sm font-bold text-slate-900">Conversation</h3>
+              <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500 ring-1 ring-slate-200">
+                {comments.length}
+              </span>
+            </div>
+            <p className="text-xs leading-relaxed text-slate-600">{conversationHint}</p>
           </div>
 
           {canPostMessage ? (
-            <div className="flex gap-3 rounded-xl border border-slate-200 bg-white p-3 ring-1 ring-slate-900/[0.03]">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700">
-                {user?.name?.[0]?.toUpperCase()}
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-end">
-                <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Write a message…"
-                  rows={2}
-                  className={`min-h-[2.75rem] flex-1 resize-y rounded-xl border-slate-200 px-3 py-2 text-sm ${ta}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => addComment.mutate()}
-                  disabled={!comment.trim() || addComment.isPending}
-                  className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50 ${campusBtnPrimary}`}
-                >
-                  <Send size={16} />
-                  Send
-                </button>
-              </div>
-            </div>
+            <CommentThread
+              comments={comments}
+              currentUserId={user?.id}
+              isAdmin={isAdmin}
+              onAddComment={async (content) => {
+                return new Promise((resolve, reject) => {
+                  addComment.mutate(
+                    { content },
+                    {
+                      onSuccess: () => resolve(),
+                      onError: (err) => reject(err),
+                    }
+                  );
+                });
+              }}
+              onEditComment={async (cid, content) => {
+                return new Promise((resolve, reject) => {
+                  editComment.mutate(
+                    { cid, content },
+                    {
+                      onSuccess: () => resolve(),
+                      onError: (err) => reject(err),
+                    }
+                  );
+                });
+              }}
+              onDeleteComment={async (cid) => {
+                return new Promise((resolve, reject) => {
+                  deleteComment.mutate(cid, {
+                    onSuccess: () => resolve(),
+                    onError: (err) => reject(err),
+                  });
+                });
+              }}
+              loading={comments.isLoading}
+            />
           ) : (
             <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
               You can view this conversation. Messages can only be sent by the person who submitted the ticket, the

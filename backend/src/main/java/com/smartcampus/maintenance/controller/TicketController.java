@@ -105,21 +105,6 @@ public class TicketController {
         return ResponseEntity.noContent().build();
     }
 
-    // GET /api/tickets/{id}/attachments/{filename} — serve file
-    @GetMapping("/{ticketId}/attachments/{filename}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<byte[]> serveAttachment(
-        @PathVariable Long ticketId,
-        @PathVariable String filename
-    ) {
-        byte[] data = attachmentService.serveFile(ticketId, filename);
-        String mimeType = attachmentService.getMimeType(ticketId, filename);
-        return ResponseEntity.ok()
-            .contentType(MediaType.parseMediaType(mimeType))
-            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
-            .body(data);
-    }
-
     // Technician dashboard endpoint
     @GetMapping("/assigned")
     @PreAuthorize("hasAnyRole('TECHNICIAN', 'ADMIN')")

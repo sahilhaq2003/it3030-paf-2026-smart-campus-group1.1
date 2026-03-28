@@ -8,6 +8,8 @@ import {
   campusBtnPrimary,
 } from "../../components/dashboard/DashboardPrimitives";
 import StatusBadge from "../../components/StatusBadge";
+import TicketCard from "../../components/TicketCard";
+import AssignTechnicianModal from "../../components/AssignTechnicianModal";
 import { Search, ChevronRight } from "lucide-react";
 import { ticketApi } from "../../api/ticketApi";
 import { fetchTechnicians } from "../../api/userAdminApi";
@@ -40,6 +42,8 @@ export default function AdminTicketsPage() {
   const [sortBy, setSortBy] = useState("created");
   const [bulkTechId, setBulkTechId] = useState("");
   const [rowTechPick, setRowTechPick] = useState({});
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [selectedTicketForAssign, setSelectedTicketForAssign] = useState(null);
 
   const ticketsQuery = useQuery({
     queryKey: ["admin", "tickets", "list"],
@@ -234,6 +238,20 @@ export default function AdminTicketsPage() {
     );
   };
 
+  const handleAssignModalSubmit = async (technicianId) => {
+    if (!selectedTicketForAssign) return;
+    assignMutation.mutate(
+      { ticketId: selectedTicketForAssign, technicianId },
+      {
+        onSuccess: () => {
+          toast.success("Ticket assigned");
+          setAssignModalOpen(false);
+          setSelectedTicketForAssign(null);
+        },
+      },
+    );
+  };
+
   const inputClass = `rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm ${campusInputFocus}`;
   const selectSm = `${inputClass} py-2 text-xs`;
 
@@ -395,117 +413,57 @@ export default function AdminTicketsPage() {
           : `Showing ${filtered.length} of ${tickets.length} tickets`}
       </p>
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="mt-4 space-y-3">
         {ticketsQuery.isLoading ? (
-          <div className="space-y-0 divide-y divide-slate-200 p-4">
+          <div className="space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-50" />
+              <div key={i} className="h-24 animate-pulse rounded-lg bg-slate-100" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-lg text-slate-500">No tickets found.</div>
         ) : (
-          <div className="divide-y divide-slate-200 overflow-x-auto">
-            <div
-              className={`flex items-center gap-3 border-b border-slate-200 bg-slate-50 p-4 ${isAdmin ? "min-w-[56rem]" : "min-w-[48rem]"}`}
-            >
-              <input
-                type="checkbox"
-                checked={selected.length === filtered.length && filtered.length > 0}
-                onChange={toggleSelectAll}
-              />
-              <div className="grid flex-1 grid-cols-12 gap-2 text-xs font-bold text-slate-700">
-                <div className="col-span-1">ID</div>
-                <div className={isAdmin ? "col-span-3" : "col-span-4"}>Title</div>
-                <div className="col-span-2">Status</div>
-                <div className={isAdmin ? "col-span-2" : "col-span-3"}>Assigned</div>
-                {isAdmin ? <div className="col-span-2">Assign to</div> : null}
-                <div className="col-span-2">Priority</div>
-              </div>
-            </div>
-
+          <div className="space-y-3">
             {filtered.map((ticket) => (
-              <div
-                key={ticket.id}
-                className={`group flex items-center gap-3 p-4 transition-colors hover:bg-slate-50 ${isAdmin ? "min-w-[56rem]" : "min-w-[48rem]"}`}
-              >
+              <div key={ticket.id} className="flex items-center gap-3">
                 <input
                   type="checkbox"
                   checked={selected.includes(ticket.id)}
                   onChange={() => toggleSelect(ticket.id)}
+                  className="h-5 w-5 rounded border-gray-300"
                 />
-                <div className="grid flex-1 grid-cols-12 items-center gap-2">
-                  <div className="col-span-1">
-                    <span className="inline-block rounded-md bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">
-                      #{ticket.id}
-                    </span>
-                  </div>
-                  <div className={`min-w-0 ${isAdmin ? "col-span-3" : "col-span-4"}`}>
-                    <button
-                      type="button"
-                      className="text-left font-semibold text-slate-900 transition hover:text-campus-brand-hover"
-                      onClick={() => navigate(`/tickets/${ticket.id}`)}
-                    >
-                      {ticket.title}
-                    </button>
-                    <p className="truncate text-xs text-slate-500">
-                      {ticket.reportedByName ?? "Reporter"} · {formatDate(ticket.createdAt)}
-                    </p>
-                  </div>
-                  <div className="col-span-2">
-                    <StatusBadge
-                      status={ticket.status}
-                      resolutionNotes={ticket.resolutionNotes}
-                      resolvedAt={ticket.resolvedAt}
-                    />
-                  </div>
-                  <div
-                    className={`text-xs font-medium text-slate-800 ${isAdmin ? "col-span-2" : "col-span-3"}`}
-                  >
-                    {ticket.assignedToName ? (
-                      <span className="rounded-lg bg-slate-100 px-2 py-1">{ticket.assignedToName}</span>
-                    ) : (
-                      <span className="rounded-lg bg-amber-100 px-2 py-1 text-amber-900">Unassigned</span>
-                    )}
-                  </div>
-                  {isAdmin ? (
-                    <div className="col-span-2 flex flex-wrap items-center gap-1">
-                      <select
-                        value={rowTechPick[ticket.id] ?? ""}
-                        onChange={(e) =>
-                          setRowTechPick((p) => ({ ...p, [ticket.id]: e.target.value }))
-                        }
-                        className={selectSm}
-                      >
-                        <option value="">Select…</option>
-                        {technicians.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => assignRow(ticket.id)}
-                        disabled={assignMutation.isPending}
-                        className="rounded-lg bg-slate-800 px-2 py-1.5 text-xs font-semibold text-white hover:bg-slate-900 disabled:opacity-50"
-                      >
-                        Set
-                      </button>
-                    </div>
-                  ) : null}
-                  <div
-                    className={`col-span-2 w-fit rounded-md px-2 py-1 text-xs font-bold ${priorityColors[ticket.priority]}`}
-                  >
-                    {ticket.priority}
-                  </div>
+                <div className="flex-1">
+                  <TicketCard ticket={ticket} />
                 </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedTicketForAssign(ticket.id);
+                      setAssignModalOpen(true);
+                    }}
+                    className="shrink-0 rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-900 disabled:opacity-50"
+                  >
+                    Assign
+                  </button>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <AssignTechnicianModal
+        isOpen={assignModalOpen}
+        onClose={() => {
+          setAssignModalOpen(false);
+          setSelectedTicketForAssign(null);
+        }}
+        onAssign={handleAssignModalSubmit}
+        currentTechnicianName={
+          selectedTicketForAssign ? tickets.find(t => t.id === selectedTicketForAssign)?.assignedToName : null
+        }
+      />
     </DashboardPageLayout>
   );
 }

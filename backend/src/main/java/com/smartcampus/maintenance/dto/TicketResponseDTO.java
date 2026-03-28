@@ -29,4 +29,7 @@ public class TicketResponseDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime resolvedAt;
+    private LocalDateTime slaDeadline;
+    private Boolean slaViolated;
+    private Long timeElapsed; // hours since creation
 }

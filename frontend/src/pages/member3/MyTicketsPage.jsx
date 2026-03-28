@@ -7,6 +7,7 @@ import {
   campusInputFocus,
 } from "../../components/dashboard/DashboardPrimitives";
 import StatusBadge from "../../components/StatusBadge";
+import TicketCard from "../../components/TicketCard";
 import { Search, Clock, CheckCircle, ChevronRight, AlertCircle } from "lucide-react";
 import { ticketApi } from "../../api/ticketApi";
 import { isResolvedLikeTicket } from "../../utils/ticketStatusDisplay";
@@ -240,39 +241,9 @@ export default function MyTicketsPage() {
               : "No tickets match your filters."}
           </div>
         ) : (
-          <div className="divide-y divide-slate-200">
+          <div className="space-y-3">
             {filtered.map((ticket) => (
-              <button
-                key={ticket.id}
-                type="button"
-                onClick={() => navigate(`/tickets/${ticket.id}`)}
-                className="group flex w-full items-center justify-between gap-4 p-4 text-left transition hover:bg-slate-50"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                      #{ticket.id}
-                    </span>
-                    <span
-                      className={`rounded-md px-2 py-0.5 text-xs font-semibold ${priorityColors[ticket.priority]}`}
-                    >
-                      {ticket.priority}
-                    </span>
-                    <StatusBadge
-                      status={ticket.status}
-                      resolutionNotes={ticket.resolutionNotes}
-                      resolvedAt={ticket.resolvedAt}
-                    />
-                  </div>
-                  <p className="font-semibold text-slate-900 transition group-hover:text-campus-brand-hover">
-                    {ticket.title}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {ticket.category} · Open {ticket.daysOpen} {ticket.daysOpen === 1 ? "day" : "days"}
-                  </p>
-                </div>
-                <ChevronRight className="h-5 w-5 shrink-0 text-slate-400" />
-              </button>
+              <TicketCard key={ticket.id} ticket={ticket} />
             ))}
           </div>
         )}
