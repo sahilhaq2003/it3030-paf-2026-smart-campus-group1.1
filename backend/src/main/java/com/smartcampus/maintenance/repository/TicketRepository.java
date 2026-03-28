@@ -18,6 +18,12 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     Page<Ticket> findByReportedById(Long userId, Pageable pageable);
 
+    long countByReportedById(Long userId);
+
+    @Modifying
+    @Query("DELETE FROM Ticket t WHERE t.assignedTo.id = :userId")
+    void clearAssignmentForUser(@Param("userId") Long userId);
+
     @Query("""
         SELECT t FROM Ticket t
         WHERE (:status IS NULL OR t.status = :status)

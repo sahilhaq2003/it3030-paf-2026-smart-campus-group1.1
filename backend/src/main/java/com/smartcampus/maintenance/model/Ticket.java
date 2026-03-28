@@ -44,6 +44,7 @@ public class Ticket {
     private Facility facility;  // nullable
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private TicketStatus status = TicketStatus.OPEN;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -35,7 +35,6 @@ import java.util.List;
 public class TicketServiceImpl implements TicketService {
 
     private final TicketRepository ticketRepo;
-    private final CommentRepository commentRepo;
     private final UserRepository userRepo;
     private final FacilityRepository facilityRepo;
     private final AttachmentService attachmentService;

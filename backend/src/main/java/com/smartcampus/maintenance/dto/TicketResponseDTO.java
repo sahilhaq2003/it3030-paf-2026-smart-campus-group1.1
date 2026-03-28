@@ -1,5 +1,6 @@
 package com.smartcampus.maintenance.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.smartcampus.maintenance.model.enums.*;
 import lombok.Builder;
 import lombok.Data;
@@ -26,9 +27,13 @@ public class TicketResponseDTO {
     private String rejectionReason;
     private String preferredContact;
     private List<AttachmentDTO> attachments;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime updatedAt;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime resolvedAt;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime slaDeadline;
     private Boolean slaViolated;
     private Long timeElapsed; // hours since creation
