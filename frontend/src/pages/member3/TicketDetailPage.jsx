@@ -303,6 +303,7 @@ export default function TicketDetailPage() {
         <div className="border-b border-slate-200 bg-white px-6 py-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Status Timeline</p>
           <TicketStatusStepper status={ticket.status} resolvedAt={ticket.resolvedAt} />
+          <ul className="mt-4 list-none space-y-4 pl-0">
             <li className="flex gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-campus-brand/15 text-campus-brand">
                 <CircleDot className="h-4 w-4" strokeWidth={2} />
@@ -330,6 +331,7 @@ export default function TicketDetailPage() {
                 </p>
               </div>
             </li>
+          </ul>
         </div>
 
         {!isRejected ? (
