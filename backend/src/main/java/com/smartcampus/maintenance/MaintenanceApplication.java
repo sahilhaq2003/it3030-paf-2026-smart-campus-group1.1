@@ -66,8 +66,8 @@ public class MaintenanceApplication {
         if (poolerHost != null && !poolerHost.isBlank()) {
             String jdbc =
                     String.format(
-                            "jdbc:postgresql://%s:5432/postgres?sslmode=require", poolerHost.trim());
-            System.setProperty("spring.datasource.url", jdbc);
+                            "jdbc:postgresql://%s:6543/postgres?sslmode=require", poolerHost.trim());
+            System.setProperty("spring.datasource.url", ensurePoolerPrepareSafe(jdbc));
             return;
         }
         String region =
@@ -77,9 +77,9 @@ public class MaintenanceApplication {
         if (region != null && !region.isBlank()) {
             String jdbc =
                     String.format(
-                            "jdbc:postgresql://aws-0-%s.pooler.supabase.com:5432/postgres?sslmode=require",
+                            "jdbc:postgresql://aws-0-%s.pooler.supabase.com:6543/postgres?sslmode=require",
                             region.trim());
-            System.setProperty("spring.datasource.url", jdbc);
+            System.setProperty("spring.datasource.url", ensurePoolerPrepareSafe(jdbc));
         }
     }
 
@@ -94,7 +94,7 @@ public class MaintenanceApplication {
 
     private static void applyPostgresUriToSpringProperties(String raw) {
         if (raw.startsWith("jdbc:")) {
-            System.setProperty("spring.datasource.url", raw);
+            System.setProperty("spring.datasource.url", ensurePoolerPrepareSafe(raw));
             return;
         }
         if (!raw.startsWith("postgresql://") && !raw.startsWith("postgres://")) {
@@ -121,9 +121,23 @@ public class MaintenanceApplication {
         String jdbc =
                 String.format(
                         "jdbc:postgresql://%s:%d%s?sslmode=require", host, port, path);
-        System.setProperty("spring.datasource.url", jdbc);
+        System.setProperty("spring.datasource.url", ensurePoolerPrepareSafe(jdbc));
         System.setProperty("spring.datasource.username", user);
         System.setProperty("spring.datasource.password", pass);
+    }
+
+    /**
+     * Supabase pooler (PgBouncer, transaction mode) cannot share named prepared statements across clients; JDBC must
+     * skip server-side prepare ({@code prepareThreshold=0}).
+     */
+    private static String ensurePoolerPrepareSafe(String jdbcUrl) {
+        if (jdbcUrl == null
+                || jdbcUrl.isBlank()
+                || !jdbcUrl.contains("pooler.supabase.com")
+                || jdbcUrl.contains("prepareThreshold=")) {
+            return jdbcUrl;
+        }
+        return jdbcUrl + (jdbcUrl.contains("?") ? "&" : "?") + "prepareThreshold=0";
     }
 
     private static String firstNonBlank(String... values) {
