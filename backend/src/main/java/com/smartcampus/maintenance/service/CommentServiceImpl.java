@@ -142,7 +142,7 @@ public class CommentServiceImpl implements CommentService {
             .authorName(c.getAuthor().getName())
             .authorAvatarUrl(c.getAuthor().getAvatarUrl())
             .content(c.getContent())
-            .edited(c.isEdited())
+            .isEdited(c.isEdited())
             .createdAt(c.getCreatedAt())
             .updatedAt(c.getUpdatedAt())
             .build();

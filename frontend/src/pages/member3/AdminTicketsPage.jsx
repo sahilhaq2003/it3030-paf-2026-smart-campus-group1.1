@@ -57,8 +57,15 @@ export default function AdminTicketsPage() {
     enabled: isAdmin,
   });
 
+  const performanceQuery = useQuery({
+    queryKey: ["admin", "technician", "performance"],
+    queryFn: () => ticketApi.getTechnicianPerformance().then((r) => r.data),
+    enabled: isAdmin,
+  });
+
   const tickets = ticketsQuery.data?.content ?? [];
   const technicians = techniciansQuery.data ?? [];
+  const performanceData = performanceQuery.data ?? [];
 
   const assignMutation = useMutation({
     mutationFn: ({ ticketId, technicianId }) =>
@@ -452,6 +459,73 @@ export default function AdminTicketsPage() {
           </div>
         )}
       </div>
+
+      {isAdmin && (
+        <div className="mt-10 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-slate-900">Technician Performance</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Statistics for resolved tickets, ranked by ticket count
+            </p>
+          </div>
+
+          {performanceQuery.isLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-100" />
+              ))}
+            </div>
+          ) : performanceQuery.error ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Could not load technician performance data
+            </div>
+          ) : performanceData.length === 0 ? (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm text-slate-600">
+              No technicians have resolved tickets yet
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="px-4 py-3 text-left font-semibold text-slate-900">Technician</th>
+                    <th className="px-4 py-3 text-right font-semibold text-slate-900">Tickets Resolved</th>
+                    <th className="px-4 py-3 text-right font-semibold text-slate-900">Avg Resolution Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {performanceData.map((perf, idx) => (
+                    <tr
+                      key={perf.technicianId}
+                      className={`border-b border-slate-100 last:border-b-0 ${
+                        idx % 2 === 0 ? "bg-white" : "bg-slate-50"
+                      } hover:bg-slate-50`}
+                    >
+                      <td className="px-4 py-3 font-medium text-slate-900">
+                        {perf.technicianName}
+                      </td>
+                      <td className="px-4 py-3 text-right text-slate-600">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
+                          {perf.ticketsResolved}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right text-slate-600">
+                        {perf.avgResolutionHours != null ? (
+                          <span className="font-medium">
+                            {perf.avgResolutionHours.toFixed(1)} hours
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       <AssignTechnicianModal
         isOpen={assignModalOpen}

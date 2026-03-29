@@ -27,4 +27,7 @@ export const ticketApi = {
     axiosInstance.put(`/tickets/${ticketId}/comments/${commentId}`, { content }),
   deleteComment: (ticketId, commentId) =>
     axiosInstance.delete(`/tickets/${ticketId}/comments/${commentId}`),
+
+  // Analytics
+  getTechnicianPerformance: () => axiosInstance.get('/tickets/analytics/technician-performance'),
 };
