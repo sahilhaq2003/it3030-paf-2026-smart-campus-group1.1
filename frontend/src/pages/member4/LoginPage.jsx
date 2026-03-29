@@ -258,40 +258,7 @@ export default function LoginPage() {
                   </p>
                 </div>
 
-                {GOOGLE_CLIENT_ID ? (
-                  <div
-                    className={`login-google-wrap relative flex w-full min-w-0 justify-center ${loginLoading ? "pointer-events-none opacity-60" : ""}`}
-                  >
-                    {/*
-                      Keep GoogleLogin mounted while signing in so google.accounts.id.initialize()
-                      is not called again (avoids GSI_LOGGER duplicate init warnings).
-                      Fixed width: GSI re-inits when `width` changes.
-                    */}
-                    <GoogleLogin
-                      width={300}
-                      type="standard"
-                      theme="filled_blue"
-                      size="large"
-                      text="continue_with"
-                      shape="pill"
-                      logo_alignment="left"
-                      containerProps={{
-                        className: "login-google-inner flex w-full max-w-full items-center justify-center p-0",
-                      }}
-                      onSuccess={onGoogleCredential}
-                      onError={clearLoginError}
-                    />
-                    {loginLoading ? (
-                      <div
-                        className="absolute inset-0 flex items-center justify-center gap-2 rounded-md bg-white/80 text-sm font-semibold text-slate-700 backdrop-blur-[1px]"
-                        aria-live="polite"
-                      >
-                        <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-campus-brand" />
-                        Signing in…
-                      </div>
-                    ) : null}
-                  </div>
-                ) : (
+                {!GOOGLE_CLIENT_ID ? (
                   <button
                     type="button"
                     onClick={handleGoogle}
@@ -305,9 +272,53 @@ export default function LoginPage() {
                     )}
                     Continue with Google (student)
                   </button>
-                )}
+                ) : null}
               </div>
             )}
+
+            {/*
+              Keep GoogleLogin mounted when switching Student ↔ Staff so google.accounts.id.initialize()
+              runs once (avoids GSI_LOGGER duplicate init). Hide with CSS on staff tab.
+            */}
+            {GOOGLE_CLIENT_ID ? (
+              <div
+                className={
+                  loginMode === "student"
+                    ? "mt-4"
+                    : "hidden h-0 w-0 overflow-hidden p-0"
+                }
+                aria-hidden={loginMode !== "student"}
+              >
+                <div
+                  className={`login-google-wrap relative flex w-full min-w-0 justify-center ${loginLoading ? "pointer-events-none opacity-60" : ""}`}
+                >
+                  <GoogleLogin
+                    width={300}
+                    type="standard"
+                    theme="filled_blue"
+                    size="large"
+                    text="continue_with"
+                    shape="pill"
+                    logo_alignment="left"
+                    locale="en"
+                    containerProps={{
+                      className: "login-google-inner flex w-full max-w-full items-center justify-center p-0",
+                    }}
+                    onSuccess={onGoogleCredential}
+                    onError={clearLoginError}
+                  />
+                  {loginLoading ? (
+                    <div
+                      className="absolute inset-0 flex items-center justify-center gap-2 rounded-md bg-white/80 text-sm font-semibold text-slate-700 backdrop-blur-[1px]"
+                      aria-live="polite"
+                    >
+                      <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-campus-brand" />
+                      Signing in…
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
 
             <p className="mt-3 text-center text-xs text-slate-500">
               Switch role to choose the correct sign-in method.

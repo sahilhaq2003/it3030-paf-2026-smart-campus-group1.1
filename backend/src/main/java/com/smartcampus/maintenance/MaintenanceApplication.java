@@ -66,7 +66,8 @@ public class MaintenanceApplication {
         if (poolerHost != null && !poolerHost.isBlank()) {
             String jdbc =
                     String.format(
-                            "jdbc:postgresql://%s:5432/postgres?sslmode=require", poolerHost.trim());
+                            "jdbc:postgresql://%s:6543/postgres?sslmode=require&prepareThreshold=0",
+                            poolerHost.trim());
             System.setProperty("spring.datasource.url", jdbc);
             return;
         }
@@ -77,7 +78,7 @@ public class MaintenanceApplication {
         if (region != null && !region.isBlank()) {
             String jdbc =
                     String.format(
-                            "jdbc:postgresql://aws-0-%s.pooler.supabase.com:5432/postgres?sslmode=require",
+                            "jdbc:postgresql://aws-0-%s.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0",
                             region.trim());
             System.setProperty("spring.datasource.url", jdbc);
         }
@@ -118,9 +119,11 @@ public class MaintenanceApplication {
         int port = uri.getPort() > 0 ? uri.getPort() : 5432;
         String path =
                 uri.getPath() != null && !uri.getPath().isEmpty() ? uri.getPath() : "/postgres";
-        String jdbc =
-                String.format(
-                        "jdbc:postgresql://%s:%d%s?sslmode=require", host, port, path);
+        String query = "sslmode=require";
+        if (host != null && host.contains("pooler.supabase.com")) {
+            query += "&prepareThreshold=0";
+        }
+        String jdbc = String.format("jdbc:postgresql://%s:%d%s?%s", host, port, path, query);
         System.setProperty("spring.datasource.url", jdbc);
         System.setProperty("spring.datasource.username", user);
         System.setProperty("spring.datasource.password", pass);
