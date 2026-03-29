@@ -7,6 +7,17 @@ import { Clock, CheckCircle, AlertCircle, TrendingUp, BarChart3, Zap, Target } f
 import { useAuth } from "../../context/AuthContext";
 import { ticketApi } from "../../api/ticketApi";
 import Skeleton from "../../components/Skeleton";
+import { isResolvedLikeTicket } from "../../utils/ticketStatusDisplay";
+
+const scheduleStatus = [
+  { time: "09:00", title: "Review assigned tickets", status: "In Progress" },
+  { time: "13:00", title: "Site checks & follow-ups", status: "Scheduled" },
+  { time: "16:30", title: "End-of-day wrap-up", status: "Scheduled" },
+];
+
+function isActiveAssignment(t) {
+  return t.status === "OPEN" || t.status === "IN_PROGRESS";
+}
 
 export default function TechnicianDashboard() {
   const navigate = useNavigate();
@@ -31,12 +42,12 @@ export default function TechnicianDashboard() {
   // Get current technician's performance
   const myPerformance = allPerformance.find(p => p.technicianId === user?.id);
 
-  // Calculate metrics from real data
+  // Calculate metrics from real data (API stores resolve as CLOSED + resolution metadata)
   const metrics = {
-    assigned: myTickets.filter(t => t.status !== 'RESOLVED').length,
-    inProgress: myTickets.filter(t => t.status === 'IN_PROGRESS').length,
-    resolved: myTickets.filter(t => t.status === 'RESOLVED').length,
-    avgResolutionTime: myPerformance?.avgResolutionHours?.toFixed(1) || '0.0',
+    assigned: myTickets.filter((t) => isActiveAssignment(t)).length,
+    inProgress: myTickets.filter((t) => t.status === "IN_PROGRESS").length,
+    resolved: myTickets.filter((t) => isResolvedLikeTicket(t)).length,
+    avgResolutionTime: myPerformance?.avgResolutionHours?.toFixed(1) || "0.0",
   };
 
   // Build performance stats from real data
@@ -263,9 +274,15 @@ export default function TechnicianDashboard() {
           ) : (
             <div className="divide-y divide-slate-200">
               {myTickets
-                .filter(t => activeTab === 'assigned' || (activeTab === 'inProgress' && t.status === 'IN_PROGRESS') || (activeTab === 'resolved' && t.status === 'RESOLVED'))
-                .map(ticket => {
-                  const daysOpen = ticket.createdAt ? Math.floor((new Date() - new Date(ticket.createdAt)) / (1000 * 60 * 60 * 24)) : 0;
+                .filter((t) => {
+                  if (activeTab === "assigned") return isActiveAssignment(t);
+                  if (activeTab === "inProgress") return t.status === "IN_PROGRESS";
+                  return isResolvedLikeTicket(t);
+                })
+                .map((ticket) => {
+                  const daysOpen = ticket.createdAt
+                    ? Math.floor((new Date() - new Date(ticket.createdAt)) / (1000 * 60 * 60 * 24))
+                    : 0;
                   return (
                     <div
                       key={ticket.id}
@@ -282,9 +299,9 @@ export default function TechnicianDashboard() {
                         </div>
                         <p className="font-semibold text-slate-900">{ticket.title}</p>
                         <p className="text-xs text-slate-500 mt-1 font-medium">
-                          {ticket.status === 'RESOLVED'
-                            ? `Resolved on ${ticket.resolvedAt ? new Date(ticket.resolvedAt).toLocaleDateString() : 'N/A'}`
-                            : `Open for ${daysOpen} day${daysOpen !== 1 ? 's' : ''}`}
+                          {isResolvedLikeTicket(ticket)
+                            ? `Resolved on ${ticket.resolvedAt ? new Date(ticket.resolvedAt).toLocaleDateString() : "N/A"}`
+                            : `Open for ${daysOpen} day${daysOpen !== 1 ? "s" : ""}`}
                         </p>
                       </div>
                       <Target className="h-5 w-5 text-slate-400 transition-colors group-hover:text-campus-brand" />

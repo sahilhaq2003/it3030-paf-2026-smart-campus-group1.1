@@ -39,9 +39,7 @@ export default function CommentThread({
     setEditContent('');
   };
 
-  const canEditComment = (comment) => {
-    return currentUserId === comment.authorId || isAdmin;
-  };
+  const canEditComment = (comment) => currentUserId === comment.authorId;
 
   const canDeleteComment = (comment) => {
     return currentUserId === comment.authorId || isAdmin;
@@ -77,16 +75,34 @@ export default function CommentThread({
               className="bg-white rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-colors"
             >
               {/* Comment Header */}
-              <div className="flex items-start justify-between mb-2">
-                <div>
+              <div className="flex items-start justify-between mb-2 gap-3">
+                <div className="flex min-w-0 flex-1 gap-3">
+                  {comment.authorAvatarUrl ? (
+                    <img
+                      src={comment.authorAvatarUrl}
+                      alt=""
+                      className="h-9 w-9 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
+                      {(comment.authorName || '?')
+                        .split(/\s+/)
+                        .map((p) => p[0])
+                        .join('')
+                        .slice(0, 2)
+                        .toUpperCase() || '?'}
+                    </div>
+                  )}
+                  <div className="min-w-0">
                   <p className="font-medium text-gray-900">{comment.authorName}</p>
                   <p className="text-xs text-gray-500">
                     {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-                    {comment.edited && ' • edited'}
+                    {(comment.edited || comment.isEdited) && ' • edited'}
                   </p>
+                  </div>
                 </div>
                 {canDeleteComment(comment) && (
-                  <div className="flex gap-1">
+                  <div className="flex shrink-0 gap-1">
                     {canEditComment(comment) && (
                       <button
                         onClick={() => handleEdit(comment)}

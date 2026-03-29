@@ -89,8 +89,28 @@ export default function TicketCard({ ticket, onSelect }) {
           <PriorityBadge priority={ticket.priority} />
         </div>
         {ticket.assignedToName && (
-          <div className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
-            {ticket.assignedToName}
+          <div className="flex max-w-[min(100%,11rem)] items-center gap-2">
+            {ticket.assignedToAvatarUrl ? (
+              <img
+                src={ticket.assignedToAvatarUrl}
+                alt=""
+                className="h-8 w-8 shrink-0 rounded-full border border-blue-100 object-cover"
+                title={ticket.assignedToName}
+              />
+            ) : (
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-800"
+                title={ticket.assignedToName}
+              >
+                {ticket.assignedToName
+                  .split(/\s+/)
+                  .map((p) => p[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </div>
+            )}
+            <span className="truncate text-xs font-medium text-blue-800">{ticket.assignedToName}</span>
           </div>
         )}
       </div>
