@@ -7,6 +7,7 @@ import {
   campusBtnPrimary,
   campusInputFocus,
 } from "../../components/dashboard/DashboardPrimitives";
+import ImageUploadZone from "../../components/ImageUploadZone";
 import { AlertCircle, CheckCircle, Upload, ChevronRight, ChevronLeft } from "lucide-react";
 import { ticketApi } from "../../api/ticketApi";
 
@@ -16,7 +17,6 @@ const brandBar = "h-full rounded-full bg-campus-brand transition-all duration-30
 export default function CreateTicketPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const fileInputRef = useRef(null);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     title: '',
@@ -123,24 +123,6 @@ export default function CreateTicketPage() {
   // Step validation
   const canProceedStep1 = formData.title && formData.description && formData.category && !errors.title && !errors.description && !errors.category;
   const canProceedStep2 = formData.location && formData.contact;
-
-  const handlePickFiles = (e) => {
-    const list = Array.from(e.target.files || []);
-    const next = [];
-    for (const f of list.slice(0, 3)) {
-      if (f.size > 5 * 1024 * 1024) {
-        toast.error(`${f.name} is over 5MB`);
-        continue;
-      }
-      if (!/^image\/(jpeg|png|webp)$/i.test(f.type)) {
-        toast.error("Use JPEG, PNG, or WEBP images only");
-        continue;
-      }
-      next.push(f);
-    }
-    setFormData((prev) => ({ ...prev, images: next }));
-    e.target.value = "";
-  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -322,30 +304,11 @@ export default function CreateTicketPage() {
                 {/* Upload Images */}
                 <div>
                   <label className="block text-sm font-bold text-slate-900 mb-2">Evidence Images (optional, max 3)</label>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    multiple
-                    className="hidden"
-                    onChange={handlePickFiles}
+                  <ImageUploadZone
+                    maxFiles={3}
+                    maxFileSize={5}
+                    onFilesChange={(files) => setFormData(prev => ({ ...prev, images: files }))}
                   />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full cursor-pointer rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center shadow-sm transition hover:border-slate-400 hover:bg-slate-100"
-                  >
-                    <Upload className="mx-auto mb-2 h-8 w-8 text-campus-brand" />
-                    <p className="text-sm font-semibold text-slate-800">Click to select up to 3 images</p>
-                    <p className="text-xs text-slate-600 mt-1 font-medium">JPEG, PNG, WEBP — max 5MB each</p>
-                  </button>
-                  {formData.images?.length ? (
-                    <ul className="mt-2 space-y-1 text-xs text-slate-600">
-                      {formData.images.map((f) => (
-                        <li key={f.name}>{f.name}</li>
-                      ))}
-                    </ul>
-                  ) : null}
                 </div>
               </div>
             )}
