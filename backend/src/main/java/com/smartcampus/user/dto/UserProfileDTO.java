@@ -1,6 +1,7 @@
 package com.smartcampus.user.dto;
 
 import com.smartcampus.user.model.Role;
+import com.smartcampus.user.model.TechnicianCategory;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,4 +21,6 @@ public class UserProfileDTO {
     private String avatarUrl;
     private Set<Role> roles;
     private boolean enabled;
+    /** Present for technician accounts. */
+    private TechnicianCategory technicianCategory;
 }
