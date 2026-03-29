@@ -62,6 +62,7 @@ public class UserService {
                         .provider(User.AuthProvider.LOCAL)
                         .roles(roles)
                         .enabled(true)
+                        .technicianCategory(dto.getTechnicianCategory())
                         .build();
         return toProfileDto(userRepository.save(user));
     }
@@ -77,7 +78,8 @@ public class UserService {
         boolean hasName = StringUtils.hasText(dto.getName());
         boolean hasEmail = StringUtils.hasText(dto.getEmail());
         boolean hasPassword = StringUtils.hasText(dto.getPassword());
-        if (!hasName && !hasEmail && !hasPassword) {
+        boolean hasCategory = dto.getTechnicianCategory() != null;
+        if (!hasName && !hasEmail && !hasPassword && !hasCategory) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Provide at least one field to update");
         }
 
@@ -101,6 +103,9 @@ public class UserService {
         }
         if (hasPassword) {
             user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+        }
+        if (hasCategory) {
+            user.setTechnicianCategory(dto.getTechnicianCategory());
         }
 
         return toProfileDto(userRepository.save(user));
@@ -181,6 +186,7 @@ public class UserService {
                 .avatarUrl(user.getAvatarUrl())
                 .roles(rolesCopy)
                 .enabled(user.isEnabled())
+                .technicianCategory(user.getTechnicianCategory())
                 .build();
     }
 }

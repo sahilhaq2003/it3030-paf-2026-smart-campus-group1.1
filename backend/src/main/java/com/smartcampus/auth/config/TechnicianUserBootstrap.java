@@ -1,6 +1,7 @@
 package com.smartcampus.auth.config;
 
 import com.smartcampus.user.model.Role;
+import com.smartcampus.user.model.TechnicianCategory;
 import com.smartcampus.user.model.User;
 import com.smartcampus.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,10 @@ public class TechnicianUserBootstrap implements ApplicationRunner {
                 u.getRoles().add(Role.USER);
                 dirty = true;
             }
+            if (u.getTechnicianCategory() == null) {
+                u.setTechnicianCategory(TechnicianCategory.OTHER);
+                dirty = true;
+            }
             if (dirty) {
                 userRepository.save(u);
             }
@@ -59,6 +64,7 @@ public class TechnicianUserBootstrap implements ApplicationRunner {
                         .provider(User.AuthProvider.LOCAL)
                         .roles(roles)
                         .enabled(true)
+                        .technicianCategory(TechnicianCategory.OTHER)
                         .build();
         userRepository.save(tech);
     }
