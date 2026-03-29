@@ -66,7 +66,8 @@ public class MaintenanceApplication {
         if (poolerHost != null && !poolerHost.isBlank()) {
             String jdbc =
                     String.format(
-                            "jdbc:postgresql://%s:5432/postgres?sslmode=require", poolerHost.trim());
+                            "jdbc:postgresql://%s:6543/postgres?sslmode=require&prepareThreshold=0",
+                            poolerHost.trim());
             System.setProperty("spring.datasource.url", jdbc);
             return;
         }
@@ -77,7 +78,7 @@ public class MaintenanceApplication {
         if (region != null && !region.isBlank()) {
             String jdbc =
                     String.format(
-                            "jdbc:postgresql://aws-0-%s.pooler.supabase.com:5432/postgres?sslmode=require",
+                            "jdbc:postgresql://aws-0-%s.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0",
                             region.trim());
             System.setProperty("spring.datasource.url", jdbc);
         }
@@ -116,11 +117,16 @@ public class MaintenanceApplication {
                         : URLDecoder.decode(userInfo.substring(colon + 1), StandardCharsets.UTF_8);
         String host = uri.getHost();
         int port = uri.getPort() > 0 ? uri.getPort() : 5432;
+        if (host != null && host.endsWith("pooler.supabase.com") && port == 5432) {
+            // Supabase pooler on 5432 is session-mode; force transaction-mode port.
+            port = 6543;
+        }
         String path =
                 uri.getPath() != null && !uri.getPath().isEmpty() ? uri.getPath() : "/postgres";
         String jdbc =
                 String.format(
-                        "jdbc:postgresql://%s:%d%s?sslmode=require", host, port, path);
+                        "jdbc:postgresql://%s:%d%s?sslmode=require&prepareThreshold=0",
+                        host, port, path);
         System.setProperty("spring.datasource.url", jdbc);
         System.setProperty("spring.datasource.username", user);
         System.setProperty("spring.datasource.password", pass);
