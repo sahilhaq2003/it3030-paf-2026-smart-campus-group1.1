@@ -142,9 +142,8 @@ public class TicketServiceImpl implements TicketService {
         }
 
         var previousStatus = ticket.getStatus();
-        // Resolve completes the lifecycle in one step (no extra admin RESOLVED → CLOSED action).
-        TicketStatus persistedStatus =
-                dto.getStatus() == TicketStatus.RESOLVED ? TicketStatus.CLOSED : dto.getStatus();
+        // Persist the exact requested status so DB transition rules remain valid.
+        TicketStatus persistedStatus = dto.getStatus();
         ticket.setStatus(persistedStatus);
         var saved = ticketRepo.save(ticket);
 
