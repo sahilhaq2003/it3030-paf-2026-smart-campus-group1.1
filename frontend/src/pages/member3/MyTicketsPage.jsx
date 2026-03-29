@@ -51,7 +51,7 @@ export default function MyTicketsPage() {
       status: t.status,
       priority: t.priority,
       category: t.category,
-      created: t.createdAt,
+      createdAt: t.createdAt,
       daysOpen: daysOpenSince(t.createdAt),
       resolutionNotes: t.resolutionNotes,
       resolvedAt: t.resolvedAt,
@@ -73,7 +73,7 @@ export default function MyTicketsPage() {
     });
 
     if (sortBy === "created") {
-      result = [...result].sort((a, b) => new Date(b.created) - new Date(a.created));
+      result = [...result].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else if (sortBy === "priority") {
       result = [...result].sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
     } else if (sortBy === "daysOpen") {
