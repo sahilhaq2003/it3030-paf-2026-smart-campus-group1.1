@@ -16,20 +16,24 @@ import {
   dashboardCardShell,
 } from "./DashboardPrimitives";
 import { DashboardInlineMessage } from "./DashboardCards";
+import { TECHNICIAN_CATEGORIES, technicianCategoryLabel } from "../../constants/technicianCategories";
 
 const inputClass = `mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm ${campusInputFocus}`;
+const selectClass = `${inputClass} appearance-none bg-[length:1rem_1rem] bg-[right_0.75rem_center] bg-no-repeat pr-10`;
 
 export default function AdminTechnicianPanel() {
   const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [category, setCategory] = useState("");
 
   const [editOpen, setEditOpen] = useState(false);
   const [editId, setEditId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editPassword, setEditPassword] = useState("");
+  const [editCategory, setEditCategory] = useState("");
 
   const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -44,12 +48,14 @@ export default function AdminTechnicianPanel() {
         email: email.trim(),
         name: name.trim(),
         password,
+        technicianCategory: category,
       }),
     onSuccess: () => {
       toast.success("Technician account created");
       setEmail("");
       setName("");
       setPassword("");
+      setCategory("");
       queryClient.invalidateQueries({ queryKey: ["admin", "technicians"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "users", "count"] });
@@ -113,8 +119,8 @@ export default function AdminTechnicianPanel() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!email.trim() || !name.trim() || password.length < 8) {
-      toast.error("Fill all fields; password at least 8 characters");
+    if (!email.trim() || !name.trim() || !category || password.length < 8) {
+      toast.error("Fill all fields including category; password at least 8 characters");
       return;
     }
     createMutation.mutate();
@@ -125,6 +131,7 @@ export default function AdminTechnicianPanel() {
     setEditName(t.name ?? "");
     setEditEmail(t.email ?? "");
     setEditPassword("");
+    setEditCategory(t.technicianCategory ?? "OTHER");
     setEditOpen(true);
   };
 
@@ -134,7 +141,15 @@ export default function AdminTechnicianPanel() {
       toast.error("Name and email are required");
       return;
     }
-    const body = { name: editName.trim(), email: editEmail.trim() };
+    if (!editCategory) {
+      toast.error("Select a technician category");
+      return;
+    }
+    const body = {
+      name: editName.trim(),
+      email: editEmail.trim(),
+      technicianCategory: editCategory,
+    };
     if (editPassword.trim().length > 0) {
       if (editPassword.trim().length < 8) {
         toast.error("New password must be at least 8 characters, or leave blank");
@@ -180,6 +195,29 @@ export default function AdminTechnicianPanel() {
               className={inputClass}
               placeholder="technician@campus.edu"
             />
+          </div>
+          <div>
+            <label htmlFor="tech-category" className="text-sm font-medium text-slate-700">
+              Technician category
+            </label>
+            <select
+              id="tech-category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className={selectClass}
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+              }}
+            >
+              <option value="" disabled>
+                Select a category…
+              </option>
+              {TECHNICIAN_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.emoji} {c.label}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label htmlFor="tech-password" className="text-sm font-medium text-slate-700">
@@ -238,6 +276,11 @@ export default function AdminTechnicianPanel() {
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-slate-900">{t.name}</p>
                     <p className="truncate text-slate-500">{t.email}</p>
+                    {t.technicianCategory ? (
+                      <p className="mt-1 text-xs font-medium text-slate-600">
+                        {technicianCategoryLabel(t.technicianCategory)}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <button
@@ -303,6 +346,29 @@ export default function AdminTechnicianPanel() {
                   className={inputClass}
                   autoComplete="email"
                 />
+              </div>
+              <div>
+                <label htmlFor="edit-tech-category" className="text-sm font-medium text-slate-700">
+                  Technician category
+                </label>
+                <select
+                  id="edit-tech-category"
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  className={selectClass}
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+                  }}
+                >
+                  <option value="" disabled>
+                    Select a category…
+                  </option>
+                  {TECHNICIAN_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.emoji} {c.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label htmlFor="edit-tech-password" className="text-sm font-medium text-slate-700">

@@ -70,6 +70,11 @@ public class User {
     @Builder.Default
     private boolean enabled = true;
 
+    /** Set for technician accounts; used for assignment and roster display. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "technician_category", length = 32)
+    private TechnicianCategory technicianCategory;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

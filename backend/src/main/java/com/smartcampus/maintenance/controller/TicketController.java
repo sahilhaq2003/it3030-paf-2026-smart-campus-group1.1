@@ -47,6 +47,38 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.getMyTickets(userId, pageable));
     }
 
+    @GetMapping("/analytics/technician-performance")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<TechnicianPerformanceDTO>> getTechnicianPerformance() {
+        return ResponseEntity.ok(ticketService.getTechnicianPerformance());
+    }
+
+    @GetMapping(value = "/export", produces = "text/csv")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<byte[]> exportTickets(
+            @RequestParam(required = false) TicketStatus status,
+            @RequestParam(required = false) TicketCategory category) {
+        byte[] csv = ticketService.exportTicketsCsv(status, category);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"tickets.csv\"")
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(csv);
+    }
+
+    @GetMapping("/{id}/attachments/{storedName:.+}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<byte[]> getAttachment(
+            @PathVariable Long id,
+            @PathVariable String storedName,
+            Authentication auth) {
+        var content = attachmentService.loadForDownload(
+                id, storedName, getUserId(auth), Authz.isTicketStaff(auth));
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(java.time.Duration.ofHours(1)).cachePrivate())
+                .contentType(MediaType.parseMediaType(content.contentType()))
+                .body(content.body());
+    }
+
     // GET /api/tickets/{id}
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
@@ -103,21 +135,6 @@ public class TicketController {
     public ResponseEntity<Void> deleteTicket(@PathVariable Long id) {
         ticketService.deleteTicket(id);
         return ResponseEntity.noContent().build();
-    }
-
-    // GET /api/tickets/{id}/attachments/{filename} — serve file
-    @GetMapping("/{ticketId}/attachments/{filename}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<byte[]> serveAttachment(
-        @PathVariable Long ticketId,
-        @PathVariable String filename
-    ) {
-        byte[] data = attachmentService.serveFile(ticketId, filename);
-        String mimeType = attachmentService.getMimeType(ticketId, filename);
-        return ResponseEntity.ok()
-            .contentType(MediaType.parseMediaType(mimeType))
-            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
-            .body(data);
     }
 
     // Technician dashboard endpoint

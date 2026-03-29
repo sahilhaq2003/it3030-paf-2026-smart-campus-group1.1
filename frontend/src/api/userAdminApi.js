@@ -12,7 +12,7 @@ export function fetchTechnicians() {
 
 /**
  * POST /users/technicians — ADMIN only
- * @param {{ email: string; name: string; password: string }} body
+ * @param {{ email: string; name: string; password: string; technicianCategory: string }} body
  */
 export function createTechnician(body) {
   return axiosInstance
@@ -25,7 +25,7 @@ export function createTechnician(body) {
 /**
  * PATCH /users/technicians/:id — ADMIN only
  * @param {number} id
- * @param {{ name?: string; email?: string; password?: string }} body — include only fields to change
+ * @param {{ name?: string; email?: string; password?: string; technicianCategory?: string }} body — include only fields to change
  */
 export function updateTechnician(id, body) {
   return axiosInstance.patch(`/users/technicians/${id}`, body).then((r) => r.data);

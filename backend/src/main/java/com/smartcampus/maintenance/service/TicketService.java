@@ -27,4 +27,8 @@ public interface TicketService {
     void deleteTicket(Long id);
 
     Page<TicketResponseDTO> getTicketsByTechnician(Long techId, Pageable pageable);
+
+    List<TechnicianPerformanceDTO> getTechnicianPerformance();
+
+    byte[] exportTicketsCsv(TicketStatus status, TicketCategory category);
 }
