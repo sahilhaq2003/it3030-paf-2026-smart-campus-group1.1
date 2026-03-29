@@ -26,6 +26,8 @@ import {
 import CommentThread from "../../components/CommentThread";
 import TicketAttachmentImage from "../../components/TicketAttachmentImage";
 import TicketStatusStepper from "../../components/TicketStatusStepper";
+import SlaTimer from "../../components/SlaTimer";
+import ImageLightbox from "../../components/ImageLightbox";
 import { normalizeRoles } from "../../utils/getDashboardRoute";
 import { isResolvedLikeTicket, ticketStatusLabel } from "../../utils/ticketStatusDisplay";
 
@@ -73,7 +75,7 @@ export default function TicketDetailPage() {
   const [comment, setComment] = useState("");
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editContent, setEditContent] = useState("");
-  const [lightboxImg, setLightboxImg] = useState(null);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
   const [resolutionNotes, setResolutionNotes] = useState("");
 
   const { data: ticket, isLoading } = useQuery({
@@ -346,6 +348,15 @@ export default function TicketDetailPage() {
         <div className="p-6">
           <p className="font-medium leading-relaxed text-slate-900">{ticket.description}</p>
 
+          {/* SLA Timer */}
+          <div className="mt-6">
+            <SlaTimer 
+              createdAt={ticket.createdAt} 
+              priority={ticket.priority}
+              status={ticket.status}
+            />
+          </div>
+
           {ticket.resolutionNotes ? (
             <div className="mt-4 rounded-xl border border-emerald-300 bg-emerald-50 p-4 shadow-sm">
               <p className="mb-1 text-sm font-bold text-emerald-900">Resolution notes</p>
@@ -359,11 +370,11 @@ export default function TicketDetailPage() {
                 Attachments ({ticket.attachments.length})
               </h3>
               <div className="flex flex-wrap gap-3">
-                {ticket.attachments.map((a) => (
+                {ticket.attachments.map((a, idx) => (
                   <button
                     key={a.id}
                     type="button"
-                    onClick={() => setLightboxImg(a.url)}
+                    onClick={() => setLightboxIndex(idx)}
                     className="group relative cursor-pointer"
                   >
                     <TicketAttachmentImage
@@ -482,18 +493,12 @@ export default function TicketDetailPage() {
         </div>
       </div>
 
-      {lightboxImg ? (
-        <button
-          type="button"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setLightboxImg(null)}
-        >
-          <TicketAttachmentImage
-            url={lightboxImg}
-            alt=""
-            className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain"
-          />
-        </button>
+      {lightboxIndex !== null && ticket.attachments && ticket.attachments.length > 0 ? (
+        <ImageLightbox
+          images={ticket.attachments}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
       ) : null}
     </DashboardPageLayout>
   );

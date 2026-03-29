@@ -27,6 +27,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -296,9 +297,12 @@ public class TicketServiceImpl implements TicketService {
 
     private TicketResponseDTO mapToResponse(Ticket t) {
         LocalDateTime now = LocalDateTime.now();
-        long timeElapsed = ChronoUnit.HOURS.between(t.getCreatedAt(), now);
+        long timeElapsed =
+                t.getCreatedAt() == null ? 0L : ChronoUnit.HOURS.between(t.getCreatedAt(), now);
         boolean slaViolated = computeSlaViolated(t, now);
-        
+        List<Attachment> attachmentList =
+                t.getAttachments() == null ? Collections.emptyList() : t.getAttachments();
+
         return TicketResponseDTO.builder()
             .id(t.getId())
             .title(t.getTitle())
@@ -316,7 +320,7 @@ public class TicketServiceImpl implements TicketService {
             .resolutionNotes(t.getResolutionNotes())
             .rejectionReason(t.getRejectionReason())
             .preferredContact(t.getPreferredContact())
-            .attachments(t.getAttachments().stream().map(a -> AttachmentDTO.builder()
+            .attachments(attachmentList.stream().map(a -> AttachmentDTO.builder()
                 .id(a.getId())
                 .originalName(a.getOriginalName())
                 .url(attachmentPublicOrApiUrl(t.getId(), a))

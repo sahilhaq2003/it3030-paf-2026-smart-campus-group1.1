@@ -42,33 +42,38 @@ public class AttachmentService {
 
         for (MultipartFile file : files) {
             validateFile(file);
-
-            String storedName = UUID.randomUUID() + getExtension(file.getOriginalFilename());
-            String fileUrl = null;
-
-            try {
-                // Try to upload to Supabase Storage
-                fileUrl = supabaseStorageService.uploadFile(file, storedName);
-                log.info("File uploaded to Supabase: {} -> {}", file.getOriginalFilename(), fileUrl);
-            } catch (IOException e) {
-                // If upload fails, log it but still save the attachment record
-                log.warn("Failed to upload file to Supabase: {} - {}", file.getOriginalFilename(), e.getMessage());
-                fileUrl = null; // Allow null fileUrl for now
-            }
-
-            var attachment = Attachment.builder()
-                .ticket(ticket)
-                .originalName(file.getOriginalFilename())
-                .storedName(storedName)
-                .mimeType(file.getContentType())
-                .size(file.getSize())
-                .fileUrl(fileUrl)  // Can be null if upload failed
-                .build();
-
-            saved.add(attachmentRepo.save(attachment));
+            saved.add(saveAttachment(file, ticket));
         }
 
         return saved;
+    }
+
+    public Attachment saveAttachment(MultipartFile file, Ticket ticket) {
+        validateFile(file);
+
+        String storedName = UUID.randomUUID() + getExtension(file.getOriginalFilename());
+        String fileUrl = null;
+
+        try {
+            // Try to upload to Supabase Storage
+            fileUrl = supabaseStorageService.uploadFile(file, storedName);
+            log.info("File uploaded to Supabase: {} -> {}", file.getOriginalFilename(), fileUrl);
+        } catch (IOException e) {
+            // If upload fails, log it but still save the attachment record
+            log.warn("Failed to upload file to Supabase: {} - {}", file.getOriginalFilename(), e.getMessage());
+            fileUrl = null; // Allow null fileUrl for now
+        }
+
+        var attachment = Attachment.builder()
+            .ticket(ticket)
+            .originalName(file.getOriginalFilename())
+            .storedName(storedName)
+            .mimeType(file.getContentType())
+            .size(file.getSize())
+            .fileUrl(fileUrl)  // Can be null if upload failed
+            .build();
+
+        return attachmentRepo.save(attachment);
     }
 
     /**
@@ -105,7 +110,7 @@ public class AttachmentService {
         }
     }
 
-    private void validateFile(MultipartFile file) {
+    public void validateFile(MultipartFile file) {
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "File too large: " + file.getOriginalFilename() + " (max 5MB)");
@@ -113,6 +118,13 @@ public class AttachmentService {
         if (!ALLOWED_TYPES.contains(file.getContentType())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "Invalid file type: " + file.getContentType() + ". Allowed: JPEG, PNG, WEBP");
+        }
+    }
+
+    public void validateFileCount(List<MultipartFile> files, Ticket ticket) {
+        if (files.size() > MAX_FILES) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Maximum " + MAX_FILES + " attachments allowed");
         }
     }
 
