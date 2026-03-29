@@ -39,7 +39,10 @@ public class JwtService {
      * Subject is the user's email (for {@link #extractUsername(String)}).
      */
     public String generateToken(User user) {
-        List<String> roleNames = user.getRoles().stream().map(Role::name).sorted().toList();
+        List<String> roleNames =
+                user.getRoles() == null || user.getRoles().isEmpty()
+                        ? List.of()
+                        : user.getRoles().stream().map(Role::name).sorted().toList();
         Instant now = Instant.now();
         Instant exp = now.plusMillis(expirationMs);
 
