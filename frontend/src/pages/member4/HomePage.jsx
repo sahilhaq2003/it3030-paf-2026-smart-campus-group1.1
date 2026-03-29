@@ -5,6 +5,7 @@ import {
   canAccessAdminTickets,
   canCreateTickets,
   getDashboardRoute,
+  normalizeRoles
 } from "../../utils/getDashboardRoute";
 
 export default function HomePage() {
@@ -13,6 +14,7 @@ export default function HomePage() {
   const displayName = user?.name ?? "there";
   const roles = user?.roles ?? (user?.role != null ? [user.role] : []);
   const primaryDash = getDashboardRoute(roles);
+  const isAdmin = normalizeRoles(roles).has("ADMIN");
 
   const dashCard =
     primaryDash === DASHBOARD_PATHS.ADMIN
@@ -36,7 +38,15 @@ export default function HomePage() {
             emoji: "👤",
           };
 
-  const cards = [dashCard];
+  const cards = [
+    dashCard,
+    {
+      to: "/facilities",
+      title: "Campus Directory",
+      desc: "View public map and reserve available resources",
+      emoji: "🏫",
+    }
+  ];
 
   if (canCreateTickets(roles)) {
     cards.push(
@@ -61,6 +71,15 @@ export default function HomePage() {
       title: "Admin tickets",
       desc: "Review and manage all tickets",
       emoji: "📋",
+    });
+  }
+
+  if (isAdmin) {
+    cards.push({
+      to: "/admin/facilities",
+      title: "Facility Manager",
+      desc: "Manage physical registries and overrides",
+      emoji: "⚙️",
     });
   }
 

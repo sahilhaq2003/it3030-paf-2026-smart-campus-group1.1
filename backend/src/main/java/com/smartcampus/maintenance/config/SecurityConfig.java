@@ -45,7 +45,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Vite may use 5173, 5174, etc. Patterns work with allowCredentials (fixed origins do not wildcard).
+        // Vite may use 5173, 5174, etc. Patterns work with allowCredentials (fixed
+        // origins do not wildcard).
         config.setAllowedOriginPatterns(
                 List.of("http://localhost:*", "http://127.0.0.1:*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
@@ -60,28 +61,29 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .cors(Customizer.withDefaults())
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .httpBasic(AbstractHttpConfigurer::disable)
-            .formLogin(AbstractHttpConfigurer::disable)
-            .addFilterBefore(devAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(jwtAuthenticationFilter, DevAuthFilter.class)
-            .authorizeHttpRequests(
-                            auth ->
-                                    auth.requestMatchers(HttpMethod.OPTIONS, "/**")
-                                            .permitAll()
-                                    .requestMatchers(HttpMethod.POST, "/api/auth/google", "/api/auth/login")
-                                    .permitAll()
-                                    .requestMatchers(
-                                            "/",
-                                            "/swagger-ui.html",
-                                            "/swagger-ui/**",
-                                            "/v3/api-docs/**",
-                                            "/api-docs/**")
-                                    .permitAll()
-                                    .anyRequest()
-                                    .authenticated());
+                .cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .addFilterBefore(devAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthenticationFilter, DevAuthFilter.class)
+                .authorizeHttpRequests(
+                        auth -> auth.requestMatchers(HttpMethod.OPTIONS, "/**")
+                                .permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/auth/google", "/api/auth/login")
+                                .permitAll()
+                                .requestMatchers(
+                                        "/",
+                                        "/swagger-ui.html",
+                                        "/swagger-ui/**",
+                                        "/v3/api-docs/**",
+                                        "/api-docs/**")
+                                .permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/facilities", "/api/facilities/**")
+                                .permitAll()
+                                .anyRequest()
+                                .authenticated());
         return http.build();
     }
 }
