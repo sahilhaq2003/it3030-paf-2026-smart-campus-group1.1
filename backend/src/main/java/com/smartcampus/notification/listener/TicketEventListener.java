@@ -2,13 +2,21 @@ package com.smartcampus.notification.listener;
 
 import com.smartcampus.maintenance.event.NewCommentEvent;
 import com.smartcampus.maintenance.event.TicketStatusChangedEvent;
+import com.smartcampus.maintenance.model.enums.TicketStatus;
 import com.smartcampus.maintenance.repository.TicketRepository;
 import com.smartcampus.notification.model.NotificationType;
 import com.smartcampus.notification.model.ReferenceType;
 import com.smartcampus.notification.service.NotificationService;
+import com.smartcampus.user.model.Role;
+import com.smartcampus.user.model.User;
+import com.smartcampus.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -16,6 +24,7 @@ public class TicketEventListener {
 
     private final NotificationService notificationService;
     private final TicketRepository ticketRepository;
+    private final UserRepository userRepository;
 
     @EventListener
     public void onTicketStatusChanged(TicketStatusChangedEvent event) {
@@ -29,17 +38,35 @@ public class TicketEventListener {
         Long reporterId = event.getOwnerId();
         createTicketNotification(reporterId, ticketId, title, message);
 
-        ticketRepository
-                .findById(ticketId)
-                .ifPresent(
-                        ticket -> {
-                            if (ticket.getAssignedTo() != null) {
-                                Long assigneeId = ticket.getAssignedTo().getId();
-                                if (!assigneeId.equals(reporterId)) {
-                                    createTicketNotification(assigneeId, ticketId, title, message);
-                                }
-                            }
-                        });
+        Long assigneeId = null;
+        Optional<com.smartcampus.maintenance.model.Ticket> ticketOpt = ticketRepository.findById(ticketId);
+        if (ticketOpt.isPresent() && ticketOpt.get().getAssignedTo() != null) {
+            assigneeId = ticketOpt.get().getAssignedTo().getId();
+            if (assigneeId != null && !assigneeId.equals(reporterId)) {
+                createTicketNotification(assigneeId, ticketId, title, message);
+            }
+        }
+
+        // Requirement: when a technician resolves a ticket, admins should be notified.
+        // We treat `RESOLVED` as the "resolved by technician" step and notify all admins.
+        if (event.getNewStatus() == TicketStatus.RESOLVED) {
+            Set<Long> adminIds = new HashSet<>();
+            for (User u : userRepository.findAllWithRoles()) {
+                if (u.getRoles() != null && u.getRoles().contains(Role.ADMIN) && u.getId() != null) {
+                    adminIds.add(u.getId());
+                }
+            }
+
+            // Avoid duplicates if the reporter/assignee is also an admin.
+            adminIds.remove(reporterId);
+            if (assigneeId != null) {
+                adminIds.remove(assigneeId);
+            }
+
+            for (Long adminId : adminIds) {
+                createTicketNotification(adminId, ticketId, title, message);
+            }
+        }
     }
 
     /**

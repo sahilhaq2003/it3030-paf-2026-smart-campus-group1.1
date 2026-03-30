@@ -48,7 +48,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<Notification> getNotificationsForUser(Long recipientUserId, Pageable pageable) {
         return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(recipientUserId, pageable);
     }
