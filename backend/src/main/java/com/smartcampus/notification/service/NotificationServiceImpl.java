@@ -70,7 +70,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<Notification> getNotificationsForUser(Long recipientUserId, Pageable pageable) {
         boolean inAppEnabled = notificationPreferencesService.isInAppEnabled(recipientUserId);
         if (!inAppEnabled) {

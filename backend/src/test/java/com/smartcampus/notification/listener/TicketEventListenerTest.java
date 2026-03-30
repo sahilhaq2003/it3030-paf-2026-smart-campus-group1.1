@@ -9,6 +9,8 @@ import com.smartcampus.notification.model.NotificationType;
 import com.smartcampus.notification.model.ReferenceType;
 import com.smartcampus.notification.service.NotificationService;
 import com.smartcampus.user.model.User;
+import com.smartcampus.user.model.Role;
+import com.smartcampus.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,7 +19,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
@@ -29,6 +33,7 @@ class TicketEventListenerTest {
 
     @Mock NotificationService notificationService;
     @Mock TicketRepository ticketRepository;
+    @Mock UserRepository userRepository;
 
     @InjectMocks TicketEventListener listener;
 
@@ -100,5 +105,56 @@ class TicketEventListenerTest {
                         "Sam commented on ticket #20",
                         20L,
                         ReferenceType.TICKET);
+    }
+
+    @Test
+    void onTicketStatusChanged_whenResolved_notifiesAdmins() {
+        when(ticketRepository.findById(10L)).thenReturn(Optional.empty());
+
+        User admin1 =
+                User.builder()
+                        .id(11L)
+                        .email("admin1@test.local")
+                        .name("Admin One")
+                        .roles(Set.of(Role.ADMIN))
+                        .build();
+        User admin2 =
+                User.builder()
+                        .id(12L)
+                        .email("admin2@test.local")
+                        .name("Admin Two")
+                        .roles(Set.of(Role.ADMIN))
+                        .build();
+        when(userRepository.findAllWithRoles()).thenReturn(List.of(admin1, admin2));
+
+        listener.onTicketStatusChanged(
+                new TicketStatusChangedEvent(
+                        source, 10L, 5L, TicketStatus.IN_PROGRESS, TicketStatus.RESOLVED));
+
+        verify(notificationService)
+                .createNotification(
+                        5L,
+                        NotificationType.TICKET_STATUS_CHANGED,
+                        "Ticket status updated",
+                        "Ticket #10: IN_PROGRESS → RESOLVED",
+                        10L,
+                        ReferenceType.TICKET);
+        verify(notificationService)
+                .createNotification(
+                        11L,
+                        NotificationType.TICKET_STATUS_CHANGED,
+                        "Ticket status updated",
+                        "Ticket #10: IN_PROGRESS → RESOLVED",
+                        10L,
+                        ReferenceType.TICKET);
+        verify(notificationService)
+                .createNotification(
+                        12L,
+                        NotificationType.TICKET_STATUS_CHANGED,
+                        "Ticket status updated",
+                        "Ticket #10: IN_PROGRESS → RESOLVED",
+                        10L,
+                        ReferenceType.TICKET);
+        verifyNoMoreInteractions(notificationService);
     }
 }
