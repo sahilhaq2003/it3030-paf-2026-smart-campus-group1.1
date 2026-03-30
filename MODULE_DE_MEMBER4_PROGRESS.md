@@ -143,10 +143,10 @@ Use one commit per bullet, or squash where your team prefers fewer commits.
 
 | Item | Status |
 |------|--------|
-| SSE | **Missing** |
+| SSE | **Done** |
 | Full admin analytics (charts, bookings week, user growth) | **Partial** / **Missing** |
 | `react-joyride` | **Missing** |
-| Notification preferences | **Missing** |
+| Notification preferences | **Done** |
 | Audit log | **Missing** |
 
 ---
@@ -170,10 +170,10 @@ Use one commit per bullet, or squash where your team prefers fewer commits.
 | Auth API + JWT + Google + profile patch | **Mostly done** |
 | Users admin API | **Done**; UI **read-only roles** |
 | Notifications backend + listeners + REST | **Done** |
-| Notifications frontend | **Done** (polling, not SSE) |
+| Notifications frontend | **Done** (polling + SSE) |
 | Error pages + 401 redirect | **Done** |
 | `MANAGER`, in-memory token, `requiredRoles` | **Done** |
-| SSE, innovation extras | **Missing** / **Partial** |
+| SSE, innovation extras | **Partial** / **Done** |
 | Integration tests (OAuth, authz) | **Done** |
 | API errors from **ResponseStatusException** as JSON `message` | **Done** |
 
