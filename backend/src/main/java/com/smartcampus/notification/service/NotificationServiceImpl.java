@@ -22,6 +22,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final NotificationSseService notificationSseService;
+    private final NotificationPreferencesService notificationPreferencesService;
 
     @Override
     @Transactional
@@ -32,6 +33,7 @@ public class NotificationServiceImpl implements NotificationService {
             String message,
             Long referenceId,
             ReferenceType referenceType) {
+        boolean inAppEnabled = notificationPreferencesService.isInAppEnabled(recipientUserId);
         User recipient =
                 userRepository
                         .findById(recipientUserId)
@@ -44,23 +46,25 @@ public class NotificationServiceImpl implements NotificationService {
                         .message(message)
                         .referenceId(referenceId)
                         .referenceType(referenceType)
-                        .isRead(false)
+                        .isRead(!inAppEnabled)
                         .build();
         Notification saved = notificationRepository.save(notification);
 
         // Push real-time update to any SSE subscribers.
-        notificationSseService.broadcast(
-                recipientUserId,
-                com.smartcampus.notification.dto.NotificationResponseDTO.builder()
-                        .id(saved.getId())
-                        .type(saved.getType())
-                        .title(saved.getTitle())
-                        .message(saved.getMessage())
-                        .referenceId(saved.getReferenceId())
-                        .referenceType(saved.getReferenceType())
-                        .read(saved.isRead())
-                        .createdAt(saved.getCreatedAt())
-                        .build());
+        if (inAppEnabled) {
+            notificationSseService.broadcast(
+                    recipientUserId,
+                    com.smartcampus.notification.dto.NotificationResponseDTO.builder()
+                            .id(saved.getId())
+                            .type(saved.getType())
+                            .title(saved.getTitle())
+                            .message(saved.getMessage())
+                            .referenceId(saved.getReferenceId())
+                            .referenceType(saved.getReferenceType())
+                            .read(saved.isRead())
+                            .createdAt(saved.getCreatedAt())
+                            .build());
+        }
 
         return saved;
     }
@@ -68,6 +72,10 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional(readOnly = true)
     public Page<Notification> getNotificationsForUser(Long recipientUserId, Pageable pageable) {
+        boolean inAppEnabled = notificationPreferencesService.isInAppEnabled(recipientUserId);
+        if (!inAppEnabled) {
+            return Page.empty(pageable);
+        }
         return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(recipientUserId, pageable);
     }
 

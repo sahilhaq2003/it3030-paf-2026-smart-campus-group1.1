@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { format, parseISO } from "date-fns";
 import { useAuth } from "../../context/AuthContext";
 import { ticketApi } from "../../api/ticketApi";
+import {
+  fetchNotificationPreferences,
+  updateNotificationPreferences,
+} from "../../api/notificationsApi";
 import { normalizeRoles } from "../../utils/getDashboardRoute";
 
 function formatJoined(iso) {
@@ -24,6 +28,28 @@ export default function ProfilePage() {
   const [name, setName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const prefsQuery = useQuery({
+    queryKey: ["profile", "notificationPreferences", user?.id],
+    queryFn: () => fetchNotificationPreferences(),
+    enabled: Boolean(user?.id),
+  });
+
+  const [inAppEnabled, setInAppEnabled] = useState(true);
+  const [emailEnabled, setEmailEnabled] = useState(true);
+
+  useEffect(() => {
+    if (!prefsQuery.data) return;
+    setInAppEnabled(Boolean(prefsQuery.data.inAppEnabled));
+    setEmailEnabled(Boolean(prefsQuery.data.emailEnabled));
+  }, [prefsQuery.data]);
+
+  const savePrefsMutation = useMutation({
+    mutationFn: (body) => updateNotificationPreferences(body),
+    onSuccess: () => toast.success("Notification preferences saved"),
+    onError: (err) =>
+      toast.error(err?.response?.data?.message ?? "Could not save notification preferences"),
+  });
 
   useEffect(() => {
     if (user) {
@@ -169,6 +195,45 @@ export default function ProfilePage() {
                   </dd>
                 </div>
               </dl>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm ring-1 ring-slate-900/[0.03]">
+              <h2 className="text-sm font-semibold text-slate-900">
+                Notification preferences
+              </h2>
+              <div className="mt-4 space-y-3 text-sm text-slate-700">
+                <label className="flex items-center justify-between gap-3">
+                  <span>In-app notifications</span>
+                  <input
+                    type="checkbox"
+                    checked={inAppEnabled}
+                    onChange={(e) => setInAppEnabled(e.target.checked)}
+                    disabled={prefsQuery.isLoading || savePrefsMutation.isPending}
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3">
+                  <span>Email notifications</span>
+                  <input
+                    type="checkbox"
+                    checked={emailEnabled}
+                    onChange={(e) => setEmailEnabled(e.target.checked)}
+                    disabled={prefsQuery.isLoading || savePrefsMutation.isPending}
+                  />
+                </label>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  savePrefsMutation.mutate({
+                    inAppEnabled,
+                    emailEnabled,
+                  })
+                }
+                disabled={!user?.id || prefsQuery.isLoading || savePrefsMutation.isPending}
+                className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-campus-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-campus-brand-hover disabled:opacity-60"
+              >
+                {savePrefsMutation.isPending ? "Saving…" : "Save preferences"}
+              </button>
             </div>
 
             <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm ring-1 ring-slate-900/[0.03]">
