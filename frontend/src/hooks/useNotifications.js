@@ -56,7 +56,6 @@ export function useNotifications(enabled = true) {
     const invalidate = () => queryClient.invalidateQueries({ queryKey: ["notifications"] });
 
     es.addEventListener("notification", invalidate);
-    es.addEventListener("connected", invalidate);
 
     return () => {
       es.close();

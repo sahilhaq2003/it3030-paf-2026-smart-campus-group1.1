@@ -19,13 +19,13 @@ public class NotificationPreferencesServiceImpl implements NotificationPreferenc
     private final UserRepository userRepository;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public boolean isInAppEnabled(Long userId) {
         return getOrCreate(userId).isInAppEnabled();
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public NotificationPreferencesDTO getPreferences(Long userId) {
         NotificationPreferences p = getOrCreate(userId);
         return new NotificationPreferencesDTO(p.isInAppEnabled(), p.isEmailEnabled());
