@@ -3,6 +3,7 @@ package com.smartcampus.notification.listener;
 import com.smartcampus.maintenance.event.NewCommentEvent;
 import com.smartcampus.maintenance.event.TicketStatusChangedEvent;
 import com.smartcampus.maintenance.event.TicketSubmittedEvent;
+import com.smartcampus.maintenance.event.TicketTechnicianAssignedEvent;
 import com.smartcampus.maintenance.model.enums.TicketStatus;
 import com.smartcampus.maintenance.repository.TicketRepository;
 import com.smartcampus.notification.model.NotificationType;
@@ -93,6 +94,20 @@ public class TicketEventListener {
                 NotificationType.GENERAL,
                 "Ticket submitted",
                 String.format("Your ticket #%d has been submitted.", event.getTicketId()),
+                event.getTicketId(),
+                ReferenceType.TICKET);
+    }
+
+    @EventListener
+    public void onTechnicianAssigned(TicketTechnicianAssignedEvent event) {
+        notificationService.createNotification(
+                event.getOwnerId(),
+                NotificationType.GENERAL,
+                "Technician assigned",
+                String.format(
+                        "A technician (%s) has been assigned to your ticket #%d.",
+                        event.getTechnicianName() != null ? event.getTechnicianName() : "N/A",
+                        event.getTicketId()),
                 event.getTicketId(),
                 ReferenceType.TICKET);
     }

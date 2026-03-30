@@ -3,6 +3,7 @@ package com.smartcampus.maintenance.service;
 import com.smartcampus.maintenance.dto.*;
 import com.smartcampus.maintenance.event.TicketStatusChangedEvent;
 import com.smartcampus.maintenance.event.TicketSubmittedEvent;
+import com.smartcampus.maintenance.event.TicketTechnicianAssignedEvent;
 import com.smartcampus.maintenance.model.*;
 import com.smartcampus.maintenance.model.enums.*;
 import com.smartcampus.maintenance.policy.SlaPolicy;
@@ -177,7 +178,20 @@ public class TicketServiceImpl implements TicketService {
             ticket.setStatus(TicketStatus.IN_PROGRESS);
         }
 
-        return mapToResponse(ticketRepo.save(ticket));
+        var saved = ticketRepo.save(ticket);
+
+        // Notify ticket owner (student) that a technician has been assigned.
+        if (saved.getReportedBy() != null && saved.getReportedBy().getId() != null) {
+            eventPublisher.publishEvent(
+                    new TicketTechnicianAssignedEvent(
+                            this,
+                            saved.getId(),
+                            saved.getReportedBy().getId(),
+                            tech.getId(),
+                            tech.getName()));
+        }
+
+        return mapToResponse(saved);
     }
 
     @Override

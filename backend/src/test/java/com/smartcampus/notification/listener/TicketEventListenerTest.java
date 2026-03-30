@@ -3,6 +3,7 @@ package com.smartcampus.notification.listener;
 import com.smartcampus.maintenance.event.NewCommentEvent;
 import com.smartcampus.maintenance.event.TicketStatusChangedEvent;
 import com.smartcampus.maintenance.event.TicketSubmittedEvent;
+import com.smartcampus.maintenance.event.TicketTechnicianAssignedEvent;
 import com.smartcampus.maintenance.model.Ticket;
 import com.smartcampus.maintenance.model.enums.TicketStatus;
 import com.smartcampus.maintenance.repository.TicketRepository;
@@ -118,6 +119,22 @@ class TicketEventListenerTest {
                         NotificationType.GENERAL,
                         "Ticket submitted",
                         "Your ticket #10 has been submitted.",
+                        10L,
+                        ReferenceType.TICKET);
+        verifyNoMoreInteractions(notificationService);
+    }
+
+    @Test
+    void onTechnicianAssigned_notifiesTicketOwner() {
+        listener.onTechnicianAssigned(
+                new TicketTechnicianAssignedEvent(source, 10L, 5L, 8L, "Tech Name"));
+
+        verify(notificationService)
+                .createNotification(
+                        5L,
+                        NotificationType.GENERAL,
+                        "Technician assigned",
+                        "A technician (Tech Name) has been assigned to your ticket #10.",
                         10L,
                         ReferenceType.TICKET);
         verifyNoMoreInteractions(notificationService);
