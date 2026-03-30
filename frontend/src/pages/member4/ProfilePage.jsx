@@ -26,7 +26,6 @@ export default function ProfilePage() {
   const isTechnician = roleSet.has("TECHNICIAN");
 
   const [name, setName] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
   const [saving, setSaving] = useState(false);
 
   const prefsQuery = useQuery({
@@ -54,7 +53,6 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       setName(user.name ?? "");
-      setAvatarUrl(user.avatarUrl ?? "");
     }
   }, [user]);
 
@@ -89,7 +87,7 @@ export default function ProfilePage() {
     }
     setSaving(true);
     try {
-      await updateProfile({ name: trimmed, avatarUrl });
+      await updateProfile({ name: trimmed });
       toast.success("Profile updated");
     } catch (err) {
       toast.error(err?.response?.data?.message ?? "Could not save profile");
@@ -122,7 +120,7 @@ export default function ProfilePage() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-5">
           <section className="lg:col-span-3 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm ring-1 ring-slate-900/[0.03]">
-            <h2 className="text-sm font-semibold text-slate-900">Display &amp; avatar</h2>
+            <h2 className="text-sm font-semibold text-slate-900">Display name</h2>
             <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
               <div>
                 <label htmlFor="profile-name" className="block text-xs font-medium text-slate-600">
@@ -134,23 +132,6 @@ export default function ProfilePage() {
                   autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-campus-brand/30 transition focus:border-campus-brand focus:ring-2"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="profile-avatar"
-                  className="block text-xs font-medium text-slate-600"
-                >
-                  Avatar URL <span className="font-normal text-slate-400">(optional)</span>
-                </label>
-                <input
-                  id="profile-avatar"
-                  type="url"
-                  inputMode="url"
-                  placeholder="https://…"
-                  value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
                   className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-campus-brand/30 transition focus:border-campus-brand focus:ring-2"
                 />
               </div>
@@ -261,3 +242,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
