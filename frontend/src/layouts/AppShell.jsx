@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
   ClipboardList,
+  CircleUser,
   Home,
   LayoutDashboard,
   LogOut,
@@ -33,6 +34,7 @@ function routeTitle(pathname) {
   if (pathname.startsWith("/admin/tickets")) return "Admin tickets";
   if (pathname === "/facilities") return "Facility Directory";
   if (pathname.startsWith("/admin/facilities")) return "Facility Management";
+  if (pathname === "/profile") return "Profile";
   return "Workspace";
 }
 
@@ -147,6 +149,12 @@ function Sidebar() {
 
   const items = [
     { to: "/home", label: "Home", icon: Home, active: (p) => p === "/home" },
+    {
+      to: "/profile",
+      label: "Profile",
+      icon: CircleUser,
+      active: (p) => p === "/profile",
+    },
     { to: dash.to, label: dash.label, icon: LayoutDashboard, active: dash.active },
     { to: "/facilities", label: "Campus Facilities", icon: Building, active: (p) => p.startsWith("/facilities") },
   ];

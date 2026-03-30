@@ -11,6 +11,7 @@ import {
   fetchCurrentUser,
   loginWithGoogle as loginWithGoogleApi,
   loginWithPassword as loginWithPasswordApi,
+  updateCurrentUserProfile as updateCurrentUserProfileApi,
 } from "../api/authApi";
 import { AUTH_TOKEN_STORAGE_KEY } from "../constants/authStorage";
 
@@ -117,6 +118,24 @@ export function AuthProvider({ children }) {
 
   const clearLoginError = useCallback(() => setLoginError(null), []);
 
+  /** Re-fetch profile from the server (e.g. after PATCH /auth/me). */
+  const refreshUser = useCallback(async () => {
+    if (!token) return null;
+    const profile = await fetchCurrentUser();
+    setUser(profile);
+    return profile;
+  }, [token]);
+
+  const updateProfile = useCallback(async ({ name, avatarUrl }) => {
+    const body = { name: name.trim() };
+    if (avatarUrl != null && String(avatarUrl).trim() !== "") {
+      body.avatarUrl = String(avatarUrl).trim();
+    }
+    const next = await updateCurrentUserProfileApi(body);
+    setUser(next);
+    return next;
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -129,6 +148,8 @@ export function AuthProvider({ children }) {
       loginLoading,
       loginError,
       clearLoginError,
+      refreshUser,
+      updateProfile,
     }),
     [
       user,
@@ -140,6 +161,8 @@ export function AuthProvider({ children }) {
       loginLoading,
       loginError,
       clearLoginError,
+      refreshUser,
+      updateProfile,
     ],
   );
 

@@ -7,6 +7,7 @@ import AdminTicketsPage from "../pages/member3/AdminTicketsPage";
 import LoginPage from "../pages/member4/LoginPage";
 import LandingPage from "../pages/member4/LandingPage";
 import HomePage from "../pages/member4/HomePage";
+import ProfilePage from "../pages/member4/ProfilePage";
 import UserDashboard from "../pages/dashboards/UserDashboard";
 import AdminDashboard from "../pages/dashboards/AdminDashboard";
 import TechnicianDashboard from "../pages/dashboards/TechnicianDashboard";
@@ -41,6 +42,7 @@ export default function AppRoutes() {
         <Route path="/facilities" element={<FacilitiesListPage />} />
         <Route path="/facilities/:id" element={<FacilityDetailPage />} />
         <Route path="/home" element={<HomePage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route
           path="/UserDashboard"
           element={
