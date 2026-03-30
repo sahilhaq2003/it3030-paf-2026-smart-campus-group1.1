@@ -1,5 +1,6 @@
 import axios from "axios";
 import { AUTH_TOKEN_STORAGE_KEY } from "../constants/authStorage";
+import { notifyUnauthorizedResponse } from "./unauthorizedSession";
 
 /**
  * Do not set a default Content-Type: application/json — it sticks to multipart POSTs and can
@@ -29,5 +30,21 @@ axiosInstance.interceptors.request.use((config) => {
   }
   return config;
 });
+
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (!axios.isAxiosError(error) || error.response?.status !== 401) {
+      return Promise.reject(error);
+    }
+    const url = String(error.config?.url ?? "");
+    const isAuthAttempt =
+      url.includes("/auth/login") || url.includes("/auth/google");
+    if (!isAuthAttempt) {
+      notifyUnauthorizedResponse();
+    }
+    return Promise.reject(error);
+  },
+);
 
 export default axiosInstance;
