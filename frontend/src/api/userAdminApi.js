@@ -35,3 +35,15 @@ export function updateTechnician(id, body) {
 export function deleteTechnician(id) {
   return axiosInstance.delete(`/users/technicians/${id}`);
 }
+
+/** PATCH /users/:id/role — ADMIN only (@RequestBody { role: "USER"|"ADMIN"|"TECHNICIAN" }) */
+export function updateUserRole(id, role) {
+  return axiosInstance
+    .patch(`/users/${id}/role`, { role }, { headers: { "Content-Type": "application/json" } })
+    .then((r) => r.data);
+}
+
+/** PATCH /users/:id/enable — ADMIN only (toggles enabled flag) */
+export function toggleUserEnabled(id) {
+  return axiosInstance.patch(`/users/${id}/enable`).then((r) => r.data);
+}

@@ -10,6 +10,7 @@ import {
   PlusCircle,
   Ticket,
   UserRound,
+  Users,
   Building,
   Settings,
 } from "lucide-react";
@@ -34,6 +35,7 @@ function routeTitle(pathname) {
   if (pathname.startsWith("/admin/tickets")) return "Admin tickets";
   if (pathname === "/facilities") return "Facility Directory";
   if (pathname.startsWith("/admin/facilities")) return "Facility Management";
+  if (pathname.startsWith("/admin/users")) return "User management";
   if (pathname === "/profile") return "Profile";
   return "Workspace";
 }
@@ -184,6 +186,12 @@ function Sidebar() {
   }
 
   if (isAdmin) {
+    items.push({
+      to: "/admin/users",
+      label: "Users",
+      icon: Users,
+      active: (p) => p.startsWith("/admin/users"),
+    });
     items.push({
       to: "/admin/facilities",
       label: "Facility Manager",

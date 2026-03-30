@@ -8,6 +8,7 @@ import LoginPage from "../pages/member4/LoginPage";
 import LandingPage from "../pages/member4/LandingPage";
 import HomePage from "../pages/member4/HomePage";
 import ProfilePage from "../pages/member4/ProfilePage";
+import AdminUsersPage from "../pages/member4/AdminUsersPage";
 import UserDashboard from "../pages/dashboards/UserDashboard";
 import AdminDashboard from "../pages/dashboards/AdminDashboard";
 import TechnicianDashboard from "../pages/dashboards/TechnicianDashboard";
@@ -117,6 +118,14 @@ export default function AppRoutes() {
           element={
             <AdminFacilityRoute>
               <AdminFacilitiesPage />
+            </AdminFacilityRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminFacilityRoute>
+              <AdminUsersPage />
             </AdminFacilityRoute>
           }
         />
