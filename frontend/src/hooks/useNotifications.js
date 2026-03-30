@@ -1,10 +1,13 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axiosInstance from "../api/axiosInstance";
 import {
   deleteNotification as deleteNotificationReq,
   fetchNotifications,
   markAllNotificationsRead,
   markNotificationRead,
 } from "../api/notificationsApi";
+import { getMemoryToken } from "../api/authTokenMemory";
 
 const REFETCH_MS = 30_000;
 
@@ -40,6 +43,25 @@ export function useNotifications(enabled = true) {
 
   const unreadCount =
     listQuery.data?.content?.filter((n) => !n.read).length ?? 0;
+
+  useEffect(() => {
+    if (!enabled) return;
+    const token = getMemoryToken();
+    if (!token) return;
+
+    const baseUrl = axiosInstance.defaults.baseURL || "http://localhost:8081/api";
+    const streamUrl = `${baseUrl}/notifications/stream?access_token=${encodeURIComponent(token)}`;
+
+    const es = new EventSource(streamUrl);
+    const invalidate = () => queryClient.invalidateQueries({ queryKey: ["notifications"] });
+
+    es.addEventListener("notification", invalidate);
+    es.addEventListener("connected", invalidate);
+
+    return () => {
+      es.close();
+    };
+  }, [enabled, queryClient]);
 
   const markReadMutation = useMutation({
     mutationFn: (id) => markNotificationRead(id),

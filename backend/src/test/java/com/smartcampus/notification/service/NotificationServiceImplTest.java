@@ -4,6 +4,7 @@ import com.smartcampus.notification.model.Notification;
 import com.smartcampus.notification.model.NotificationType;
 import com.smartcampus.notification.model.ReferenceType;
 import com.smartcampus.notification.repository.NotificationRepository;
+import com.smartcampus.notification.sse.NotificationSseService;
 import com.smartcampus.user.model.User;
 import com.smartcampus.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,7 @@ class NotificationServiceImplTest {
 
     @Mock UserRepository userRepository;
     @Mock NotificationRepository notificationRepository;
+    @Mock NotificationSseService notificationSseService;
 
     @InjectMocks NotificationServiceImpl notificationService;
 

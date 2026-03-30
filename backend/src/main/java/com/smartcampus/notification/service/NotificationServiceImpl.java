@@ -4,6 +4,7 @@ import com.smartcampus.notification.model.Notification;
 import com.smartcampus.notification.model.NotificationType;
 import com.smartcampus.notification.model.ReferenceType;
 import com.smartcampus.notification.repository.NotificationRepository;
+import com.smartcampus.notification.sse.NotificationSseService;
 import com.smartcampus.user.model.User;
 import com.smartcampus.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final NotificationSseService notificationSseService;
 
     @Override
     @Transactional
@@ -44,7 +46,23 @@ public class NotificationServiceImpl implements NotificationService {
                         .referenceType(referenceType)
                         .isRead(false)
                         .build();
-        return notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+
+        // Push real-time update to any SSE subscribers.
+        notificationSseService.broadcast(
+                recipientUserId,
+                com.smartcampus.notification.dto.NotificationResponseDTO.builder()
+                        .id(saved.getId())
+                        .type(saved.getType())
+                        .title(saved.getTitle())
+                        .message(saved.getMessage())
+                        .referenceId(saved.getReferenceId())
+                        .referenceType(saved.getReferenceType())
+                        .read(saved.isRead())
+                        .createdAt(saved.getCreatedAt())
+                        .build());
+
+        return saved;
     }
 
     @Override
