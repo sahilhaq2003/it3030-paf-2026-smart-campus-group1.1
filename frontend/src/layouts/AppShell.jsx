@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
+  Bell,
   ClipboardList,
   Home,
   LayoutDashboard,
@@ -8,9 +10,11 @@ import {
   Ticket,
   UserRound,
   Building,
-  Settings
+  Settings,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useNotifications } from "../hooks/useNotifications";
+import NotificationPanel from "../components/notifications/NotificationPanel";
 import {
   DASHBOARD_PATHS,
   canAccessAdminTickets,
@@ -36,6 +40,16 @@ function AppHeader() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const loc = useLocation();
+  const [panelOpen, setPanelOpen] = useState(false);
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    markRead,
+    markAllRead,
+    deleteNotification,
+    isMarkingAllRead,
+  } = useNotifications(Boolean(user));
 
   const handleLogout = () => {
     logout();
@@ -43,35 +57,65 @@ function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-[3.25rem] shrink-0 items-center justify-between gap-4 border-b border-slate-200/90 bg-white px-5 shadow-[0_1px_0_0_rgba(15,23,42,0.06)] sm:px-6">
-      <div className="min-w-0 flex flex-col justify-center">
-        <span className="truncate text-sm font-semibold tracking-tight text-slate-900">Smart Campus Hub</span>
-        <span className="truncate text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">
-          {routeTitle(loc.pathname)}
-        </span>
-      </div>
+    <>
+      <header className="sticky top-0 z-30 flex h-[3.25rem] shrink-0 items-center justify-between gap-4 border-b border-slate-200/90 bg-white px-5 shadow-[0_1px_0_0_rgba(15,23,42,0.06)] sm:px-6">
+        <div className="min-w-0 flex flex-col justify-center">
+          <span className="truncate text-sm font-semibold tracking-tight text-slate-900">Smart Campus Hub</span>
+          <span className="truncate text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">
+            {routeTitle(loc.pathname)}
+          </span>
+        </div>
 
-      <div className="flex shrink-0 items-center gap-3 sm:gap-4">
-        <div className="hidden min-w-0 text-right md:block">
-          <p className="truncate text-sm font-medium text-slate-900">{user?.name ?? "User"}</p>
-          <p className="truncate text-xs text-slate-500">{user?.email ?? ""}</p>
+        <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+          <div className="hidden min-w-0 text-right md:block">
+            <p className="truncate text-sm font-medium text-slate-900">{user?.name ?? "User"}</p>
+            <p className="truncate text-xs text-slate-500">{user?.email ?? ""}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPanelOpen(true)}
+            className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand"
+            aria-label={
+              unreadCount > 0
+                ? `Notifications (${unreadCount} unread)`
+                : "Notifications"
+            }
+          >
+            <Bell className="h-4 w-4" strokeWidth={2} />
+            {unreadCount > 0 ? (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            ) : null}
+          </button>
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600"
+            aria-hidden
+          >
+            <UserRound className="h-4 w-4" strokeWidth={2} />
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand"
+          >
+            <LogOut className="h-4 w-4 text-slate-500" strokeWidth={2} />
+            <span className="hidden sm:inline">Log out</span>
+          </button>
         </div>
-        <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600"
-          aria-hidden
-        >
-          <UserRound className="h-4 w-4" strokeWidth={2} />
-        </div>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand"
-        >
-          <LogOut className="h-4 w-4 text-slate-500" strokeWidth={2} />
-          <span className="hidden sm:inline">Log out</span>
-        </button>
-      </div>
-    </header>
+      </header>
+      <NotificationPanel
+        open={panelOpen}
+        onClose={() => setPanelOpen(false)}
+        notifications={notifications}
+        unreadCount={unreadCount}
+        isLoading={isLoading}
+        onMarkAllRead={markAllRead}
+        onMarkRead={markRead}
+        onDelete={deleteNotification}
+        markAllPending={isMarkingAllRead}
+      />
+    </>
   );
 }
 
