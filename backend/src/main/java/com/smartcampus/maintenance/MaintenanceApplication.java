@@ -12,8 +12,20 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication(scanBasePackages = "com.smartcampus")
 @EnableScheduling
-@EntityScan(basePackages = {"com.smartcampus.maintenance", "com.smartcampus.user", "com.smartcampus.facilities"})
-@EnableJpaRepositories(basePackages = {"com.smartcampus.maintenance", "com.smartcampus.user", "com.smartcampus.facilities"})
+@EntityScan(
+        basePackages = {
+            "com.smartcampus.maintenance",
+            "com.smartcampus.user",
+            "com.smartcampus.facilities",
+            "com.smartcampus.notification"
+        })
+@EnableJpaRepositories(
+        basePackages = {
+            "com.smartcampus.maintenance",
+            "com.smartcampus.user",
+            "com.smartcampus.facilities",
+            "com.smartcampus.notification"
+        })
 public class MaintenanceApplication {
 
     public static void main(String[] args) {
@@ -123,10 +135,13 @@ public class MaintenanceApplication {
         }
         String path =
                 uri.getPath() != null && !uri.getPath().isEmpty() ? uri.getPath() : "/postgres";
-        String jdbc =
-                String.format(
-                        "jdbc:postgresql://%s:%d%s?sslmode=require&prepareThreshold=0",
-                        host, port, path);
+
+        String query = "sslmode=require";
+        if (host != null && host.contains("pooler.supabase.com")) {
+            query += "&prepareThreshold=0";
+        }
+        String jdbc = String.format("jdbc:postgresql://%s:%d%s?%s", host, port, path, query);
+
         System.setProperty("spring.datasource.url", jdbc);
         System.setProperty("spring.datasource.username", user);
         System.setProperty("spring.datasource.password", pass);
