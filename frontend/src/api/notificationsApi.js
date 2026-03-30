@@ -23,3 +23,13 @@ export function markAllNotificationsRead() {
 export function deleteNotification(id) {
   return axiosInstance.delete(`/notifications/${id}`).then(() => undefined);
 }
+
+export function fetchNotificationPreferences() {
+  return axiosInstance.get(`/notification-preferences`).then((r) => r.data);
+}
+
+export function updateNotificationPreferences(body) {
+  return axiosInstance
+    .patch(`/notification-preferences`, body)
+    .then((r) => r.data);
+}
