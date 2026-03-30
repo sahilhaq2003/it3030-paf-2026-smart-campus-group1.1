@@ -129,13 +129,19 @@ public class MaintenanceApplication {
                         : URLDecoder.decode(userInfo.substring(colon + 1), StandardCharsets.UTF_8);
         String host = uri.getHost();
         int port = uri.getPort() > 0 ? uri.getPort() : 5432;
+        if (host != null && host.endsWith("pooler.supabase.com") && port == 5432) {
+            // Supabase pooler on 5432 is session-mode; force transaction-mode port.
+            port = 6543;
+        }
         String path =
                 uri.getPath() != null && !uri.getPath().isEmpty() ? uri.getPath() : "/postgres";
+
         String query = "sslmode=require";
         if (host != null && host.contains("pooler.supabase.com")) {
             query += "&prepareThreshold=0";
         }
         String jdbc = String.format("jdbc:postgresql://%s:%d%s?%s", host, port, path, query);
+
         System.setProperty("spring.datasource.url", jdbc);
         System.setProperty("spring.datasource.username", user);
         System.setProperty("spring.datasource.password", pass);

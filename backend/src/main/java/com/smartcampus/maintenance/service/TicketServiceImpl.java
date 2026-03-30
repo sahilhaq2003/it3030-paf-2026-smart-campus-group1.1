@@ -142,9 +142,8 @@ public class TicketServiceImpl implements TicketService {
         }
 
         var previousStatus = ticket.getStatus();
-        // Resolve completes the lifecycle in one step (no extra admin RESOLVED → CLOSED action).
-        TicketStatus persistedStatus =
-                dto.getStatus() == TicketStatus.RESOLVED ? TicketStatus.CLOSED : dto.getStatus();
+        // Persist the exact requested status so DB transition rules remain valid.
+        TicketStatus persistedStatus = dto.getStatus();
         ticket.setStatus(persistedStatus);
         var saved = ticketRepo.save(ticket);
 
@@ -267,14 +266,26 @@ public class TicketServiceImpl implements TicketService {
         return "/api/tickets/" + ticketId + "/attachments/" + a.getStoredName();
     }
 
+    /** Effective SLA deadline: persisted value or derived from createdAt + priority (no @PostLoad — avoids dirty state on read-only txs). */
+    private static LocalDateTime effectiveSlaDeadline(Ticket t) {
+        if (t.getSlaDeadline() != null) {
+            return t.getSlaDeadline();
+        }
+        if (t.getCreatedAt() != null && t.getPriority() != null) {
+            return t.getCreatedAt().plusHours(SlaPolicy.hoursFor(t.getPriority()));
+        }
+        return null;
+    }
+
     private static boolean computeSlaViolated(Ticket t, LocalDateTime now) {
-        if (t.getSlaDeadline() == null) {
+        LocalDateTime deadline = effectiveSlaDeadline(t);
+        if (deadline == null) {
             return false;
         }
         if (t.getResolvedAt() != null) {
-            return t.getResolvedAt().isAfter(t.getSlaDeadline());
+            return t.getResolvedAt().isAfter(deadline);
         }
-        return now.isAfter(t.getSlaDeadline());
+        return now.isAfter(deadline);
     }
 
     private Ticket findTicketOrThrow(Long id) {
@@ -330,7 +341,7 @@ public class TicketServiceImpl implements TicketService {
             .createdAt(t.getCreatedAt())
             .updatedAt(t.getUpdatedAt())
             .resolvedAt(t.getResolvedAt())
-            .slaDeadline(t.getSlaDeadline())
+            .slaDeadline(effectiveSlaDeadline(t))
             .slaViolated(slaViolated)
             .timeElapsed(timeElapsed)
             .build();

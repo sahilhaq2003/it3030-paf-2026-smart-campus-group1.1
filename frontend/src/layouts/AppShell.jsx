@@ -7,6 +7,8 @@ import {
   PlusCircle,
   Ticket,
   UserRound,
+  Building,
+  Settings
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -14,6 +16,7 @@ import {
   canAccessAdminTickets,
   canCreateTickets,
   getDashboardRoute,
+  normalizeRoles
 } from "../utils/getDashboardRoute";
 
 function routeTitle(pathname) {
@@ -24,6 +27,8 @@ function routeTitle(pathname) {
   if (pathname.startsWith("/tickets/") && pathname !== "/tickets") return "Ticket details";
   if (pathname === "/tickets") return "My tickets";
   if (pathname.startsWith("/admin/tickets")) return "Admin tickets";
+  if (pathname === "/facilities") return "Facility Directory";
+  if (pathname.startsWith("/admin/facilities")) return "Facility Management";
   return "Workspace";
 }
 
@@ -75,6 +80,7 @@ function Sidebar() {
   const { user } = useAuth();
   const roles = user?.roles ?? (user?.role != null ? [user.role] : []);
   const primaryDash = getDashboardRoute(roles);
+  const isAdmin = normalizeRoles(roles).has("ADMIN");
 
   const dash =
     primaryDash === DASHBOARD_PATHS.ADMIN
@@ -98,6 +104,7 @@ function Sidebar() {
   const items = [
     { to: "/home", label: "Home", icon: Home, active: (p) => p === "/home" },
     { to: dash.to, label: dash.label, icon: LayoutDashboard, active: dash.active },
+    { to: "/facilities", label: "Campus Facilities", icon: Building, active: (p) => p.startsWith("/facilities") },
   ];
 
   if (canCreateTickets(roles)) {
@@ -121,6 +128,15 @@ function Sidebar() {
       label: "Admin tickets",
       icon: ClipboardList,
       active: (p) => p.startsWith("/admin/tickets"),
+    });
+  }
+
+  if (isAdmin) {
+    items.push({
+      to: "/admin/facilities",
+      label: "Facility Manager",
+      icon: Settings,
+      active: (p) => p.startsWith("/admin/facilities"),
     });
   }
 
