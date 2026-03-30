@@ -23,3 +23,9 @@ export async function fetchCurrentUser() {
   const { data } = await axiosInstance.get("/auth/me");
   return data;
 }
+
+/** PATCH /auth/me — update display name and optional avatar URL. */
+export async function updateCurrentUserProfile(body) {
+  const { data } = await axiosInstance.patch("/auth/me", body);
+  return data;
+}

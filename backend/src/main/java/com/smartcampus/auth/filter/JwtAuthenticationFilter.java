@@ -63,10 +63,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 try {
                     Claims claims = jwtService.parseToken(token);
                     Long userId = toLong(claims.get(JwtService.CLAIM_USER_ID));
-                    String email = claims.get(JwtService.CLAIM_EMAIL, String.class);
-                    if (email == null || email.isBlank()) {
-                        email = claims.getSubject();
+                    if (userId == null) {
+                        userId = toLong(claims.getSubject());
                     }
+                    String email = claims.get(JwtService.CLAIM_EMAIL, String.class);
                     if (userId != null && email != null && !email.isBlank()) {
                         Collection<? extends GrantedAuthority> authorities =
                                 authoritiesFromRolesClaim(claims.get(JwtService.CLAIM_ROLES));

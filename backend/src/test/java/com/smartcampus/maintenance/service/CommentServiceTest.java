@@ -206,7 +206,8 @@ class CommentServiceTest {
         when(commentRepository.findById(1L)).thenReturn(Optional.of(comment));
         when(commentRepository.save(any())).thenAnswer(invocation -> {
             Comment c = invocation.getArgument(0);
-            c.setUpdatedAt(LocalDateTime.now());
+            // Make the test deterministic: always move updatedAt forward.
+            c.setUpdatedAt(oldUpdatedAt.plusNanos(1));
             return c;
         });
 

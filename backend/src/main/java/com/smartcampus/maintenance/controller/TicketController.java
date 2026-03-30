@@ -25,7 +25,7 @@ public class TicketController {
 
     // GET /api/tickets — ADMIN/TECH only
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN', 'MANAGER')")
     public ResponseEntity<Page<TicketResponseDTO>> getAllTickets(
         @RequestParam(required = false) TicketStatus status,
         @RequestParam(required = false) TicketCategory category,
@@ -48,13 +48,13 @@ public class TicketController {
     }
 
     @GetMapping("/analytics/technician-performance")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN', 'MANAGER')")
     public ResponseEntity<List<TechnicianPerformanceDTO>> getTechnicianPerformance() {
         return ResponseEntity.ok(ticketService.getTechnicianPerformance());
     }
 
     @GetMapping(value = "/export", produces = "text/csv")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<byte[]> exportTickets(
             @RequestParam(required = false) TicketStatus status,
             @RequestParam(required = false) TicketCategory category) {
@@ -91,7 +91,8 @@ public class TicketController {
 
     // POST /api/tickets — campus users only (not admin/technician staff)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("isAuthenticated() and !hasRole('ADMIN') and !hasRole('TECHNICIAN')")
+    @PreAuthorize(
+            "isAuthenticated() and !hasRole('ADMIN') and !hasRole('TECHNICIAN') and !hasRole('MANAGER')")
     public ResponseEntity<TicketResponseDTO> createTicket(
         @Valid @RequestPart("ticket") TicketRequestDTO dto,
         @RequestPart(value = "files", required = false) List<MultipartFile> files,
@@ -104,7 +105,7 @@ public class TicketController {
 
     // PATCH /api/tickets/{id}/status
     @PatchMapping("/{id:\\d+}/status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN', 'MANAGER')")
     public ResponseEntity<TicketResponseDTO> updateStatus(
         @PathVariable Long id,
         @Valid @RequestBody TicketStatusUpdateDTO dto,
@@ -115,13 +116,13 @@ public class TicketController {
                         id,
                         dto,
                         getUserId(auth),
-                        Authz.isAdmin(auth),
+                        Authz.isTicketAdmin(auth),
                         Authz.isTechnician(auth)));
     }
 
     // PATCH /api/tickets/{id}/assign
     @PatchMapping("/{id:\\d+}/assign")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<TicketResponseDTO> assignTechnician(
         @PathVariable Long id,
         @RequestParam Long technicianId
@@ -131,7 +132,7 @@ public class TicketController {
 
     // DELETE /api/tickets/{id}
     @DeleteMapping("/{id:\\d+}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<Void> deleteTicket(@PathVariable Long id) {
         ticketService.deleteTicket(id);
         return ResponseEntity.noContent().build();
@@ -139,7 +140,7 @@ public class TicketController {
 
     // Technician dashboard endpoint
     @GetMapping("/assigned")
-    @PreAuthorize("hasAnyRole('TECHNICIAN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TECHNICIAN', 'ADMIN', 'MANAGER')")
     public ResponseEntity<Page<TicketResponseDTO>> getAssignedTickets(
         Authentication auth, Pageable pageable
     ) {

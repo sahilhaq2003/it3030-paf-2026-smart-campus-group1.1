@@ -31,8 +31,14 @@ public class UserService {
     private final CommentRepository commentRepository;
 
     @Transactional(readOnly = true)
-    public List<UserProfileDTO> getAllUsers() {
-        return userRepository.findAllWithRoles().stream().map(this::toProfileDto).toList();
+    public List<UserProfileDTO> getAllUsers(Role roleFilter) {
+        var stream = userRepository.findAllWithRoles().stream();
+        if (roleFilter != null) {
+            stream =
+                    stream.filter(
+                            u -> u.getRoles() != null && u.getRoles().contains(roleFilter));
+        }
+        return stream.map(this::toProfileDto).toList();
     }
 
     /** Users with TECHNICIAN role (for assignment UIs). */

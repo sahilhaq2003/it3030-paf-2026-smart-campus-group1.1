@@ -14,7 +14,8 @@ export default function HomePage() {
   const displayName = user?.name ?? "there";
   const roles = user?.roles ?? (user?.role != null ? [user.role] : []);
   const primaryDash = getDashboardRoute(roles);
-  const isAdmin = normalizeRoles(roles).has("ADMIN");
+  const isOpsAdmin =
+    normalizeRoles(roles).has("ADMIN") || normalizeRoles(roles).has("MANAGER");
 
   const dashCard =
     primaryDash === DASHBOARD_PATHS.ADMIN
@@ -74,7 +75,7 @@ export default function HomePage() {
     });
   }
 
-  if (isAdmin) {
+  if (isOpsAdmin) {
     cards.push({
       to: "/admin/facilities",
       title: "Facility Manager",

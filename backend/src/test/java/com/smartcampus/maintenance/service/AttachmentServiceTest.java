@@ -70,7 +70,7 @@ class AttachmentServiceTest {
         // Act & Assert
         assertThatThrownBy(() -> attachmentService.validateFile(file))
             .isInstanceOf(ResponseStatusException.class)
-            .hasMessageContaining("Only image files");
+            .hasMessageContaining("Invalid file type");
     }
 
     @Test
@@ -89,7 +89,7 @@ class AttachmentServiceTest {
         // Act & Assert
         assertThatThrownBy(() -> attachmentService.validateFile(file))
             .isInstanceOf(ResponseStatusException.class)
-            .hasMessageContaining("File size exceeds 5MB");
+            .hasMessageContaining("File too large");
     }
 
     @Test
@@ -126,7 +126,7 @@ class AttachmentServiceTest {
         // Act & Assert
         assertThatThrownBy(() -> attachmentService.validateFileCount(files, testTicket))
             .isInstanceOf(ResponseStatusException.class)
-            .hasMessageContaining("maximum 3 files");
+            .hasMessageContaining("Maximum 3 attachments");
     }
 
     @Test

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartcampus.auth.dto.AuthResponseDTO;
 import com.smartcampus.auth.dto.GoogleUserClaims;
 import com.smartcampus.auth.dto.LoginRequestDTO;
+import com.smartcampus.auth.dto.UpdateProfileDTO;
 import com.smartcampus.auth.dto.UserResponseDTO;
 import com.smartcampus.auth.model.UserPrincipal;
 import com.smartcampus.user.model.Role;
@@ -122,6 +123,23 @@ public class AuthService {
         return toUserResponse(user);
     }
 
+    @Transactional
+    public UserResponseDTO updateCurrentUserProfile(UpdateProfileDTO dto) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+        User user =
+                userRepository
+                        .findByIdWithRoles(principal.getId())
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        user.setName(dto.getName().trim());
+        if (dto.getAvatarUrl() != null && !dto.getAvatarUrl().isBlank()) {
+            user.setAvatarUrl(dto.getAvatarUrl().trim());
+        }
+        return toUserResponse(userRepository.save(user));
+    }
+
     private User syncGoogleProfile(User user, SimulatedGoogleProfile profile) {
         user.setName(profile.name());
         if (profile.picture() != null && !profile.picture().isBlank()) {
@@ -157,6 +175,7 @@ public class AuthService {
                 .roles(roleNames)
                 .provider(u.getProvider().name())
                 .enabled(u.isEnabled())
+                .createdAt(u.getCreatedAt())
                 .build();
     }
 

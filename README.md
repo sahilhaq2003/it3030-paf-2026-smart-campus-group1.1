@@ -93,6 +93,15 @@ Authentication uses **JWT** (Google OAuth and email/password). File attachments 
 
 ---
 
+## Member Contribution
+
+| Member | GitHub Handle | Main Work |
+|--------|---------------|-----------|
+| Member 1 | `sakithruhunuge` | Facility comparison feature; facilities admin dashboard; filtering/search UI improvements |
+| Member 2 | `pasindi15` | Ticket status workflow & technician operations; admin/users management; comment handling & SLA-related updates |
+| Member 3 | `sahilhaq2003` | Auth/JWT + role-based authorization updates (including `MANAGER`); notifications backend + related unit tests |
+| Member 4 | `SAHIL HAQ` | Integration/security hardening for Member 4; error-response JSON consistency for tests; CI workflow + final polish |
+
 ## Project Structure
 
 ```

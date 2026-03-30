@@ -3,7 +3,9 @@ package com.smartcampus.notification.service;
 import com.smartcampus.notification.model.Notification;
 import com.smartcampus.notification.model.NotificationType;
 import com.smartcampus.notification.model.ReferenceType;
+import com.smartcampus.notification.dto.NotificationPreferencesDTO;
 import com.smartcampus.notification.repository.NotificationRepository;
+import com.smartcampus.notification.sse.NotificationSseService;
 import com.smartcampus.user.model.User;
 import com.smartcampus.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,9 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final NotificationSseService notificationSseService;
+    private final NotificationPreferencesService notificationPreferencesService;
+    private final NotificationEmailService notificationEmailService;
 
     @Override
     @Transactional
@@ -30,6 +35,9 @@ public class NotificationServiceImpl implements NotificationService {
             String message,
             Long referenceId,
             ReferenceType referenceType) {
+        NotificationPreferencesDTO prefs = notificationPreferencesService.getPreferences(recipientUserId);
+        boolean inAppEnabled = prefs.inAppEnabled();
+        boolean emailEnabled = prefs.emailEnabled();
         User recipient =
                 userRepository
                         .findById(recipientUserId)
@@ -42,14 +50,40 @@ public class NotificationServiceImpl implements NotificationService {
                         .message(message)
                         .referenceId(referenceId)
                         .referenceType(referenceType)
-                        .isRead(false)
+                        .isRead(!inAppEnabled)
                         .build();
-        return notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+
+        // Push real-time update to any SSE subscribers.
+        if (inAppEnabled) {
+            notificationSseService.broadcast(
+                    recipientUserId,
+                    com.smartcampus.notification.dto.NotificationResponseDTO.builder()
+                            .id(saved.getId())
+                            .type(saved.getType())
+                            .title(saved.getTitle())
+                            .message(saved.getMessage())
+                            .referenceId(saved.getReferenceId())
+                            .referenceType(saved.getReferenceType())
+                            .read(saved.isRead())
+                            .createdAt(saved.getCreatedAt())
+                            .build());
+        }
+
+        if (emailEnabled) {
+            notificationEmailService.sendNotificationEmail(recipient, saved);
+        }
+
+        return saved;
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<Notification> getNotificationsForUser(Long recipientUserId, Pageable pageable) {
+        boolean inAppEnabled = notificationPreferencesService.isInAppEnabled(recipientUserId);
+        if (!inAppEnabled) {
+            return Page.empty(pageable);
+        }
         return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(recipientUserId, pageable);
     }
 
