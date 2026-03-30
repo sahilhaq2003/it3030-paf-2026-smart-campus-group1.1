@@ -43,7 +43,7 @@ class JwtServiceTest {
         String token = jwt.generateToken(user);
 
         Claims claims = jwt.parseToken(token);
-        assertThat(claims.getSubject()).isEqualTo(user.getEmail());
+        assertThat(claims.getSubject()).isEqualTo("42");
         assertThat(claims.get(JwtService.CLAIM_USER_ID, Long.class)).isEqualTo(42L);
         assertThat(claims.get(JwtService.CLAIM_EMAIL, String.class)).isEqualTo(user.getEmail());
         @SuppressWarnings("unchecked")
@@ -52,10 +52,10 @@ class JwtServiceTest {
     }
 
     @Test
-    void extractUsername_returnsSubjectEmail() {
+    void extractUsername_returnsSubjectUserId() {
         JwtService jwt = service(3600_000L);
         String token = jwt.generateToken(sampleUser());
-        assertThat(jwt.extractUsername(token)).isEqualTo("jwt-test@smartcampus.local");
+        assertThat(jwt.extractUsername(token)).isEqualTo("42");
     }
 
     @Test

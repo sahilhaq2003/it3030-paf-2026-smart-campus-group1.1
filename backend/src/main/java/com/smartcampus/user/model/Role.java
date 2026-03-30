@@ -3,5 +3,6 @@ package com.smartcampus.user.model;
 public enum Role {
     USER,
     ADMIN,
-    TECHNICIAN
+    TECHNICIAN,
+    MANAGER
 }

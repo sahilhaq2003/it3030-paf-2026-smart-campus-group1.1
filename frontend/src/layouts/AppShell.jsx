@@ -128,7 +128,8 @@ function Sidebar() {
   const { user } = useAuth();
   const roles = user?.roles ?? (user?.role != null ? [user.role] : []);
   const primaryDash = getDashboardRoute(roles);
-  const isAdmin = normalizeRoles(roles).has("ADMIN");
+  const isOpsAdmin =
+    normalizeRoles(roles).has("ADMIN") || normalizeRoles(roles).has("MANAGER");
 
   const dash =
     primaryDash === DASHBOARD_PATHS.ADMIN
@@ -185,7 +186,7 @@ function Sidebar() {
     });
   }
 
-  if (isAdmin) {
+  if (isOpsAdmin) {
     items.push({
       to: "/admin/users",
       label: "Users",

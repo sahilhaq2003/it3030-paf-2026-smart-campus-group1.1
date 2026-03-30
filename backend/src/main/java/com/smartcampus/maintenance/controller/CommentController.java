@@ -42,7 +42,7 @@ public class CommentController {
                             ticketId,
                             commentDTO.getContent(),
                             userId,
-                            Authz.isAdmin(auth),
+                            Authz.isTicketAdmin(auth),
                             Authz.isTechnician(auth)));
     }
 
@@ -65,7 +65,8 @@ public class CommentController {
         @PathVariable Long commentId,
         Authentication auth
     ) {
-        commentService.deleteComment(ticketId, commentId, getUserId(auth), Authz.isAdmin(auth));
+        commentService.deleteComment(
+                ticketId, commentId, getUserId(auth), Authz.isTicketAdmin(auth));
         return ResponseEntity.noContent().build();
     }
 

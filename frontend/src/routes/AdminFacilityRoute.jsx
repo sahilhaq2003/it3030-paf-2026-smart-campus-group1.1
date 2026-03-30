@@ -20,7 +20,8 @@ export default function AdminFacilityRoute({ children }) {
 
   // Enforce ADMIN exclusivity
   const roles = user.roles ?? (user.role != null ? [user.role] : []);
-  if (!normalizeRoles(roles).has("ADMIN")) {
+  const allowed = normalizeRoles(roles);
+  if (!allowed.has("ADMIN") && !allowed.has("MANAGER")) {
     // If they aren't admin, redirect them back to their standard assigned dashboard
     return <Navigate to={getDashboardRoute(roles)} replace />;
   }

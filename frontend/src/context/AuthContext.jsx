@@ -13,22 +13,22 @@ import {
   loginWithPassword as loginWithPasswordApi,
   updateCurrentUserProfile as updateCurrentUserProfileApi,
 } from "../api/authApi";
-import { AUTH_TOKEN_STORAGE_KEY } from "../constants/authStorage";
+import {
+  clearMemoryToken,
+  getMemoryToken,
+  setMemoryToken,
+} from "../api/authTokenMemory";
 
 const AuthContext = createContext(null);
 
-function getStoredToken() {
-  return sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
-}
-
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => getStoredToken());
+  const [token, setToken] = useState(() => getMemoryToken());
   const [user, setUser] = useState(null);
-  const [bootstrapping, setBootstrapping] = useState(() => Boolean(getStoredToken()));
+  const [bootstrapping, setBootstrapping] = useState(() => Boolean(getMemoryToken()));
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState(null);
 
-  /** Restore session: token in sessionStorage → GET /auth/me */
+  /** Restore session: in-memory token → GET /auth/me */
   useEffect(() => {
     if (!token) {
       setBootstrapping(false);
@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
         if (!cancelled) setUser(profile);
       } catch {
         if (!cancelled) {
-          sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+          clearMemoryToken();
           setToken(null);
           setUser(null);
         }
@@ -64,7 +64,7 @@ export function AuthProvider({ children }) {
     if (!accessToken || !nextUser) {
       throw new Error("Invalid response from server");
     }
-    sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, accessToken);
+    setMemoryToken(accessToken);
     setToken(accessToken);
     setUser(nextUser);
     return nextUser;
@@ -110,7 +110,7 @@ export function AuthProvider({ children }) {
   );
 
   const logout = useCallback(() => {
-    sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    clearMemoryToken();
     setToken(null);
     setUser(null);
     setLoginError(null);
@@ -120,11 +120,11 @@ export function AuthProvider({ children }) {
 
   /** Re-fetch profile from the server (e.g. after PATCH /auth/me). */
   const refreshUser = useCallback(async () => {
-    if (!token) return null;
+    if (!getMemoryToken()) return null;
     const profile = await fetchCurrentUser();
     setUser(profile);
     return profile;
-  }, [token]);
+  }, []);
 
   const updateProfile = useCallback(async ({ name, avatarUrl }) => {
     const body = { name: name.trim() };

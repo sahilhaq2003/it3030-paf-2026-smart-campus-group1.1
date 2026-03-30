@@ -35,8 +35,8 @@ public class JwtService {
     }
 
     /**
-     * Issues an HS256 JWT with userId, email, and roles claims.
-     * Subject is the user's email (for {@link #extractUsername(String)}).
+     * Issues an HS256 JWT: {@code sub} = user id (per coursework), plus {@value #CLAIM_EMAIL} and
+     * {@value #CLAIM_ROLES} claims.
      */
     public String generateToken(User user) {
         List<String> roleNames =
@@ -47,7 +47,7 @@ public class JwtService {
         Instant exp = now.plusMillis(expirationMs);
 
         return Jwts.builder()
-                .subject(user.getEmail())
+                .subject(String.valueOf(user.getId()))
                 .claim(CLAIM_USER_ID, user.getId())
                 .claim(CLAIM_EMAIL, user.getEmail())
                 .claim(CLAIM_ROLES, roleNames)
@@ -57,7 +57,7 @@ public class JwtService {
                 .compact();
     }
 
-    /** Returns the JWT subject (email). */
+    /** Returns the JWT subject (user id as string for tokens issued by {@link #generateToken}). */
     public String extractUsername(String token) {
         return parseClaims(token).getSubject();
     }

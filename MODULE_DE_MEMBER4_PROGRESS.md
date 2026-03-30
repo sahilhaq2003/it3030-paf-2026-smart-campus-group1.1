@@ -10,7 +10,7 @@
 | **Partial** | Differs from spec, incomplete, or subset only |
 | **Missing** | Not in the codebase |
 
-Last reviewed: matches repo **after** notifications stack, profile/users UI, auth UX, filters, error pages, read-only admin roles, and tests listed in §4.4.
+Last reviewed: matches repo after Member 4 hardening (MANAGER, JWT `sub`, in-memory front-end token, security integration tests, H2 test profile, error JSON consistency).
 
 ---
 
@@ -29,8 +29,29 @@ Use this as the **step sequence** that was applied (aligns with your incremental
 9. **UnauthorizedPage**, **NotFoundPage**, catch-all route.
 10. **401** axios → **logout** + `/login` via **AuthUnauthorizedBridge**.
 11. **JwtServiceTest**; **NotificationServiceImplTest** + **TicketEventListenerTest**.
+12. **MANAGER** role end-to-end: **`Role.MANAGER`**, **UserController** `hasAnyRole('ADMIN','MANAGER')`, **Authz** + ticket/comment routes (parity with admin/staff where required).
+13. **JWT `sub` = user id** in **JwtService**; **`JwtAuthenticationFilter`** resolves user id from **`userId` claim or `sub`**; email **only** from **`email`** claim (not `sub`).
+14. Frontend **in-memory JWT** (**`authTokenMemory`**, **AuthContext** without `sessionStorage`); **axiosInstance** reads bearer from memory; refresh = logged out (strict “memory only” wording).
+15. **`ProtectedRoute` `requiredRoles`**, **`getDashboardRoute` / AppShell / HomePage / AdminFacilityRoute / AdminUsersPage** updated for MANAGER where appropriate.
+16. **Test profile**: H2 in-memory + **`application-test.properties`** (JWT secret, empty Google client id, Supabase placeholders) so **`@ActiveProfiles("test")`** needs no Postgres.
+17. **Integration tests**: **`Member4SecurityIntegrationTest`** (USER 403 on `/api/users`, ADMIN 200, notifications for USER), **`AuthGoogleIntegrationTest`** (mock **GoogleOAuthTokenVerifier**, `POST /api/auth/google`).
+18. **Regression fixes for tests**: MockMvc uses real **Bearer JWT** (not `SecurityContextHolder` alone); ticket/comment **`@BeforeEach`** deletes **`notifications`** before users; **`GlobalExceptionHandler`** maps **`ResponseStatusException`** to `{ status, error, message }`; **`CommentDTO`** **`@JsonProperty("isEdited")`** for JSON shape; unit/integration assertions aligned with actual validation messages.
 
 If your branch differs, diff against the paths and endpoints below.
+
+---
+
+## Suggested git commits (messages)
+
+Use one commit per bullet, or squash where your team prefers fewer commits.
+
+1. `feat(auth): add MANAGER role and align ticket/user authorization helpers`
+2. `fix(auth): use JWT sub as user id and resolve principal from sub or userId claim`
+3. `feat(frontend): store access token in memory only and wire axios + protected routes`
+4. `chore(test): add H2 test profile and integration tests for OAuth mock and user-list authz`
+5. `fix(api): handle ResponseStatusException in GlobalExceptionHandler; fix CommentDTO isEdited JSON`
+6. `test(maintenance): use Bearer JWT and notification cleanup in ticket/comment integration tests`
+7. `test(attachments): align AttachmentServiceTest assertions with current error messages`
 
 ---
 
@@ -41,12 +62,12 @@ If your branch differs, diff against the paths and endpoints below.
 | Item | Status | Notes |
 |------|--------|--------|
 | `auth/controller/AuthController.java` | **Done** | + **`PATCH /me`**, `GET/POST` as before |
-| `user/controller/UserController.java` | **Partial** | Not under `auth.controller`; **`GET /users?role=`** supported |
+| `user/controller/UserController.java` | **Partial** | Not under `auth.controller`; **`GET /users?role=`** supported; **ADMIN or MANAGER** |
 | `notification/*` | **Done** | Entity, repo, service, controller, listeners under `com.smartcampus.notification` |
 | `OAuth2Config` / `spring-security-oauth2-client` | **Missing** | Google via **GoogleOAuthTokenVerifier** + google-api-client |
 | `CorsConfig` standalone | **Partial** | CORS in **SecurityConfig** |
-| `Role` / **MANAGER** | **Partial** | **USER, ADMIN, TECHNICIAN** only |
-| `auth/filter/JwtAuthFilter` | **Partial** | Named **JwtAuthenticationFilter** |
+| `Role` / **MANAGER** | **Done** | **`USER, ADMIN, TECHNICIAN, MANAGER`** |
+| `auth/filter/JwtAuthFilter` | **Done** | Named **JwtAuthenticationFilter**; **`sub`** = user id |
 
 ### Entity: `Notification.java`
 
@@ -61,7 +82,7 @@ If your branch differs, diff against the paths and endpoints below.
 | GET | `/api/auth/me` | **Done** |
 | PATCH | `/api/auth/me` | **Done** (profile update — extra vs bare table) |
 | POST | `/api/auth/google` | **Done** |
-| GET | `/api/users` | **Done** + **`?role=`** |
+| GET | `/api/users` | **Done** + **`?role=`** (ADMIN/MANAGER) |
 | GET | `/api/users/{id}` | **Done** |
 | PATCH | `/api/users/{id}/role` | **Done** (API); **UI does not call** (by design) |
 | PATCH | `/api/users/{id}/enable` | **Done** |
@@ -74,7 +95,7 @@ If your branch differs, diff against the paths and endpoints below.
 
 | Step | Status | Notes |
 |------|--------|--------|
-| 1–10 overall | **Partial** | Works end-to-end; **JWT `sub`** = email; claims include `userId`, `roles` |
+| 1–10 overall | **Partial** | Works end-to-end; **JWT `sub`** = **user id**; **`email`**, **`userId`**, **`roles`** claims |
 
 ### Notifications + events
 
@@ -95,7 +116,7 @@ If your branch differs, diff against the paths and endpoints below.
 |------|--------|--------|
 | `LoginPage.jsx` | **Done** | |
 | `ProfilePage.jsx` | **Done** | |
-| `AdminUsersPage.jsx` | **Done** | **Roles read-only**; enable/disable others only |
+| `AdminUsersPage.jsx` | **Done** | **Roles read-only**; enable/disable others only; **MANAGER** in filters |
 | `NotificationPanel.jsx` | **Partial** | Under **`components/notifications/`** (not `member4/`) |
 | Admin dashboard | **Partial** | `AdminDashboard.jsx`; bookings still sample if unchanged |
 | `UnauthorizedPage.jsx` | **Done** | Route `/unauthorized` |
@@ -105,9 +126,9 @@ If your branch differs, diff against the paths and endpoints below.
 
 | Item | Status |
 |------|--------|
-| `AuthContext` + bootstrap | **Partial** | Token in **sessionStorage** (not “memory only” per strict spec wording) |
-| `ProtectedRoute` | **Partial** | No **`requiredRoles`** prop |
-| Axios Bearer | **Done** |
+| `AuthContext` + bootstrap | **Done** | Token in **memory** + React state (not `sessionStorage`) |
+| `ProtectedRoute` | **Done** | Optional **`requiredRoles`** → **`/unauthorized`** |
+| Axios Bearer | **Done** | From **memory** store |
 | **401** → logout + `/login` | **Done** | **AuthUnauthorizedBridge** |
 
 ### Notification UI
@@ -136,9 +157,9 @@ If your branch differs, diff against the paths and endpoints below.
 |------|--------|
 | Unit: **JwtService** | **Done** | `JwtServiceTest` |
 | Unit: **NotificationService** / listeners | **Done** | `NotificationServiceImplTest`, `TicketEventListenerTest` |
-| Integration: OAuth mock | **Missing** |
-| Integration: USER → **403** on `/api/users` | **Missing** |
-| Integration: Notification **HTTP** CRUD | **Missing** |
+| Integration: OAuth mock | **Done** | `AuthGoogleIntegrationTest` |
+| Integration: USER → **403** on `/api/users` | **Done** | `Member4SecurityIntegrationTest` |
+| Integration: Notification **HTTP** CRUD | **Partial** | Covered indirectly; dedicated notification-controller MockMvc suite optional |
 
 ---
 
@@ -151,14 +172,15 @@ If your branch differs, diff against the paths and endpoints below.
 | Notifications backend + listeners + REST | **Done** |
 | Notifications frontend | **Done** (polling, not SSE) |
 | Error pages + 401 redirect | **Done** |
-| `MANAGER`, strict in-memory token, `requiredRoles`, SSE, innovation extras | **Missing** / **Partial** |
-| Integration tests (OAuth, authz, notification API) | **Missing** |
+| `MANAGER`, in-memory token, `requiredRoles` | **Done** |
+| SSE, innovation extras | **Missing** / **Partial** |
+| Integration tests (OAuth, authz) | **Done** |
+| API errors from **ResponseStatusException** as JSON `message` | **Done** |
 
 ---
 
 ## Suggested **next** work (if marks require them)
 
-1. **`@WebMvcTest` / integration**: USER token → **403** on `GET /api/users`; notification controller CRUD with security.
-2. **OAuth integration test** with mocked **GoogleOAuthTokenVerifier**.
-3. Coursework **innovation** items your rubric weights (SSE, audit, joyride, etc.).
-4. **`MANAGER` role** end-to-end if the brief requires it.
+1. **Notification controller** integration tests (mark read, read-all, delete) with JWT fixtures.
+2. Coursework **innovation** items your rubric weights (SSE, audit, joyride, etc.).
+3. Optional: **`@WebMvcTest`** slices for faster controller-only runs.

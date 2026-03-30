@@ -1,5 +1,5 @@
 import axios from "axios";
-import { AUTH_TOKEN_STORAGE_KEY } from "../constants/authStorage";
+import { getMemoryToken } from "./authTokenMemory";
 import { notifyUnauthorizedResponse } from "./unauthorizedSession";
 
 /**
@@ -12,7 +12,7 @@ const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  const token = getMemoryToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
