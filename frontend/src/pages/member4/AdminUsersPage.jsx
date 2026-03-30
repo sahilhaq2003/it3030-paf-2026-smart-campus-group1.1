@@ -2,21 +2,9 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
-import {
-  fetchUsers,
-  toggleUserEnabled,
-  updateUserRole,
-} from "../../api/userAdminApi";
+import { fetchUsers, toggleUserEnabled } from "../../api/userAdminApi";
 
 const ROLE_OPTIONS = ["USER", "ADMIN", "TECHNICIAN"];
-
-/** Backend may return multiple roles; pick one value for the single-role dropdown. */
-function primaryRole(roles) {
-  const set = new Set((roles ?? []).map(String));
-  if (set.has("ADMIN")) return "ADMIN";
-  if (set.has("TECHNICIAN")) return "TECHNICIAN";
-  return "USER";
-}
 
 function rolesLabel(roles) {
   if (!roles?.length) return "—";
@@ -41,17 +29,6 @@ export default function AdminUsersPage() {
       }),
     );
   }, [usersQuery.data]);
-
-  const roleMutation = useMutation({
-    mutationFn: ({ id, role }) => updateUserRole(id, role),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "users"], exact: false });
-      toast.success("Role updated");
-    },
-    onError: () => {
-      toast.error("Could not update role");
-    },
-  });
 
   const enableMutation = useMutation({
     mutationFn: (id) => toggleUserEnabled(id),
@@ -82,8 +59,8 @@ export default function AdminUsersPage() {
           Users
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-          Assign a single role per account and enable or disable sign-in. You cannot change your own
-          role or status from this screen.
+          Roles are shown for reference only and cannot be changed here. You can enable or disable
+          sign-in for other accounts; you cannot change your own status from this screen.
         </p>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -120,8 +97,7 @@ export default function AdminUsersPage() {
                 <thead className="bg-slate-50/90 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-4 py-3 sm:px-6">User</th>
-                    <th className="hidden px-4 py-3 md:table-cell">Roles (API)</th>
-                    <th className="px-4 py-3 sm:px-6">Role</th>
+                    <th className="px-4 py-3 sm:px-6">Roles</th>
                     <th className="px-4 py-3 sm:px-6">Active</th>
                   </tr>
                 </thead>
@@ -133,36 +109,16 @@ export default function AdminUsersPage() {
                         : [...row.roles]
                       : [];
                     const isSelf = currentUser?.id != null && row.id === currentUser.id;
-                    const selected = primaryRole(rolesArr);
                     return (
                       <tr key={row.id} className="text-slate-800">
                         <td className="px-4 py-3 sm:px-6">
                           <p className="font-medium text-slate-900">{row.name ?? "—"}</p>
                           <p className="text-xs text-slate-500">{row.email}</p>
                         </td>
-                        <td className="hidden max-w-[10rem] px-4 py-3 text-xs text-slate-600 md:table-cell">
-                          {rolesLabel(rolesArr)}
-                        </td>
-                        <td className="px-4 py-3 sm:px-6">
-                          <select
-                            className="max-w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-800 shadow-sm outline-none ring-campus-brand/20 focus:border-campus-brand focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            disabled={
-                              isSelf || roleMutation.isPending || enableMutation.isPending
-                            }
-                            value={selected}
-                            onChange={(e) => {
-                              const next = e.target.value;
-                              if (next === selected) return;
-                              roleMutation.mutate({ id: row.id, role: next });
-                            }}
-                            aria-label={`Role for ${row.email}`}
-                          >
-                            {ROLE_OPTIONS.map((r) => (
-                              <option key={r} value={r}>
-                                {r}
-                              </option>
-                            ))}
-                          </select>
+                        <td className="max-w-[14rem] px-4 py-3 text-xs font-medium text-slate-700 sm:max-w-none">
+                          <span className="rounded-md bg-slate-100 px-2 py-1 text-slate-800">
+                            {rolesLabel(rolesArr)}
+                          </span>
                         </td>
                         <td className="px-4 py-3 sm:px-6">
                           <label className="inline-flex cursor-pointer items-center gap-2">
@@ -170,9 +126,7 @@ export default function AdminUsersPage() {
                               type="checkbox"
                               className="h-4 w-4 rounded border-slate-300 text-campus-brand focus:ring-campus-brand disabled:cursor-not-allowed disabled:opacity-50"
                               checked={Boolean(row.enabled)}
-                              disabled={
-                                isSelf || enableMutation.isPending || roleMutation.isPending
-                              }
+                              disabled={isSelf || enableMutation.isPending}
                               onChange={() => enableMutation.mutate(row.id)}
                               aria-label={`Account active for ${row.email}`}
                             />
