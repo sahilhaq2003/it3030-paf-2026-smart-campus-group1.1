@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
@@ -26,10 +26,11 @@ function rolesLabel(roles) {
 export default function AdminUsersPage() {
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
+  const [roleFilter, setRoleFilter] = useState("");
 
   const usersQuery = useQuery({
-    queryKey: ["admin", "users"],
-    queryFn: fetchUsers,
+    queryKey: ["admin", "users", roleFilter || "all"],
+    queryFn: () => fetchUsers(roleFilter ? { role: roleFilter } : {}),
   });
 
   const sortedUsers = useMemo(() => {
@@ -44,7 +45,7 @@ export default function AdminUsersPage() {
   const roleMutation = useMutation({
     mutationFn: ({ id, role }) => updateUserRole(id, role),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"], exact: false });
       toast.success("Role updated");
     },
     onError: () => {
@@ -55,7 +56,7 @@ export default function AdminUsersPage() {
   const enableMutation = useMutation({
     mutationFn: (id) => toggleUserEnabled(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"], exact: false });
       toast.success("Account status updated");
     },
     onError: () => {
@@ -84,6 +85,25 @@ export default function AdminUsersPage() {
           Assign a single role per account and enable or disable sign-in. You cannot change your own
           role or status from this screen.
         </p>
+
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <label htmlFor="admin-users-role-filter" className="text-xs font-medium text-slate-600">
+            Filter by role
+          </label>
+          <select
+            id="admin-users-role-filter"
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none ring-campus-brand/20 focus:border-campus-brand focus:ring-2"
+          >
+            <option value="">All roles</option>
+            {ROLE_OPTIONS.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm ring-1 ring-slate-900/[0.03]">
           {usersQuery.isLoading ? (

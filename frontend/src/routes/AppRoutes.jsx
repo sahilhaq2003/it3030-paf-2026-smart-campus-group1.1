@@ -9,6 +9,8 @@ import LandingPage from "../pages/member4/LandingPage";
 import HomePage from "../pages/member4/HomePage";
 import ProfilePage from "../pages/member4/ProfilePage";
 import AdminUsersPage from "../pages/member4/AdminUsersPage";
+import UnauthorizedPage from "../pages/member4/UnauthorizedPage";
+import NotFoundPage from "../pages/member4/NotFoundPage";
 import UserDashboard from "../pages/dashboards/UserDashboard";
 import AdminDashboard from "../pages/dashboards/AdminDashboard";
 import TechnicianDashboard from "../pages/dashboards/TechnicianDashboard";
@@ -33,7 +35,9 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<LoginPage />} />      <Route
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/unauthorized" element={<UnauthorizedPage />} />
+      <Route
         element={
           <ProtectedRoute>
             <AppShell />
@@ -130,6 +134,7 @@ export default function AppRoutes() {
           }
         />
       </Route>
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

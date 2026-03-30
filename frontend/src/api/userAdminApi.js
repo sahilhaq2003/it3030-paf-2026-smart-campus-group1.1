@@ -1,8 +1,11 @@
 import axiosInstance from "./axiosInstance";
 
-/** GET /users — ADMIN only */
-export function fetchUsers() {
-  return axiosInstance.get("/users").then((r) => r.data);
+/** GET /users — ADMIN only; optional `role` query: USER | ADMIN | TECHNICIAN */
+export function fetchUsers(params = {}) {
+  const role = params.role;
+  return axiosInstance
+    .get("/users", { params: role ? { role } : {} })
+    .then((r) => r.data);
 }
 
 /** GET /users/technicians — ADMIN only */
