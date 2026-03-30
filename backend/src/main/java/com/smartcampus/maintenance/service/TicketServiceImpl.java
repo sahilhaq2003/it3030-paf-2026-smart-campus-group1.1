@@ -2,6 +2,7 @@ package com.smartcampus.maintenance.service;
 
 import com.smartcampus.maintenance.dto.*;
 import com.smartcampus.maintenance.event.TicketStatusChangedEvent;
+import com.smartcampus.maintenance.event.TicketSubmittedEvent;
 import com.smartcampus.maintenance.model.*;
 import com.smartcampus.maintenance.model.enums.*;
 import com.smartcampus.maintenance.policy.SlaPolicy;
@@ -75,6 +76,11 @@ public class TicketServiceImpl implements TicketService {
             var attachments = attachmentService.saveAttachments(files, saved);
             saved.setAttachments(attachments);
         }
+
+        // Notify the ticket owner immediately on submission (for both in-app + email notifications).
+        eventPublisher.publishEvent(
+                new TicketSubmittedEvent(
+                        this, saved.getId(), user.getId(), saved.getTitle()));
 
         return mapToResponse(saved);
     }
