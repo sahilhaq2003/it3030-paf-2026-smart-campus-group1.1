@@ -92,6 +92,12 @@
             <version>4.12.0</version>
         </dependency>
 
+        <!-- System emails (SMTP) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- Load backend/.env into JVM system properties before Spring starts -->
         <dependency>
             <groupId>io.github.cdimascio</groupId>

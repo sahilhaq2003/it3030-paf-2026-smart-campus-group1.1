@@ -3,6 +3,7 @@ package com.smartcampus.notification.service;
 import com.smartcampus.notification.model.Notification;
 import com.smartcampus.notification.model.NotificationType;
 import com.smartcampus.notification.model.ReferenceType;
+import com.smartcampus.notification.dto.NotificationPreferencesDTO;
 import com.smartcampus.notification.repository.NotificationRepository;
 import com.smartcampus.notification.sse.NotificationSseService;
 import com.smartcampus.user.model.User;
@@ -23,6 +24,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final UserRepository userRepository;
     private final NotificationSseService notificationSseService;
     private final NotificationPreferencesService notificationPreferencesService;
+    private final NotificationEmailService notificationEmailService;
 
     @Override
     @Transactional
@@ -33,7 +35,9 @@ public class NotificationServiceImpl implements NotificationService {
             String message,
             Long referenceId,
             ReferenceType referenceType) {
-        boolean inAppEnabled = notificationPreferencesService.isInAppEnabled(recipientUserId);
+        NotificationPreferencesDTO prefs = notificationPreferencesService.getPreferences(recipientUserId);
+        boolean inAppEnabled = prefs.inAppEnabled();
+        boolean emailEnabled = prefs.emailEnabled();
         User recipient =
                 userRepository
                         .findById(recipientUserId)
@@ -64,6 +68,10 @@ public class NotificationServiceImpl implements NotificationService {
                             .read(saved.isRead())
                             .createdAt(saved.getCreatedAt())
                             .build());
+        }
+
+        if (emailEnabled) {
+            notificationEmailService.sendNotificationEmail(recipient, saved);
         }
 
         return saved;
