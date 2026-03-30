@@ -48,7 +48,7 @@ public class TicketController {
     }
 
     @GetMapping("/analytics/technician-performance")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
     public ResponseEntity<List<TechnicianPerformanceDTO>> getTechnicianPerformance() {
         return ResponseEntity.ok(ticketService.getTechnicianPerformance());
     }
@@ -65,7 +65,7 @@ public class TicketController {
                 .body(csv);
     }
 
-    @GetMapping("/{id}/attachments/{storedName:.+}")
+    @GetMapping("/{id:\\d+}/attachments/{storedName:.+}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<byte[]> getAttachment(
             @PathVariable Long id,
@@ -80,7 +80,7 @@ public class TicketController {
     }
 
     // GET /api/tickets/{id}
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TicketResponseDTO> getTicketById(
         @PathVariable Long id, Authentication auth
@@ -103,7 +103,7 @@ public class TicketController {
     }
 
     // PATCH /api/tickets/{id}/status
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/{id:\\d+}/status")
     @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
     public ResponseEntity<TicketResponseDTO> updateStatus(
         @PathVariable Long id,
@@ -120,7 +120,7 @@ public class TicketController {
     }
 
     // PATCH /api/tickets/{id}/assign
-    @PatchMapping("/{id}/assign")
+    @PatchMapping("/{id:\\d+}/assign")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<TicketResponseDTO> assignTechnician(
         @PathVariable Long id,
@@ -130,7 +130,7 @@ public class TicketController {
     }
 
     // DELETE /api/tickets/{id}
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteTicket(@PathVariable Long id) {
         ticketService.deleteTicket(id);
