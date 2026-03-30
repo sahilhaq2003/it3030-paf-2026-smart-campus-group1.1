@@ -3,11 +3,8 @@ package com.smartcampus.notification.service;
 import com.smartcampus.notification.model.Notification;
 import com.smartcampus.notification.model.NotificationType;
 import com.smartcampus.notification.model.ReferenceType;
-import com.smartcampus.notification.dto.NotificationPreferencesDTO;
 import com.smartcampus.notification.repository.NotificationRepository;
 import com.smartcampus.notification.sse.NotificationSseService;
-import com.smartcampus.notification.service.NotificationPreferencesService;
-import com.smartcampus.notification.service.NotificationEmailService;
 import com.smartcampus.user.model.User;
 import com.smartcampus.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,8 +32,6 @@ class NotificationServiceImplTest {
     @Mock UserRepository userRepository;
     @Mock NotificationRepository notificationRepository;
     @Mock NotificationSseService notificationSseService;
-    @Mock NotificationPreferencesService notificationPreferencesService;
-    @Mock NotificationEmailService notificationEmailService;
 
     @InjectMocks NotificationServiceImpl notificationService;
 
@@ -49,8 +44,6 @@ class NotificationServiceImplTest {
 
     @Test
     void createNotification_persistsExpectedFields() {
-        when(notificationPreferencesService.getPreferences(7L))
-                .thenReturn(new NotificationPreferencesDTO(true, false));
         when(userRepository.findById(7L)).thenReturn(Optional.of(recipient));
         when(notificationRepository.save(any(Notification.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -77,8 +70,6 @@ class NotificationServiceImplTest {
 
     @Test
     void createNotification_throwsWhenRecipientMissing() {
-        when(notificationPreferencesService.getPreferences(7L))
-                .thenReturn(new NotificationPreferencesDTO(true, false));
         when(userRepository.findById(7L)).thenReturn(Optional.empty());
         assertThatThrownBy(
                         () ->
@@ -96,7 +87,6 @@ class NotificationServiceImplTest {
     @Test
     void getNotificationsForUser_delegatesToRepository() {
         Pageable pageable = PageRequest.of(0, 20);
-        when(notificationPreferencesService.isInAppEnabled(3L)).thenReturn(true);
         notificationService.getNotificationsForUser(3L, pageable);
         verify(notificationRepository).findByRecipientIdOrderByCreatedAtDesc(3L, pageable);
     }
