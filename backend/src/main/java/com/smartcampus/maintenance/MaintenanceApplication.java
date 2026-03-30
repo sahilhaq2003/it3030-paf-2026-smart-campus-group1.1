@@ -12,8 +12,20 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication(scanBasePackages = "com.smartcampus")
 @EnableScheduling
-@EntityScan(basePackages = {"com.smartcampus.maintenance", "com.smartcampus.user", "com.smartcampus.facilities"})
-@EnableJpaRepositories(basePackages = {"com.smartcampus.maintenance", "com.smartcampus.user", "com.smartcampus.facilities"})
+@EntityScan(
+        basePackages = {
+            "com.smartcampus.maintenance",
+            "com.smartcampus.user",
+            "com.smartcampus.facilities",
+            "com.smartcampus.notification"
+        })
+@EnableJpaRepositories(
+        basePackages = {
+            "com.smartcampus.maintenance",
+            "com.smartcampus.user",
+            "com.smartcampus.facilities",
+            "com.smartcampus.notification"
+        })
 public class MaintenanceApplication {
 
     public static void main(String[] args) {
