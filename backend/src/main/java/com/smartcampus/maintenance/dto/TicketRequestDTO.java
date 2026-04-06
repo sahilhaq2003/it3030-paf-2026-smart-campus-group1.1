@@ -15,16 +15,16 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class TicketRequestDTO {
 
-    @NotBlank
+    @NotBlank(message = "Ticket title cannot be empty")
     private String title;
 
-    @NotBlank
+    @NotBlank(message = "Ticket description cannot be empty")
     private String description;
 
-    @NotNull
+    @NotNull(message = "Category is required")
     private TicketCategory category;
 
-    @NotNull
+    @NotNull(message = "Priority is required")
     private Priority priority;
 
     private String location;
