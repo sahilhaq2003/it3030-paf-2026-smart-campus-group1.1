@@ -21,7 +21,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString(exclude = "roles")
+@ToString(exclude = {"roles", "passwordHash"})
 public class User {
 
     public enum AuthProvider {
@@ -46,6 +46,10 @@ public class User {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    /** BCrypt hash for local (email/password) sign-in; null for OAuth-only accounts. */
+    @Column(name = "password_hash")
+    private String passwordHash;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
@@ -65,6 +69,11 @@ public class User {
     @Column(nullable = false)
     @Builder.Default
     private boolean enabled = true;
+
+    /** Set for technician accounts; used for assignment and roster display. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "technician_category", length = 32)
+    private TechnicianCategory technicianCategory;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

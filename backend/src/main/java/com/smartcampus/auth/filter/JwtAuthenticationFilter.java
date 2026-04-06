@@ -31,48 +31,55 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
 
+    /**
+     * Default {@link OncePerRequestFilter} skips async and error dispatches; JWT would not be
+     * reapplied and {@code SecurityContext} could be empty → 403 on some POST/multipart paths.
+     */
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
+
+    @Override
+    protected boolean shouldNotFilterErrorDispatch() {
+        return false;
+    }
+
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
-        if (SecurityContextHolder.getContext().getAuthentication() != null) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
+        /*
+         * Always honor Authorization: Bearer when present. Do not skip parsing just because
+         * SecurityContext already holds another Authentication — some filter orders / dev setups
+         * can leave a non-null context before this runs, which previously caused valid JWTs on
+         * API calls (e.g. multipart POST /api/tickets) to be ignored → 403.
+         */
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (header == null || !header.startsWith(BEARER_PREFIX)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        String token = header.substring(BEARER_PREFIX.length()).trim();
-        if (token.isEmpty()) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        try {
-            Claims claims = jwtService.parseToken(token);
-            Long userId = toLong(claims.get(JwtService.CLAIM_USER_ID));
-            String email = claims.get(JwtService.CLAIM_EMAIL, String.class);
-            if (email == null || email.isBlank()) {
-                email = claims.getSubject();
+        if (header != null && header.startsWith(BEARER_PREFIX)) {
+            String token = header.substring(BEARER_PREFIX.length()).trim();
+            if (!token.isEmpty()) {
+                try {
+                    Claims claims = jwtService.parseToken(token);
+                    Long userId = toLong(claims.get(JwtService.CLAIM_USER_ID));
+                    if (userId == null) {
+                        userId = toLong(claims.getSubject());
+                    }
+                    String email = claims.get(JwtService.CLAIM_EMAIL, String.class);
+                    if (userId != null && email != null && !email.isBlank()) {
+                        Collection<? extends GrantedAuthority> authorities =
+                                authoritiesFromRolesClaim(claims.get(JwtService.CLAIM_ROLES));
+                        UserPrincipal principal = new UserPrincipal(userId, email, "", authorities);
+                        var auth =
+                                new UsernamePasswordAuthenticationToken(
+                                        principal, null, principal.getAuthorities());
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                    }
+                } catch (JwtException | IllegalArgumentException ignored) {
+                    // Invalid token: leave context unchanged; secured endpoints will reject.
+                }
             }
-            if (userId == null || email == null || email.isBlank()) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-            Collection<? extends GrantedAuthority> authorities =
-                    authoritiesFromRolesClaim(claims.get(JwtService.CLAIM_ROLES));
-            UserPrincipal principal = new UserPrincipal(userId, email, "", authorities);
-            var auth =
-                    new UsernamePasswordAuthenticationToken(
-                            principal, null, principal.getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(auth);
-        } catch (JwtException | IllegalArgumentException ignored) {
-            // Invalid token: leave unauthenticated; secured endpoints will reject the request.
         }
 
         filterChain.doFilter(request, response);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -60,6 +60,12 @@ function AppHeader() {
     navigate("/", { replace: true });
   };
 
+  const avatarSrc = useMemo(() => {
+    if (user?.avatarUrl && String(user.avatarUrl).trim()) return String(user.avatarUrl).trim();
+    const seed = encodeURIComponent(user?.email || user?.name || "user");
+    return `https://ui-avatars.com/api/?name=${seed}&background=EEF2FF&color=4338CA&size=64&bold=true`;
+  }, [user?.avatarUrl, user?.email, user?.name]);
+
   return (
     <>
       <header className="sticky top-0 z-30 flex h-[3.25rem] shrink-0 items-center justify-between gap-4 border-b border-slate-200/90 bg-white px-5 shadow-[0_1px_0_0_rgba(15,23,42,0.06)] sm:px-6">
@@ -92,11 +98,19 @@ function AppHeader() {
               </span>
             ) : null}
           </button>
-          <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600"
-            aria-hidden
-          >
-            <UserRound className="h-4 w-4" strokeWidth={2} />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+            <img
+              src={avatarSrc}
+              alt={user?.name ? `${user.name} avatar` : "Profile avatar"}
+              className="h-full w-full object-cover"
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  user?.name || user?.email || "user",
+                )}&background=EEF2FF&color=4338CA&size=64&bold=true`;
+                if (e.currentTarget.src !== fallback) e.currentTarget.src = fallback;
+              }}
+            />
           </div>
           <button
             type="button"
@@ -128,7 +142,8 @@ function Sidebar() {
   const { user } = useAuth();
   const roles = user?.roles ?? (user?.role != null ? [user.role] : []);
   const primaryDash = getDashboardRoute(roles);
-  const isAdmin = normalizeRoles(roles).has("ADMIN");
+  const isOpsAdmin =
+    normalizeRoles(roles).has("ADMIN") || normalizeRoles(roles).has("MANAGER");
 
   const dash =
     primaryDash === DASHBOARD_PATHS.ADMIN
@@ -185,7 +200,7 @@ function Sidebar() {
     });
   }
 
-  if (isAdmin) {
+  if (isOpsAdmin) {
     items.push({
       to: "/admin/users",
       label: "Users",

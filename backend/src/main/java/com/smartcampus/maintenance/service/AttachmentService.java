@@ -3,25 +3,28 @@ package com.smartcampus.maintenance.service;
 import com.smartcampus.maintenance.model.Attachment;
 import com.smartcampus.maintenance.model.Ticket;
 import com.smartcampus.maintenance.repository.AttachmentRepository;
+import com.smartcampus.maintenance.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
-import java.nio.file.*;
 import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AttachmentService {
 
     private final AttachmentRepository attachmentRepo;
+    private final TicketRepository ticketRepo;
+    private final SupabaseStorageService supabaseStorageService;
 
-    @Value("${app.upload.dir:uploads/tickets}")
-    private String uploadDir;
+    public record AttachmentContent(byte[] body, String contentType) {}
 
     private static final Set<String> ALLOWED_TYPES = Set.of(
         "image/jpeg", "image/png", "image/webp"
@@ -39,59 +42,75 @@ public class AttachmentService {
 
         for (MultipartFile file : files) {
             validateFile(file);
-
-            String storedName = UUID.randomUUID() + getExtension(file.getOriginalFilename());
-            Path dir = Paths.get(uploadDir, String.valueOf(ticket.getId()));
-
-            try {
-                Files.createDirectories(dir);
-                Files.copy(file.getInputStream(), dir.resolve(storedName),
-                    StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException e) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Failed to store file: " + file.getOriginalFilename());
-            }
-
-            var attachment = Attachment.builder()
-                .ticket(ticket)
-                .originalName(file.getOriginalFilename())
-                .storedName(storedName)
-                .mimeType(file.getContentType())
-                .size(file.getSize())
-                .build();
-
-            saved.add(attachmentRepo.save(attachment));
+            saved.add(saveAttachment(file, ticket));
         }
 
         return saved;
     }
 
-    public byte[] serveFile(Long ticketId, String filename) {
-        Path filePath = Paths.get(uploadDir, String.valueOf(ticketId), filename);
+    public Attachment saveAttachment(MultipartFile file, Ticket ticket) {
+        validateFile(file);
+
+        String storedName = UUID.randomUUID() + getExtension(file.getOriginalFilename());
+        String fileUrl = null;
+
         try {
-            return Files.readAllBytes(filePath);
+            // Try to upload to Supabase Storage
+            fileUrl = supabaseStorageService.uploadFile(file, storedName);
+            log.info("File uploaded to Supabase: {} -> {}", file.getOriginalFilename(), fileUrl);
         } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found");
+            // If upload fails, log it but still save the attachment record
+            log.warn("Failed to upload file to Supabase: {} - {}", file.getOriginalFilename(), e.getMessage());
+            fileUrl = null; // Allow null fileUrl for now
         }
+
+        var attachment = Attachment.builder()
+            .ticket(ticket)
+            .originalName(file.getOriginalFilename())
+            .storedName(storedName)
+            .mimeType(file.getContentType())
+            .size(file.getSize())
+            .fileUrl(fileUrl)  // Can be null if upload failed
+            .build();
+
+        return attachmentRepo.save(attachment);
     }
 
-    public String getMimeType(Long ticketId, String filename) {
-        Path filePath = Paths.get(uploadDir, String.valueOf(ticketId), filename);
+    /**
+     * Stream attachment bytes for users who may view the ticket (reporter or ticket staff).
+     */
+    public AttachmentContent loadForDownload(
+            long ticketId, String storedName, long currentUserId, boolean ticketStaff) {
+        var ticket = ticketRepo
+                .findById(ticketId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+        if (!ticketStaff && !ticket.getReportedBy().getId().equals(currentUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+        var att = attachmentRepo
+                .findByTicket_IdAndStoredName(ticketId, storedName)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found"));
         try {
-            return Files.probeContentType(filePath);
+            byte[] bytes = supabaseStorageService.downloadObject(storedName);
+            String ct = att.getMimeType() != null && !att.getMimeType().isBlank()
+                    ? att.getMimeType()
+                    : MediaType.APPLICATION_OCTET_STREAM_VALUE;
+            return new AttachmentContent(bytes, ct);
         } catch (IOException e) {
-            return "application/octet-stream";
+            log.error("Attachment download failed ticket={} file={}", ticketId, storedName, e);
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY, "Could not load attachment from storage");
         }
     }
 
     public void deleteAttachments(List<Attachment> attachments) {
         for (Attachment a : attachments) {
-            Path file = Paths.get(uploadDir, String.valueOf(a.getTicket().getId()), a.getStoredName());
-            try { Files.deleteIfExists(file); } catch (IOException ignored) {}
+            // Delete from Supabase Storage
+            supabaseStorageService.deleteFile(a.getStoredName());
         }
     }
 
-    private void validateFile(MultipartFile file) {
+    public void validateFile(MultipartFile file) {
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "File too large: " + file.getOriginalFilename() + " (max 5MB)");
@@ -99,6 +118,13 @@ public class AttachmentService {
         if (!ALLOWED_TYPES.contains(file.getContentType())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "Invalid file type: " + file.getContentType() + ". Allowed: JPEG, PNG, WEBP");
+        }
+    }
+
+    public void validateFileCount(List<MultipartFile> files, Ticket ticket) {
+        if (files.size() > MAX_FILES) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Maximum " + MAX_FILES + " attachments allowed");
         }
     }
 

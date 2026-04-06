@@ -7,23 +7,28 @@ import {
   useMemo,
   useState,
 } from "react";
-import { fetchCurrentUser, loginWithGoogle } from "../api/authApi";
-import { AUTH_TOKEN_STORAGE_KEY } from "../constants/authStorage";
+import {
+  fetchCurrentUser,
+  loginWithGoogle as loginWithGoogleApi,
+  loginWithPassword as loginWithPasswordApi,
+  updateCurrentUserProfile as updateCurrentUserProfileApi,
+} from "../api/authApi";
+import {
+  clearMemoryToken,
+  getMemoryToken,
+  setMemoryToken,
+} from "../api/authTokenMemory";
 
 const AuthContext = createContext(null);
 
-function getStoredToken() {
-  return sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
-}
-
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => getStoredToken());
+  const [token, setToken] = useState(() => getMemoryToken());
   const [user, setUser] = useState(null);
-  const [bootstrapping, setBootstrapping] = useState(() => Boolean(getStoredToken()));
+  const [bootstrapping, setBootstrapping] = useState(() => Boolean(getMemoryToken()));
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState(null);
 
-  /** Restore session: token in sessionStorage → GET /auth/me */
+  /** Restore session: in-memory token → GET /auth/me */
   useEffect(() => {
     if (!token) {
       setBootstrapping(false);
@@ -41,7 +46,7 @@ export function AuthProvider({ children }) {
         if (!cancelled) setUser(profile);
       } catch {
         if (!cancelled) {
-          sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+          clearMemoryToken();
           setToken(null);
           setUser(null);
         }
@@ -55,29 +60,57 @@ export function AuthProvider({ children }) {
     };
   }, [token, user]);
 
-  const login = useCallback(async (idToken = "dummy-google-token") => {
-    setLoginError(null);
-    setLoginLoading(true);
-    try {
-      const { token: accessToken, user: nextUser } = await loginWithGoogle(idToken);
-      if (!accessToken || !nextUser) {
-        throw new Error("Invalid response from server");
-      }
-      sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, accessToken);
-      setToken(accessToken);
-      setUser(nextUser);
-      return nextUser;
-    } catch (err) {
-      const message = resolveAuthErrorMessage(err);
-      setLoginError(message);
-      throw err;
-    } finally {
-      setLoginLoading(false);
+  const applyAuthResponse = useCallback((accessToken, nextUser) => {
+    if (!accessToken || !nextUser) {
+      throw new Error("Invalid response from server");
     }
+    setMemoryToken(accessToken);
+    setToken(accessToken);
+    setUser(nextUser);
+    return nextUser;
   }, []);
 
+  const loginWithGoogle = useCallback(
+    async (idToken = "dummy-google-token") => {
+      setLoginError(null);
+      setLoginLoading(true);
+      try {
+        const { token: accessToken, user: nextUser } = await loginWithGoogleApi(idToken);
+        return applyAuthResponse(accessToken, nextUser);
+      } catch (err) {
+        const message = resolveAuthErrorMessage(err);
+        setLoginError(message);
+        throw err;
+      } finally {
+        setLoginLoading(false);
+      }
+    },
+    [applyAuthResponse],
+  );
+
+  const loginWithPassword = useCallback(
+    async (email, password) => {
+      setLoginError(null);
+      setLoginLoading(true);
+      try {
+        const { token: accessToken, user: nextUser } = await loginWithPasswordApi({
+          email,
+          password,
+        });
+        return applyAuthResponse(accessToken, nextUser);
+      } catch (err) {
+        const message = resolveAuthErrorMessage(err);
+        setLoginError(message);
+        throw err;
+      } finally {
+        setLoginLoading(false);
+      }
+    },
+    [applyAuthResponse],
+  );
+
   const logout = useCallback(() => {
-    sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    clearMemoryToken();
     setToken(null);
     setUser(null);
     setLoginError(null);
@@ -85,27 +118,51 @@ export function AuthProvider({ children }) {
 
   const clearLoginError = useCallback(() => setLoginError(null), []);
 
+  /** Re-fetch profile from the server (e.g. after PATCH /auth/me). */
+  const refreshUser = useCallback(async () => {
+    if (!getMemoryToken()) return null;
+    const profile = await fetchCurrentUser();
+    setUser(profile);
+    return profile;
+  }, []);
+
+  const updateProfile = useCallback(async ({ name, avatarUrl }) => {
+    const body = { name: name.trim() };
+    if (avatarUrl != null && String(avatarUrl).trim() !== "") {
+      body.avatarUrl = String(avatarUrl).trim();
+    }
+    const next = await updateCurrentUserProfileApi(body);
+    setUser(next);
+    return next;
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
       token,
-      login,
+      loginWithGoogle,
+      loginWithPassword,
       logout,
       isAuthenticated: Boolean(user && token),
       isBootstrapping: bootstrapping,
       loginLoading,
       loginError,
       clearLoginError,
+      refreshUser,
+      updateProfile,
     }),
     [
       user,
       token,
-      login,
+      loginWithGoogle,
+      loginWithPassword,
       logout,
       bootstrapping,
       loginLoading,
       loginError,
       clearLoginError,
+      refreshUser,
+      updateProfile,
     ],
   );
 
@@ -126,6 +183,10 @@ function resolveAuthErrorMessage(err) {
   if (axios.isAxiosError(err)) {
     const data = err.response?.data;
     if (typeof data === "string" && data.trim()) return data;
+    if (Array.isArray(data?.errors) && data.errors.length) {
+      const first = data.errors[0];
+      if (first?.defaultMessage) return String(first.defaultMessage);
+    }
     if (data?.message) return String(data.message);
     if (data?.error) return String(data.error);
     if (err.response?.status === 401) return "Unauthorized";

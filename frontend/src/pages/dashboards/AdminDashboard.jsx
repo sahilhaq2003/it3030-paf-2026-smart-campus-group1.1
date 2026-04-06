@@ -1,66 +1,196 @@
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { facilityApi } from "../../api/facilityApi";
+import { ticketApi } from "../../api/ticketApi";
+import { fetchUsers } from "../../api/userAdminApi";
+import AdminTechnicianPanel from "../../components/dashboard/AdminTechnicianPanel";
 import {
   DashboardPageLayout,
   DashboardSection,
   DashboardStatCard,
-  PlaceholderBlock,
+  campusTextLink,
 } from "../../components/dashboard/DashboardPrimitives";
+import { DashboardInlineMessage } from "../../components/dashboard/DashboardCards";
+
+/** Placeholder until a bookings admin aggregate exists */
+const TOTAL_BOOKINGS_SAMPLE = 14;
 
 export default function AdminDashboard() {
+  const totalTicketsQuery = useQuery({
+    queryKey: ["admin", "tickets", "countAll"],
+    queryFn: () =>
+      ticketApi.getAllTickets({ page: 0, size: 1 }).then((r) => r.data),
+  });
+
+  const openTicketsQuery = useQuery({
+    queryKey: ["admin", "tickets", "countOpen"],
+    queryFn: () =>
+      ticketApi
+        .getAllTickets({ status: "OPEN", page: 0, size: 1 })
+        .then((r) => r.data),
+  });
+
+  const inProgressTicketsQuery = useQuery({
+    queryKey: ["admin", "tickets", "countInProgress"],
+    queryFn: () =>
+      ticketApi
+        .getAllTickets({ status: "IN_PROGRESS", page: 0, size: 1 })
+        .then((r) => r.data),
+  });
+
+  const usersQuery = useQuery({
+    queryKey: ["admin", "users", "count"],
+    queryFn: fetchUsers,
+  });
+
+  const facilitiesQuery = useQuery({
+    queryKey: ["admin", "facilities", "count"],
+    queryFn: () => facilityApi.getAllFacilities({ page: 0, size: 1 })
+  });
+
+  const openTickets =
+    (openTicketsQuery.data?.totalElements ?? 0) +
+    (inProgressTicketsQuery.data?.totalElements ?? 0);
+
+  const ticketsError =
+    totalTicketsQuery.error ||
+    openTicketsQuery.error ||
+    inProgressTicketsQuery.error;
+
+  const usersError = usersQuery.error;
+  const usersCount = Array.isArray(usersQuery.data) ? usersQuery.data.length : null;
+
   return (
     <DashboardPageLayout
       eyebrow="Admin · Dashboard"
       title="Operations control"
-      subtitle="High-level visibility across tickets, users, and SLAs. Charts and tables will populate from the admin API."
+      subtitle="Cross-campus metrics. Ticket and user figures require an admin account; bookings total is sample data for now."
     >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <DashboardStatCard label="Total open" value="—" hint="Placeholder" />
-        <DashboardStatCard label="SLA at risk" value="—" hint="Placeholder" />
-        <DashboardStatCard label="Active users" value="—" hint="Placeholder" />
-        <DashboardStatCard label="Avg. resolution" value="—" hint="Placeholder" />
+      <div className="grid gap-4 sm:grid-cols-3 lg:gap-6">
+        <DashboardStatCard
+          label="Total bookings"
+          value={TOTAL_BOOKINGS_SAMPLE}
+          hint="Sample aggregate — wire bookings API when ready"
+        />
+        <DashboardStatCard
+          label="Open tickets"
+          value={
+            openTicketsQuery.isLoading || inProgressTicketsQuery.isLoading
+              ? "…"
+              : openTickets
+          }
+          hint="OPEN + IN_PROGRESS (system-wide)"
+        />
+        <DashboardStatCard
+          label="Users"
+          value={
+            usersQuery.isLoading ? "…" : usersCount ?? "—"
+          }
+          hint="Registered accounts in directory"
+        />
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <DashboardSection
-            title="Ticket volume"
-            description="Trends by status and priority (placeholder chart area)."
-          >
-            <PlaceholderBlock>
-              Chart / reporting component will mount here.
-            </PlaceholderBlock>
-          </DashboardSection>
+      {(ticketsError || usersError) && (
+        <div className="mt-6 rounded-2xl border border-amber-200/80 bg-amber-50/95 px-5 py-4 text-sm leading-relaxed text-amber-950 shadow-sm ring-1 ring-amber-900/[0.06]">
+          {ticketsError ? (
+            <p>
+              Some ticket metrics could not be loaded (check admin role and API).
+            </p>
+          ) : null}
+          {usersError ? (
+            <p className={ticketsError ? "mt-1" : ""}>
+              User directory unavailable — admin endpoint may be forbidden for this login.
+            </p>
+          ) : null}
         </div>
+      )}
+
+      <div className="mt-10 grid gap-6 lg:grid-cols-2 lg:gap-8">
+        <DashboardSection
+          title="Ticket pipeline"
+          description="Total records in the maintenance system (all statuses)."
+        >
+          <p className="text-3xl font-bold tabular-nums text-slate-900">
+            {totalTicketsQuery.isLoading
+              ? "…"
+              : totalTicketsQuery.data?.totalElements ?? "—"}
+          </p>
+          <DashboardInlineMessage>
+            Use Admin tickets to filter, assign, and resolve work in detail.
+          </DashboardInlineMessage>
+          <Link to="/admin/tickets" className={`mt-5 inline-flex items-center gap-1 text-sm ${campusTextLink}`}>
+            Open admin ticket view
+            <span aria-hidden className="text-base leading-none">
+              →
+            </span>
+          </Link>
+        </DashboardSection>
 
         <DashboardSection
-          title="System health"
-          description="Integration and job status at a glance."
+          title="User directory"
+          description="Snapshot from GET /users (admins only)."
         >
-          <ul className="space-y-3 text-sm">
-            <li className="flex justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-              <span className="text-slate-600">API</span>
-              <span className="font-medium text-emerald-600">OK</span>
-            </li>
-            <li className="flex justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-              <span className="text-slate-600">Notifications</span>
-              <span className="font-medium text-slate-400">—</span>
-            </li>
-            <li className="flex justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-              <span className="text-slate-600">Schedulers</span>
-              <span className="font-medium text-slate-400">—</span>
-            </li>
-          </ul>
+          {usersQuery.isLoading ? (
+            <div className="h-16 animate-pulse rounded-lg bg-slate-100" />
+          ) : usersError ? (
+            <DashboardInlineMessage variant="error">
+              Unable to load users for this session.
+            </DashboardInlineMessage>
+          ) : (
+            <>
+              <p className="text-3xl font-bold tabular-nums text-slate-900">
+                {usersCount}
+              </p>
+              <p className="mt-2 text-sm text-slate-600">
+                Manage roles and access from the user administration tools when exposed in the UI.
+              </p>
+            </>
+          )}
         </DashboardSection>
       </div>
 
-      <div className="mt-6">
+      {/* Facility Navigation Widgets */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:gap-8">
         <DashboardSection
-          title="Recent admin actions"
-          description="Audit-style log (placeholder)."
+          title="Campus Directory"
+          description="Public-facing map of all active resources and classrooms."
         >
-          <PlaceholderBlock>
-            Action history will list here after backend integration.
-          </PlaceholderBlock>
+          <DashboardInlineMessage>
+            View the live architectural map available to standard users and students.
+          </DashboardInlineMessage>
+          <Link to="/facilities" className={`mt-5 inline-flex items-center gap-1 text-sm ${campusTextLink}`}>
+            Open campus map
+            <span aria-hidden className="text-base leading-none">
+              →
+            </span>
+          </Link>
         </DashboardSection>
+
+        <DashboardSection
+          title="Facility Registry"
+          description="Total physical resources configured in the backend server."
+        >
+          {facilitiesQuery.isLoading ? (
+            <div className="h-10 animate-pulse rounded-lg bg-slate-100" />
+          ) : (
+            <p className="text-3xl font-bold tabular-nums text-slate-900">
+              {facilitiesQuery.data?.totalElements ?? "—"} <span className="text-lg text-gray-500 font-medium tracking-tight">Facilities</span>
+            </p>
+          )}
+          <DashboardInlineMessage>
+            Manage capacities, operational limits, types, and physical metadata attributes natively.
+          </DashboardInlineMessage>
+          <Link to="/admin/facilities" className={`mt-5 inline-flex items-center gap-1 text-sm ${campusTextLink}`}>
+            Launch Facility Manager
+            <span aria-hidden className="text-base leading-none">
+              →
+            </span>
+          </Link>
+        </DashboardSection>
+      </div>
+
+      <div className="mt-12 border-t border-slate-200/90 pt-10">
+        <AdminTechnicianPanel />
       </div>
     </DashboardPageLayout>
   );

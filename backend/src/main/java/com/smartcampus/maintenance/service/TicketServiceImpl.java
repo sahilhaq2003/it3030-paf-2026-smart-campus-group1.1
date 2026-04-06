@@ -2,8 +2,11 @@ package com.smartcampus.maintenance.service;
 
 import com.smartcampus.maintenance.dto.*;
 import com.smartcampus.maintenance.event.TicketStatusChangedEvent;
+import com.smartcampus.maintenance.event.TicketSubmittedEvent;
+import com.smartcampus.maintenance.event.TicketTechnicianAssignedEvent;
 import com.smartcampus.maintenance.model.*;
 import com.smartcampus.maintenance.model.enums.*;
+import com.smartcampus.maintenance.policy.SlaPolicy;
 import com.smartcampus.maintenance.repository.*;
 import com.smartcampus.user.repository.UserRepository;
 import com.smartcampus.facilities.repository.FacilityRepository;
@@ -16,7 +19,17 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -25,7 +38,6 @@ import java.util.List;
 public class TicketServiceImpl implements TicketService {
 
     private final TicketRepository ticketRepo;
-    private final CommentRepository commentRepo;
     private final UserRepository userRepo;
     private final FacilityRepository facilityRepo;
     private final AttachmentService attachmentService;
@@ -54,6 +66,11 @@ public class TicketServiceImpl implements TicketService {
         }
 
         var saved = ticketRepo.save(ticket);
+        if (saved.getCreatedAt() != null && saved.getPriority() != null) {
+            saved.setSlaDeadline(
+                    saved.getCreatedAt().plusHours(SlaPolicy.hoursFor(saved.getPriority())));
+            saved = ticketRepo.save(saved);
+        }
 
         // Handle file attachments
         if (files != null && !files.isEmpty()) {
@@ -61,17 +78,20 @@ public class TicketServiceImpl implements TicketService {
             saved.setAttachments(attachments);
         }
 
+        // Notify the ticket owner immediately on submission (for both in-app + email notifications).
+        eventPublisher.publishEvent(
+                new TicketSubmittedEvent(
+                        this, saved.getId(), user.getId(), saved.getTitle()));
+
         return mapToResponse(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public TicketResponseDTO getTicketById(Long id, Long currentUserId, String currentUserRole) {
+    public TicketResponseDTO getTicketById(Long id, Long currentUserId, boolean ticketStaff) {
         var ticket = findTicketOrThrow(id);
 
-        // Users can only see their own tickets; admins/techs see all
-        if (currentUserRole.equals("ROLE_USER") &&
-            !ticket.getReportedBy().getId().equals(currentUserId)) {
+        if (!ticketStaff && !ticket.getReportedBy().getId().equals(currentUserId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
         }
         return mapToResponse(ticket);
@@ -92,8 +112,25 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    public TicketResponseDTO updateStatus(Long id, TicketStatusUpdateDTO dto, Long currentUserId) {
+    public TicketResponseDTO updateStatus(
+            Long id, TicketStatusUpdateDTO dto, Long currentUserId, boolean isAdmin, boolean isTechnician) {
         var ticket = findTicketOrThrow(id);
+
+        if (isTechnician && !isAdmin) {
+            if (ticket.getAssignedTo() == null
+                    || !ticket.getAssignedTo().getId().equals(currentUserId)) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "Only the technician assigned to this ticket can update its status");
+            }
+            if (dto.getStatus() == TicketStatus.CLOSED) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "Use Resolved with resolution notes to finish this ticket. "
+                                + "It closes automatically — only admins can archive legacy tickets as Closed.");
+            }
+        }
+
         validateStatusTransition(ticket.getStatus(), dto.getStatus());
 
         if (dto.getStatus() == TicketStatus.RESOLVED) {
@@ -112,14 +149,18 @@ public class TicketServiceImpl implements TicketService {
         }
 
         var previousStatus = ticket.getStatus();
-        ticket.setStatus(dto.getStatus());
+        // Persist the exact requested status so DB transition rules remain valid.
+        TicketStatus persistedStatus = dto.getStatus();
+        ticket.setStatus(persistedStatus);
         var saved = ticketRepo.save(ticket);
 
-        // Publish event for notification system (Member 4 listens to this)
-        eventPublisher.publishEvent(new TicketStatusChangedEvent(
-            this, saved.getId(), saved.getReportedBy().getId(),
-            previousStatus, dto.getStatus()
-        ));
+        eventPublisher.publishEvent(
+                new TicketStatusChangedEvent(
+                        this,
+                        saved.getId(),
+                        saved.getReportedBy().getId(),
+                        previousStatus,
+                        persistedStatus));
 
         return mapToResponse(saved);
     }
@@ -137,7 +178,20 @@ public class TicketServiceImpl implements TicketService {
             ticket.setStatus(TicketStatus.IN_PROGRESS);
         }
 
-        return mapToResponse(ticketRepo.save(ticket));
+        var saved = ticketRepo.save(ticket);
+
+        // Notify ticket owner (student) that a technician has been assigned.
+        if (saved.getReportedBy() != null && saved.getReportedBy().getId() != null) {
+            eventPublisher.publishEvent(
+                    new TicketTechnicianAssignedEvent(
+                            this,
+                            saved.getId(),
+                            saved.getReportedBy().getId(),
+                            tech.getId(),
+                            tech.getName()));
+        }
+
+        return mapToResponse(saved);
     }
 
     @Override
@@ -154,7 +208,105 @@ public class TicketServiceImpl implements TicketService {
         return ticketRepo.findByAssignedToId(techId, pageable).map(this::mapToResponse);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<TechnicianPerformanceDTO> getTechnicianPerformance() {
+        return ticketRepo.aggregateTechnicianPerformance().stream()
+                .map(TicketServiceImpl::mapTechnicianPerformanceRow)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] exportTicketsCsv(TicketStatus status, TicketCategory category) {
+        List<Ticket> tickets = ticketRepo.findAllForExport(status, category);
+        CSVFormat fmt = CSVFormat.DEFAULT.builder()
+                .setHeader(
+                        "id",
+                        "title",
+                        "description",
+                        "status",
+                        "category",
+                        "priority",
+                        "location",
+                        "facilityName",
+                        "reportedBy",
+                        "assignedTo",
+                        "createdAt",
+                        "updatedAt",
+                        "resolvedAt",
+                        "slaDeadline")
+                .build();
+        try (var out = new ByteArrayOutputStream();
+                var writer = new OutputStreamWriter(out, StandardCharsets.UTF_8);
+                var printer = new CSVPrinter(writer, fmt)) {
+            for (Ticket t : tickets) {
+                printer.printRecord(
+                        t.getId(),
+                        t.getTitle(),
+                        t.getDescription(),
+                        t.getStatus(),
+                        t.getCategory(),
+                        t.getPriority(),
+                        t.getLocation(),
+                        t.getFacility() != null ? t.getFacility().getName() : "",
+                        t.getReportedBy() != null ? t.getReportedBy().getName() : "",
+                        t.getAssignedTo() != null ? t.getAssignedTo().getName() : "",
+                        t.getCreatedAt(),
+                        t.getUpdatedAt(),
+                        t.getResolvedAt(),
+                        t.getSlaDeadline());
+            }
+            printer.flush();
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static TechnicianPerformanceDTO mapTechnicianPerformanceRow(Object[] row) {
+        Long techId = row[0] == null ? null : ((Number) row[0]).longValue();
+        String name = row[1] != null ? row[1].toString() : "";
+        long count = row[2] == null ? 0L : ((Number) row[2]).longValue();
+        Double avgHours = row[3] == null ? null : ((Number) row[3]).doubleValue();
+        return TechnicianPerformanceDTO.builder()
+                .technicianId(techId)
+                .technicianName(name)
+                .ticketsResolved(count)
+                .avgResolutionHours(avgHours)
+                .build();
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private static String attachmentPublicOrApiUrl(Long ticketId, Attachment a) {
+        if (a.getFileUrl() != null && !a.getFileUrl().isBlank()) {
+            return a.getFileUrl();
+        }
+        return "/api/tickets/" + ticketId + "/attachments/" + a.getStoredName();
+    }
+
+    /** Effective SLA deadline: persisted value or derived from createdAt + priority (no @PostLoad — avoids dirty state on read-only txs). */
+    private static LocalDateTime effectiveSlaDeadline(Ticket t) {
+        if (t.getSlaDeadline() != null) {
+            return t.getSlaDeadline();
+        }
+        if (t.getCreatedAt() != null && t.getPriority() != null) {
+            return t.getCreatedAt().plusHours(SlaPolicy.hoursFor(t.getPriority()));
+        }
+        return null;
+    }
+
+    private static boolean computeSlaViolated(Ticket t, LocalDateTime now) {
+        LocalDateTime deadline = effectiveSlaDeadline(t);
+        if (deadline == null) {
+            return false;
+        }
+        if (t.getResolvedAt() != null) {
+            return t.getResolvedAt().isAfter(deadline);
+        }
+        return now.isAfter(deadline);
+    }
 
     private Ticket findTicketOrThrow(Long id) {
         return ticketRepo.findById(id)
@@ -175,6 +327,13 @@ public class TicketServiceImpl implements TicketService {
     }
 
     private TicketResponseDTO mapToResponse(Ticket t) {
+        LocalDateTime now = LocalDateTime.now();
+        long timeElapsed =
+                t.getCreatedAt() == null ? 0L : ChronoUnit.HOURS.between(t.getCreatedAt(), now);
+        boolean slaViolated = computeSlaViolated(t, now);
+        List<Attachment> attachmentList =
+                t.getAttachments() == null ? Collections.emptyList() : t.getAttachments();
+
         return TicketResponseDTO.builder()
             .id(t.getId())
             .title(t.getTitle())
@@ -192,16 +351,19 @@ public class TicketServiceImpl implements TicketService {
             .resolutionNotes(t.getResolutionNotes())
             .rejectionReason(t.getRejectionReason())
             .preferredContact(t.getPreferredContact())
-            .attachments(t.getAttachments().stream().map(a -> AttachmentDTO.builder()
+            .attachments(attachmentList.stream().map(a -> AttachmentDTO.builder()
                 .id(a.getId())
                 .originalName(a.getOriginalName())
-                .url("/api/tickets/" + t.getId() + "/attachments/" + a.getStoredName())
+                .url(attachmentPublicOrApiUrl(t.getId(), a))
                 .mimeType(a.getMimeType())
                 .size(a.getSize())
                 .build()).toList())
             .createdAt(t.getCreatedAt())
             .updatedAt(t.getUpdatedAt())
             .resolvedAt(t.getResolvedAt())
+            .slaDeadline(effectiveSlaDeadline(t))
+            .slaViolated(slaViolated)
+            .timeElapsed(timeElapsed)
             .build();
     }
 }

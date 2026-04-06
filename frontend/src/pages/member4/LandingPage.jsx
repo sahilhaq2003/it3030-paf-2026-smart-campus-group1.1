@@ -4,8 +4,6 @@ import { ClipboardList, Shield, Users } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { getDashboardRoute } from "../../utils/getDashboardRoute";
 
-const BRAND = "#1E3A5F";
-
 export default function LandingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -22,10 +20,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm"
-              style={{ backgroundColor: BRAND }}
-            >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-campus-brand text-sm font-bold text-white shadow-sm shadow-campus-brand/20">
               SC
             </div>
             <div>
@@ -37,8 +32,7 @@ export default function LandingPage() {
           </div>
           <Link
             to="/login"
-            className="rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:opacity-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-            style={{ backgroundColor: BRAND, outlineColor: BRAND }}
+            className="rounded-lg bg-campus-brand px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-slate-900/10 transition hover:bg-campus-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand"
           >
             Sign in
           </Link>
@@ -62,11 +56,7 @@ export default function LandingPage() {
               <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
                 <Link
                   to="/login"
-                  className="inline-flex items-center justify-center rounded-xl px-7 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
-                  style={{
-                    backgroundColor: BRAND,
-                    boxShadow: "0 12px 40px -12px rgba(30, 58, 95, 0.45)",
-                  }}
+                  className="inline-flex items-center justify-center rounded-xl bg-campus-brand px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-campus-brand/30 transition hover:bg-campus-brand-hover"
                 >
                   Sign in to dashboard
                 </Link>
@@ -81,7 +71,7 @@ export default function LandingPage() {
                 className="absolute -inset-1 rounded-3xl opacity-90 blur-2xl"
                 style={{
                   background:
-                    "linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(148, 163, 184, 0.2))",
+                    "linear-gradient(135deg, rgba(79, 70, 229, 0.12), rgba(148, 163, 184, 0.18))",
                 }}
                 aria-hidden
               />
@@ -146,10 +136,7 @@ export default function LandingPage() {
                   key={title}
                   className="rounded-2xl border border-slate-100 bg-slate-50/80 p-7 transition hover:border-slate-200 hover:shadow-md"
                 >
-                  <div
-                    className="flex h-12 w-12 items-center justify-center rounded-xl text-white"
-                    style={{ backgroundColor: BRAND }}
-                  >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-campus-brand text-white shadow-sm shadow-campus-brand/20">
                     <Icon className="h-6 w-6" strokeWidth={1.75} />
                   </div>
                   <h3 className="mt-5 text-lg font-semibold text-slate-900">{title}</h3>

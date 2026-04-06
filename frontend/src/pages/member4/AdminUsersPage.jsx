@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 import { fetchUsers, toggleUserEnabled } from "../../api/userAdminApi";
 
-const ROLE_OPTIONS = ["USER", "ADMIN", "TECHNICIAN"];
+const ROLE_OPTIONS = ["USER", "ADMIN", "TECHNICIAN", "MANAGER"];
 
 function rolesLabel(roles) {
   if (!roles?.length) return "—";

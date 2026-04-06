@@ -42,6 +42,7 @@ public class Ticket {
     private Facility facility;  // nullable
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private TicketStatus status = TicketStatus.OPEN;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -74,4 +75,7 @@ public class Ticket {
     private LocalDateTime updatedAt;
 
     private LocalDateTime resolvedAt;
+
+    /** Target resolution time from {@link #createdAt}, derived from {@link #priority} (CRITICAL 2h, HIGH 8h, …). */
+    private LocalDateTime slaDeadline;
 }
