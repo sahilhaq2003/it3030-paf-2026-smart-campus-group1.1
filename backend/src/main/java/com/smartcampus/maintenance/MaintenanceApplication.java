@@ -129,14 +129,17 @@ public class MaintenanceApplication {
                         : URLDecoder.decode(userInfo.substring(colon + 1), StandardCharsets.UTF_8);
         String host = uri.getHost();
         int port = uri.getPort() > 0 ? uri.getPort() : 5432;
+        // Removed forced switch to 6543 for campus compatibility
+/*
         if (host != null && host.endsWith("pooler.supabase.com") && port == 5432) {
             // Supabase pooler on 5432 is session-mode; force transaction-mode port.
             port = 6543;
         }
+*/
         String path =
                 uri.getPath() != null && !uri.getPath().isEmpty() ? uri.getPath() : "/postgres";
 
-        String query = "sslmode=require";
+        String query = "sslmode=require&connectTimeout=20&socketTimeout=20";
         if (host != null && host.contains("pooler.supabase.com")) {
             query += "&prepareThreshold=0";
         }
