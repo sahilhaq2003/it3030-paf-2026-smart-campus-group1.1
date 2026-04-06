@@ -1,11 +1,22 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import AppLayout from '../../components/AppLayout';
-import PageContainer from '../../components/PageContainer';
-import { AlertCircle, CheckCircle, Upload, ChevronRight, ChevronLeft } from 'lucide-react';
+import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import {
+  DashboardPageLayout,
+  campusBtnPrimary,
+  campusInputFocus,
+} from "../../components/dashboard/DashboardPrimitives";
+import ImageUploadZone from "../../components/ImageUploadZone";
+import { AlertCircle, CheckCircle, Upload, ChevronRight, ChevronLeft } from "lucide-react";
+import { ticketApi } from "../../api/ticketApi";
+
+const focusOk = `border-slate-200 ${campusInputFocus}`;
+const brandBar = "h-full rounded-full bg-campus-brand transition-all duration-300";
 
 export default function CreateTicketPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     title: '',
@@ -19,6 +30,46 @@ export default function CreateTicketPage() {
 
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+
+  const createTicketMutation = useMutation({
+    mutationFn: async () => {
+      const ticketJson = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        category: formData.category,
+        priority: formData.priority,
+        location: formData.location.trim(),
+        preferredContact: formData.contact.trim(),
+      };
+      const fd = new FormData();
+      fd.append(
+        "ticket",
+        new Blob([JSON.stringify(ticketJson)], { type: "application/json" }),
+      );
+      const files = formData.images || [];
+      for (let i = 0; i < Math.min(files.length, 3); i++) {
+        fd.append("files", files[i]);
+      }
+      const { data } = await ticketApi.createTicket(fd);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success(
+        "Request submitted. An admin will assign a technician — open your ticket anytime to follow progress and chat.",
+      );
+      queryClient.invalidateQueries({ queryKey: ["tickets", "my"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "myTickets"] });
+      navigate("/tickets");
+    },
+    onError: (err) => {
+      const msg =
+        err?.response?.data?.message ||
+        (typeof err?.response?.data === "string" ? err.response.data : null) ||
+        err?.message ||
+        "Could not create ticket";
+      toast.error(typeof msg === "string" ? msg : "Could not create ticket");
+    },
+  });
 
   // Validation rules
   const validate = (field, value) => {
@@ -75,54 +126,50 @@ export default function CreateTicketPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert('Ticket created successfully!');
-    navigate('/tickets');
+    if (step !== 3) return;
+    createTicketMutation.mutate();
   };
 
   const progressPercentage = (step / 3) * 100;
 
   return (
-    <AppLayout>
-      <PageContainer>
-        <div className="max-w-2xl mx-auto">
+    <DashboardPageLayout
+      eyebrow="Tickets"
+      title="Create ticket"
+      subtitle="Report a facility issue in three steps."
+    >
+      <div className="mx-auto max-w-2xl">
           <div className="mb-8">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-2">Create New Ticket</h1>
-            <p className="text-slate-600">Report a facility issue in 3 simple steps</p>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-3">
-              {[1, 2, 3].map(s => (
-                <div key={s} className="flex flex-col items-center flex-1">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mb-2 transition-all ${
-                    s < step
-                      ? 'bg-emerald-500 text-white shadow-md'
-                      : s === step
-                      ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white ring-4 ring-cyan-100 shadow-lg'
-                      : 'bg-slate-200 text-slate-600'
-                  }`}>
-                    {s < step ? '✓' : s}
+            <div className="mb-3 flex items-center justify-between">
+              {[1, 2, 3].map((s) => (
+                <div key={s} className="flex flex-1 flex-col items-center">
+                  <div
+                    className={`mb-2 flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all ${
+                      s < step
+                        ? "bg-emerald-600 text-white shadow-md"
+                        : s === step
+                          ? "bg-campus-brand text-white shadow-md ring-4 ring-slate-200"
+                          : "bg-slate-200 text-slate-600"
+                    }`}
+                  >
+                    {s < step ? "✓" : s}
                   </div>
-                  <span className="text-xs text-slate-600 text-center font-medium">
-                    {s === 1 ? 'Issue Details' : s === 2 ? 'Location & Contact' : 'Review & Submit'}
+                  <span className="text-center text-xs font-medium text-slate-600">
+                    {s === 1 ? "Issue details" : s === 2 ? "Location & contact" : "Review & submit"}
                   </span>
                 </div>
               ))}
             </div>
-            <div className="h-2 bg-slate-200 rounded-full overflow-hidden shadow-sm">
-              <div
-                className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-300 rounded-full shadow-md"
-                style={{ width: `${progressPercentage}%` }}
-              ></div>
+            <div className="h-2 overflow-hidden rounded-full bg-slate-200 shadow-sm">
+              <div className={brandBar} style={{ width: `${progressPercentage}%` }} />
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+          <form onSubmit={handleSubmit} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             {/* Step 1: Issue Details */}
             {step === 1 && (
               <div className="space-y-6 animate-fadeIn">
-                <h2 className="text-lg font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-4">What's the issue?</h2>
+                <h2 className="mb-4 text-lg font-semibold text-slate-900">What&apos;s the issue?</h2>
 
                 {/* Title */}
                 <div>
@@ -141,7 +188,7 @@ export default function CreateTicketPage() {
                         ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200'
                         : formData.title
                         ? 'border-emerald-500 bg-emerald-50'
-                        : 'border-slate-300 focus:ring-2 focus:ring-cyan-400'
+                        : `border-slate-300 ${focusOk}`
                     }`}
                   />
                   {touched.title && errors.title && (
@@ -161,7 +208,7 @@ export default function CreateTicketPage() {
                       value={formData.category}
                       onChange={handleInputChange}
                       onBlur={handleBlur}
-                      className="w-full border-2 border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-slate-900 font-medium"
+                      className={`w-full rounded-xl border-2 border-slate-300 px-3 py-2 font-medium text-slate-900 ${focusOk}`}
                     >
                       <option value="">Select category</option>
                       <option value="ELECTRICAL">⚡ Electrical</option>
@@ -178,7 +225,7 @@ export default function CreateTicketPage() {
                       name="priority"
                       value={formData.priority}
                       onChange={handleInputChange}
-                      className="w-full border-2 border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-slate-900 font-medium"
+                      className={`w-full rounded-xl border-2 border-slate-300 px-3 py-2 font-medium text-slate-900 ${focusOk}`}
                     >
                       <option value="LOW">🟢 Low</option>
                       <option value="MEDIUM">🟡 Medium</option>
@@ -205,7 +252,7 @@ export default function CreateTicketPage() {
                         ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200'
                         : formData.description
                         ? 'border-emerald-500 bg-emerald-50'
-                        : 'border-slate-300 focus:ring-2 focus:ring-cyan-400'
+                        : `border-slate-300 ${focusOk}`
                     }`}
                   />
                   {touched.description && errors.description && (
@@ -217,8 +264,10 @@ export default function CreateTicketPage() {
                 </div>
 
                 {/* Info Box */}
-                <div className="bg-cyan-50 border border-cyan-300 rounded-lg p-3 shadow-sm">
-                  <p className="text-sm text-cyan-900 font-medium">💡 Provide as much detail as possible to help technicians resolve your issue faster.</p>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 shadow-sm">
+                  <p className="text-sm font-medium text-slate-700">
+                    Provide as much detail as possible so technicians can resolve the issue faster.
+                  </p>
                 </div>
               </div>
             )}
@@ -226,7 +275,7 @@ export default function CreateTicketPage() {
             {/* Step 2: Location & Contact */}
             {step === 2 && (
               <div className="space-y-6 animate-fadeIn">
-                <h2 className="text-lg font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-4">Where & How to reach you?</h2>
+                <h2 className="mb-4 text-lg font-semibold text-slate-900">Where & how to reach you</h2>
 
                 <div>
                   <label className="block text-sm font-bold text-slate-900 mb-2">Location <span className="text-red-500">*</span></label>
@@ -236,7 +285,7 @@ export default function CreateTicketPage() {
                     value={formData.location}
                     onChange={handleInputChange}
                     placeholder="e.g. Block A, Room 204"
-                    className="w-full border-2 border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-slate-900"
+                    className={`w-full rounded-xl border-2 border-slate-300 px-3 py-2 text-slate-900 ${focusOk}`}
                   />
                 </div>
 
@@ -248,18 +297,18 @@ export default function CreateTicketPage() {
                     value={formData.contact}
                     onChange={handleInputChange}
                     placeholder="Email or phone number"
-                    className="w-full border-2 border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-slate-900"
+                    className={`w-full rounded-xl border-2 border-slate-300 px-3 py-2 text-slate-900 ${focusOk}`}
                   />
                 </div>
 
                 {/* Upload Images */}
                 <div>
                   <label className="block text-sm font-bold text-slate-900 mb-2">Evidence Images (optional, max 3)</label>
-                  <div className="border-2 border-dashed border-cyan-400 rounded-lg p-6 text-center bg-cyan-50 cursor-pointer hover:bg-cyan-100 transition shadow-sm">
-                    <Upload className="mx-auto h-8 w-8 text-cyan-600 mb-2" />
-                    <p className="text-sm text-cyan-700 font-bold">Drag & drop images, or click to select</p>
-                    <p className="text-xs text-slate-600 mt-1 font-medium">JPEG, PNG, WEBP — max 5MB each</p>
-                  </div>
+                  <ImageUploadZone
+                    maxFiles={3}
+                    maxFileSize={5}
+                    onFilesChange={(files) => setFormData(prev => ({ ...prev, images: files }))}
+                  />
                 </div>
               </div>
             )}
@@ -267,7 +316,7 @@ export default function CreateTicketPage() {
             {/* Step 3: Review */}
             {step === 3 && (
               <div className="space-y-6 animate-fadeIn">
-                <h2 className="text-lg font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-4">Review your ticket</h2>
+                <h2 className="mb-4 text-lg font-semibold text-slate-900">Review your ticket</h2>
 
                 <div className="bg-slate-50 border border-slate-300 rounded-lg p-4 space-y-4 shadow-sm">
                   <div>
@@ -323,22 +372,23 @@ export default function CreateTicketPage() {
                   type="button"
                   onClick={() => setStep(step + 1)}
                   disabled={step === 1 ? !canProceedStep1 : !canProceedStep2}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg font-bold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${campusBtnPrimary}`}
                 >
                   Continue <ChevronRight size={16} />
                 </button>
               ) : (
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg font-bold hover:shadow-lg transition-all flex items-center gap-2 shadow-md"
+                  disabled={createTicketMutation.isPending}
+                  className="flex items-center gap-2 rounded-xl bg-emerald-700 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-800 disabled:pointer-events-none disabled:opacity-60"
                 >
-                  <CheckCircle size={16} /> Submit Ticket
+                  <CheckCircle size={16} />{" "}
+                  {createTicketMutation.isPending ? "Submitting…" : "Submit Ticket"}
                 </button>
               )}
             </div>
           </form>
-        </div>
-      </PageContainer>
-    </AppLayout>
+      </div>
+    </DashboardPageLayout>
   );
 }

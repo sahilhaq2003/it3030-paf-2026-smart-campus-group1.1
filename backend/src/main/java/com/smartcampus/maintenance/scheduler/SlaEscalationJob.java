@@ -1,6 +1,7 @@
 package com.smartcampus.maintenance.scheduler;
 
 import com.smartcampus.maintenance.model.enums.Priority;
+import com.smartcampus.maintenance.policy.SlaPolicy;
 import com.smartcampus.maintenance.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,9 @@ public class SlaEscalationJob {
 
         tickets.forEach(t -> {
             t.setPriority(Priority.MEDIUM);
+            if (t.getCreatedAt() != null) {
+                t.setSlaDeadline(t.getCreatedAt().plusHours(SlaPolicy.hoursFor(Priority.MEDIUM)));
+            }
             log.info("SLA Escalation: Ticket #{} escalated LOW → MEDIUM (open since {})",
                 t.getId(), t.getCreatedAt());
         });

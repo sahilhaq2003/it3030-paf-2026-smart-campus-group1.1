@@ -1,5 +1,6 @@
 package com.smartcampus.maintenance.controller;
 
+import com.smartcampus.auth.util.Authz;
 import com.smartcampus.maintenance.dto.*;
 import com.smartcampus.maintenance.model.enums.*;
 import com.smartcampus.maintenance.service.*;
@@ -24,7 +25,7 @@ public class TicketController {
 
     // GET /api/tickets — ADMIN/TECH only
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN', 'MANAGER')")
     public ResponseEntity<Page<TicketResponseDTO>> getAllTickets(
         @RequestParam(required = false) TicketStatus status,
         @RequestParam(required = false) TicketCategory category,
@@ -46,20 +47,52 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.getMyTickets(userId, pageable));
     }
 
+    @GetMapping("/analytics/technician-performance")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN', 'MANAGER')")
+    public ResponseEntity<List<TechnicianPerformanceDTO>> getTechnicianPerformance() {
+        return ResponseEntity.ok(ticketService.getTechnicianPerformance());
+    }
+
+    @GetMapping(value = "/export", produces = "text/csv")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<byte[]> exportTickets(
+            @RequestParam(required = false) TicketStatus status,
+            @RequestParam(required = false) TicketCategory category) {
+        byte[] csv = ticketService.exportTicketsCsv(status, category);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"tickets.csv\"")
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(csv);
+    }
+
+    @GetMapping("/{id:\\d+}/attachments/{storedName:.+}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<byte[]> getAttachment(
+            @PathVariable Long id,
+            @PathVariable String storedName,
+            Authentication auth) {
+        var content = attachmentService.loadForDownload(
+                id, storedName, getUserId(auth), Authz.isTicketStaff(auth));
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(java.time.Duration.ofHours(1)).cachePrivate())
+                .contentType(MediaType.parseMediaType(content.contentType()))
+                .body(content.body());
+    }
+
     // GET /api/tickets/{id}
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TicketResponseDTO> getTicketById(
         @PathVariable Long id, Authentication auth
     ) {
         Long userId = getUserId(auth);
-        String role = auth.getAuthorities().iterator().next().getAuthority();
-        return ResponseEntity.ok(ticketService.getTicketById(id, userId, role));
+        return ResponseEntity.ok(ticketService.getTicketById(id, userId, Authz.isTicketStaff(auth)));
     }
 
-    // POST /api/tickets — multipart: JSON fields + up to 3 images
+    // POST /api/tickets — campus users only (not admin/technician staff)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize(
+            "isAuthenticated() and !hasRole('ADMIN') and !hasRole('TECHNICIAN') and !hasRole('MANAGER')")
     public ResponseEntity<TicketResponseDTO> createTicket(
         @Valid @RequestPart("ticket") TicketRequestDTO dto,
         @RequestPart(value = "files", required = false) List<MultipartFile> files,
@@ -71,19 +104,25 @@ public class TicketController {
     }
 
     // PATCH /api/tickets/{id}/status
-    @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
+    @PatchMapping("/{id:\\d+}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN', 'MANAGER')")
     public ResponseEntity<TicketResponseDTO> updateStatus(
         @PathVariable Long id,
         @Valid @RequestBody TicketStatusUpdateDTO dto,
         Authentication auth
     ) {
-        return ResponseEntity.ok(ticketService.updateStatus(id, dto, getUserId(auth)));
+        return ResponseEntity.ok(
+                ticketService.updateStatus(
+                        id,
+                        dto,
+                        getUserId(auth),
+                        Authz.isTicketAdmin(auth),
+                        Authz.isTechnician(auth)));
     }
 
     // PATCH /api/tickets/{id}/assign
-    @PatchMapping("/{id}/assign")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/{id:\\d+}/assign")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<TicketResponseDTO> assignTechnician(
         @PathVariable Long id,
         @RequestParam Long technicianId
@@ -92,31 +131,16 @@ public class TicketController {
     }
 
     // DELETE /api/tickets/{id}
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id:\\d+}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<Void> deleteTicket(@PathVariable Long id) {
         ticketService.deleteTicket(id);
         return ResponseEntity.noContent().build();
     }
 
-    // GET /api/tickets/{id}/attachments/{filename} — serve file
-    @GetMapping("/{ticketId}/attachments/{filename}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<byte[]> serveAttachment(
-        @PathVariable Long ticketId,
-        @PathVariable String filename
-    ) {
-        byte[] data = attachmentService.serveFile(ticketId, filename);
-        String mimeType = attachmentService.getMimeType(ticketId, filename);
-        return ResponseEntity.ok()
-            .contentType(MediaType.parseMediaType(mimeType))
-            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
-            .body(data);
-    }
-
     // Technician dashboard endpoint
     @GetMapping("/assigned")
-    @PreAuthorize("hasAnyRole('TECHNICIAN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TECHNICIAN', 'ADMIN', 'MANAGER')")
     public ResponseEntity<Page<TicketResponseDTO>> getAssignedTickets(
         Authentication auth, Pageable pageable
     ) {

@@ -1,16 +1,32 @@
 import axios from "axios";
-import { AUTH_TOKEN_STORAGE_KEY } from "../constants/authStorage";
+import { getMemoryToken } from "./authTokenMemory";
 import { notifyUnauthorizedResponse } from "./unauthorizedSession";
 
+/**
+ * Do not set a default Content-Type: application/json — it sticks to multipart POSTs and can
+ * break FormData (wrong boundary / wrong consumes on the server) and confuse Spring Security.
+ * Axios sets application/json automatically when the body is a plain object.
+ */
 const axiosInstance = axios.create({
   baseURL: "http://localhost:8081/api",
-  headers: { "Content-Type": "application/json" },
 });
 
 axiosInstance.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  const token = getMemoryToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  if (config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
+    delete config.headers["content-type"];
+  } else if (
+    config.data != null &&
+    typeof config.data === "object" &&
+    !(config.data instanceof ArrayBuffer) &&
+    !(config.data instanceof Blob)
+  ) {
+    // Required for Spring @RequestBody JSON after we removed the default instance Content-Type.
+    config.headers["Content-Type"] = "application/json";
   }
   return config;
 });

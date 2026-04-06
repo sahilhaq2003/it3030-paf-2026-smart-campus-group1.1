@@ -8,8 +8,8 @@ export default function ConfirmModal({ open, onConfirm, onCancel, message }) {
         <div className="mb-4 text-lg font-semibold">Confirm</div>
         <div className="mb-6 text-gray-700">{message}</div>
         <div className="flex gap-4 justify-end">
-          <button className="px-4 py-2 bg-[#1E3A5F] text-white rounded" onClick={onConfirm}>Confirm</button>
-          <button className="px-4 py-2 bg-[#E2E8F0] text-[#1E3A5F] rounded" onClick={onCancel}>Cancel</button>
+          <button type="button" className="rounded-lg bg-campus-brand px-4 py-2 text-white transition hover:bg-campus-brand-hover" onClick={onConfirm}>Confirm</button>
+          <button type="button" className="rounded-lg bg-slate-200 px-4 py-2 text-campus-brand-hover transition hover:bg-slate-300" onClick={onCancel}>Cancel</button>
         </div>
       </div>
     </div>

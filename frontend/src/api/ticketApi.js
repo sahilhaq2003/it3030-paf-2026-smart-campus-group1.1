@@ -7,9 +7,8 @@ export const ticketApi = {
   getTicketById: (id) => axiosInstance.get(`/tickets/${id}`),
   getAssignedTickets: (params) => axiosInstance.get('/tickets/assigned', { params }),
 
-  createTicket: (formData) => axiosInstance.post('/tickets', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
+  /** Pass a browser FormData (ticket JSON part + optional files). Do not set Content-Type — boundary is required. */
+  createTicket: (formData) => axiosInstance.post('/tickets', formData),
 
   updateStatus: (id, data) => axiosInstance.patch(`/tickets/${id}/status`, data),
   assignTechnician: (id, technicianId) =>
@@ -28,4 +27,7 @@ export const ticketApi = {
     axiosInstance.put(`/tickets/${ticketId}/comments/${commentId}`, { content }),
   deleteComment: (ticketId, commentId) =>
     axiosInstance.delete(`/tickets/${ticketId}/comments/${commentId}`),
+
+  // Analytics
+  getTechnicianPerformance: () => axiosInstance.get('/tickets/analytics/technician-performance'),
 };

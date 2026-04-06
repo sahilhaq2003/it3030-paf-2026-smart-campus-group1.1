@@ -1,252 +1,543 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import AppLayout from '../../components/AppLayout';
-import PageContainer from '../../components/PageContainer';
-import StatusBadge from '../../components/StatusBadge';
-import { Search, Trash2, CheckCircle, Clock, AlertTriangle, ChevronRight } from 'lucide-react';
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import {
+  DashboardPageLayout,
+  campusInputFocus,
+  campusBtnPrimary,
+} from "../../components/dashboard/DashboardPrimitives";
+import StatusBadge from "../../components/StatusBadge";
+import TicketCard from "../../components/TicketCard";
+import AssignTechnicianModal from "../../components/AssignTechnicianModal";
+import { Search, ChevronRight } from "lucide-react";
+import { ticketApi } from "../../api/ticketApi";
+import { fetchTechnicians } from "../../api/userAdminApi";
+import { useAuth } from "../../context/AuthContext";
+import { normalizeRoles } from "../../utils/getDashboardRoute";
+import { isResolvedLikeTicket } from "../../utils/ticketStatusDisplay";
+
+const PRIORITY_ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+
+function formatDate(iso) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString();
+  } catch {
+    return String(iso);
+  }
+}
 
 export default function AdminTicketsPage() {
+  const { user } = useAuth();
+  const roleSet = normalizeRoles(user?.roles ?? (user?.role != null ? [user.role] : []));
+  const isAdmin = roleSet.has("ADMIN");
+
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [priorityFilter, setPriorityFilter] = useState('ALL');
+  const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [priorityFilter, setPriorityFilter] = useState("ALL");
   const [selected, setSelected] = useState([]);
-  const [sortBy, setSortBy] = useState('created');
+  const [sortBy, setSortBy] = useState("created");
+  const [bulkTechId, setBulkTechId] = useState("");
+  const [rowTechPick, setRowTechPick] = useState({});
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [selectedTicketForAssign, setSelectedTicketForAssign] = useState(null);
 
-  // Mock data
-  const tickets = [
-    { id: 'TCK-001', title: 'Network Issue', status: 'IN_PROGRESS', priority: 'CRITICAL', assignedTo: 'Tech A', reporter: 'John D', created: '2026-03-07' },
-    { id: 'TCK-002', title: 'Broken Chair', status: 'REJECTED', priority: 'LOW', assignedTo: 'Tech B', reporter: 'Jane S', created: '2026-03-05' },
-    { id: 'TCK-003', title: 'AC Maintenance', status: 'OPEN', priority: 'HIGH', assignedTo: null, reporter: 'Mike P', created: '2026-03-06' },
-    { id: 'TCK-004', title: 'WiFi Setup', status: 'RESOLVED', priority: 'MEDIUM', assignedTo: 'Tech C', reporter: 'Sarah L', created: '2026-03-01' },
-    { id: 'TCK-005', title: 'Door Lock', status: 'IN_PROGRESS', priority: 'HIGH', assignedTo: 'Tech A', reporter: 'Bob M', created: '2026-03-04' },
-  ];
+  const ticketsQuery = useQuery({
+    queryKey: ["admin", "tickets", "list"],
+    queryFn: () =>
+      ticketApi.getAllTickets({ page: 0, size: 500, sort: "createdAt,desc" }).then((r) => r.data),
+  });
 
-  // Filter and search
+  const techniciansQuery = useQuery({
+    queryKey: ["admin", "technicians"],
+    queryFn: fetchTechnicians,
+    enabled: isAdmin,
+  });
+
+  const performanceQuery = useQuery({
+    queryKey: ["admin", "technician", "performance"],
+    queryFn: () => ticketApi.getTechnicianPerformance().then((r) => r.data),
+    enabled: isAdmin,
+  });
+
+  const tickets = ticketsQuery.data?.content ?? [];
+  const technicians = techniciansQuery.data ?? [];
+  const performanceData = performanceQuery.data ?? [];
+
+  const assignMutation = useMutation({
+    mutationFn: ({ ticketId, technicianId }) =>
+      ticketApi.assignTechnician(ticketId, technicianId).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "assignedTickets"] });
+    },
+    onError: (err) => {
+      const msg =
+        err?.response?.data?.message ||
+        (typeof err?.response?.data === "string" ? err.response.data : null) ||
+        "Assignment failed";
+      toast.error(typeof msg === "string" ? msg : "Assignment failed");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (ticketId) => ticketApi.deleteTicket(ticketId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
+    },
+    onError: () => toast.error("Delete failed"),
+  });
+
+  const resolveMutation = useMutation({
+    mutationFn: ({ ticketId, resolutionNotes }) =>
+      ticketApi.updateStatus(ticketId, { status: "RESOLVED", resolutionNotes }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
+    },
+    onError: () => toast.error("Could not resolve ticket"),
+  });
+
   const filtered = useMemo(() => {
-    let result = tickets.filter(t => {
-      if (statusFilter !== 'ALL' && t.status !== statusFilter) return false;
-      if (priorityFilter !== 'ALL' && t.priority !== priorityFilter) return false;
-      if (searchTerm && !t.title.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    let result = tickets.filter((t) => {
+      if (statusFilter !== "ALL") {
+        if (statusFilter === "RESOLVED") {
+          if (!isResolvedLikeTicket(t)) return false;
+        } else if (t.status !== statusFilter) {
+          return false;
+        }
+      }
+      if (priorityFilter !== "ALL" && t.priority !== priorityFilter) return false;
+      if (searchTerm && !t.title?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
       return true;
     });
 
-    // Sort
-    if (sortBy === 'created') result.sort((a, b) => new Date(b.created) - new Date(a.created));
-    else if (sortBy === 'priority') result.sort((a, b) => ({ CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }[a.priority] - { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }[b.priority]));
+    if (sortBy === "created") {
+      result = [...result].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else if (sortBy === "priority") {
+      result = [...result].sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
+    }
 
     return result;
-  }, [searchTerm, statusFilter, priorityFilter, sortBy]);
+  }, [tickets, searchTerm, statusFilter, priorityFilter, sortBy]);
 
-  // Stats
-  const stats = [
-    { label: 'Total', value: tickets.length, color: 'bg-blue-50 border-blue-200', icon: '📊' },
-    { label: 'In Progress', value: tickets.filter(t => t.status === 'IN_PROGRESS').length, color: 'bg-purple-50 border-purple-200', icon: '⏳' },
-    { label: 'Unassigned', value: tickets.filter(t => !t.assignedTo).length, color: 'bg-orange-50 border-orange-200', icon: '👤' },
-    { label: 'Resolved', value: tickets.filter(t => t.status === 'RESOLVED').length, color: 'bg-green-50 border-green-200', icon: '✅' },
-  ];
+  const stats = useMemo(() => {
+    return [
+      { label: "Total", value: tickets.length, tone: "border-slate-200 bg-slate-50", icon: "📊" },
+      {
+        label: "In progress",
+        value: tickets.filter((t) => t.status === "IN_PROGRESS").length,
+        tone: "border-blue-200 bg-blue-50",
+        icon: "⏳",
+      },
+      {
+        label: "Unassigned",
+        value: tickets.filter((t) => !t.assignedToId).length,
+        tone: "border-amber-200 bg-amber-50",
+        icon: "👤",
+      },
+      {
+        label: "Resolved",
+        value: tickets.filter(
+          (t) =>
+            t.status === "RESOLVED" ||
+            (t.status === "CLOSED" && (t.resolutionNotes || t.resolvedAt)),
+        ).length,
+        tone: "border-emerald-200 bg-emerald-50",
+        icon: "✅",
+      },
+    ];
+  }, [tickets]);
 
   const priorityColors = {
-    CRITICAL: 'text-red-700 bg-red-50',
-    HIGH: 'text-orange-700 bg-orange-50',
-    MEDIUM: 'text-yellow-700 bg-yellow-50',
-    LOW: 'text-green-700 bg-green-50',
+    CRITICAL: "bg-red-50 text-red-700",
+    HIGH: "bg-orange-50 text-orange-700",
+    MEDIUM: "bg-amber-50 text-amber-800",
+    LOW: "bg-green-50 text-green-700",
   };
 
   const toggleSelect = (id) => {
-    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
   };
 
   const toggleSelectAll = () => {
-    setSelected(prev => prev.length === filtered.length ? [] : filtered.map(t => t.id));
+    setSelected((prev) =>
+      prev.length === filtered.length ? [] : filtered.map((t) => t.id),
+    );
   };
 
-  const bulkDelete = () => {
-    if (window.confirm(`Delete ${selected.length} ticket(s)?`)) {
+  const handleBulkAssign = async () => {
+    const techId = Number(bulkTechId);
+    if (!techId || selected.length === 0) {
+      toast.error("Select tickets and a technician");
+      return;
+    }
+    try {
+      await Promise.all(selected.map((id) => assignMutation.mutateAsync({ ticketId: id, technicianId: techId })));
+      toast.success(`Assigned ${selected.length} ticket(s)`);
       setSelected([]);
-      alert('Tickets deleted!');
+      setBulkTechId("");
+    } catch {
+      /* toast from mutation */
     }
   };
 
-  const bulkAssign = () => {
-    const tech = prompt('Assign to technician:');
-    if (tech) {
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Delete ${selected.length} ticket(s)? This cannot be undone.`)) return;
+    try {
+      await Promise.all(selected.map((id) => deleteMutation.mutateAsync(id)));
+      toast.success("Deleted");
       setSelected([]);
-      alert(`Assigned to ${tech}!`);
+    } catch {
+      /* toast */
     }
   };
 
-  const bulkStatus = (newStatus) => {
-    setSelected([]);
-    alert(`${selected.length} ticket(s) status updated!`);
+  const handleBulkResolve = async () => {
+    const eligible = selected.filter((id) => {
+      const t = tickets.find((x) => x.id === id);
+      return t?.status === "IN_PROGRESS";
+    });
+    if (eligible.length === 0) {
+      toast.error(
+        "Only tickets in IN_PROGRESS can be resolved. Assign a technician first (OPEN → IN_PROGRESS).",
+      );
+      return;
+    }
+    if (eligible.length < selected.length) {
+      toast(`Resolving ${eligible.length} IN_PROGRESS ticket(s); others skipped.`);
+    }
+    const note = window.prompt("Resolution notes (required for all selected tickets):");
+    if (!note?.trim()) {
+      toast.error("Resolution notes are required");
+      return;
+    }
+    try {
+      await Promise.all(
+        eligible.map((id) =>
+          resolveMutation.mutateAsync({ ticketId: id, resolutionNotes: note.trim() }),
+        ),
+      );
+      toast.success("Tickets resolved");
+      setSelected([]);
+    } catch {
+      /* toast */
+    }
   };
+
+  const assignRow = (ticketId) => {
+    const raw = rowTechPick[ticketId];
+    const techId = Number(raw);
+    if (!techId) {
+      toast.error("Choose a technician");
+      return;
+    }
+    assignMutation.mutate(
+      { ticketId, technicianId: techId },
+      {
+        onSuccess: () => toast.success("Ticket assigned"),
+      },
+    );
+  };
+
+  const handleAssignModalSubmit = async (technicianId) => {
+    if (!selectedTicketForAssign) return;
+    assignMutation.mutate(
+      { ticketId: selectedTicketForAssign, technicianId },
+      {
+        onSuccess: () => {
+          toast.success("Ticket assigned");
+          setAssignModalOpen(false);
+          setSelectedTicketForAssign(null);
+        },
+      },
+    );
+  };
+
+  const inputClass = `rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm ${campusInputFocus}`;
+  const selectSm = `${inputClass} py-2 text-xs`;
+
+  const loadError = ticketsQuery.error;
+  const errMsg =
+    loadError &&
+    (loadError.response?.data?.message ||
+      (typeof loadError.response?.data === "string" ? loadError.response.data : null) ||
+      "Could not load tickets");
 
   return (
-    <AppLayout>
-      <PageContainer>
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-2">All Tickets</h1>
-          <p className="text-slate-600">Manage and oversee all facility tickets with powerful tools</p>
+    <DashboardPageLayout
+      eyebrow="Admin · Tickets"
+      title="All tickets"
+      subtitle={
+        isAdmin
+          ? "Assign technicians, update status, and triage campus maintenance requests."
+          : "Review tickets and move assigned work through the workflow. Only admins can assign technicians or delete tickets."
+      }
+    >
+      {errMsg ? (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {errMsg}
         </div>
+      ) : null}
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-4 gap-3 mb-6">
-          {stats.map((stat, idx) => (
-            <div key={idx} className={`border rounded-xl p-4 bg-white hover:shadow-lg hover:scale-105 transition-all duration-300 ${stat.color}`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-slate-600 mb-1 font-medium">{stat.label}</p>
-                  <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-                </div>
-                <span className="text-2xl">{stat.icon}</span>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {stats.map((stat, idx) => (
+          <div
+            key={idx}
+            className={`rounded-xl border p-4 shadow-sm transition hover:shadow-md ${stat.tone}`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-slate-600">{stat.label}</p>
+                <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">
+                  {ticketsQuery.isLoading ? "…" : stat.value}
+                </p>
               </div>
+              <span className="text-2xl">{stat.icon}</span>
             </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-8 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-4">
+          <div className="relative md:col-span-2">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search tickets…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={`w-full pl-10 ${inputClass}`}
+              disabled={ticketsQuery.isLoading}
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className={inputClass}
+            disabled={ticketsQuery.isLoading}
+          >
+            <option value="ALL">All statuses</option>
+            <option value="OPEN">Open</option>
+            <option value="IN_PROGRESS">In progress</option>
+            <option value="RESOLVED">Resolved</option>
+            <option value="REJECTED">Rejected</option>
+          </select>
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className={inputClass}
+            disabled={ticketsQuery.isLoading}
+          >
+            <option value="ALL">All priorities</option>
+            <option value="CRITICAL">Critical</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+          </select>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="self-center text-sm font-medium text-slate-600">Sort by:</span>
+          {[
+            ["created", "Date"],
+            ["priority", "Priority"],
+          ].map(([option, label]) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setSortBy(option)}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                sortBy === option
+                  ? "bg-campus-brand text-white shadow-sm"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              {label}
+            </button>
           ))}
         </div>
+      </div>
 
-        {/* Filters & Search */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6 shadow-sm">
-          <div className="grid grid-cols-4 gap-3 mb-3">
-            {/* Search */}
-            <div className="relative col-span-2">
-              <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search tickets..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all"
-              />
-            </div>
-
-            {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-400 text-slate-700 font-medium"
+      {selected.length > 0 && (
+        <div className="mt-6 flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm lg:flex-row lg:items-end lg:justify-between">
+          <p className="font-semibold text-slate-900">{selected.length} ticket(s) selected</p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            {isAdmin ? (
+              <>
+                <select
+                  value={bulkTechId}
+                  onChange={(e) => setBulkTechId(e.target.value)}
+                  className={`min-w-[12rem] ${inputClass}`}
+                >
+                  <option value="">Assign to technician…</option>
+                  {technicians.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.email})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleBulkAssign}
+                  disabled={assignMutation.isPending || !bulkTechId}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition hover:bg-campus-brand-hover disabled:opacity-50 ${campusBtnPrimary}`}
+                >
+                  Assign
+                </button>
+              </>
+            ) : null}
+            <button
+              type="button"
+              onClick={handleBulkResolve}
+              disabled={resolveMutation.isPending}
+              className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-800 disabled:opacity-50"
             >
-              <option value="ALL">All Statuses</option>
-              <option value="OPEN">Open</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="RESOLVED">Resolved</option>
-              <option value="REJECTED">Rejected</option>
-            </select>
-
-            {/* Priority Filter */}
-            <select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-400 text-slate-700 font-medium"
-            >
-              <option value="ALL">All Priorities</option>
-              <option value="CRITICAL">Critical</option>
-              <option value="HIGH">High</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="LOW">Low</option>
-            </select>
-          </div>
-
-          {/* Sort Buttons */}
-          <div className="flex gap-2">
-            <span className="text-sm text-slate-600 self-center font-medium">Sort by:</span>
-            {[['created', 'Date'], ['priority', 'Priority']].map(([option, label]) => (
+              Resolve
+            </button>
+            {isAdmin ? (
               <button
-                key={option}
-                onClick={() => setSortBy(option)}
-                className={`px-3 py-1 rounded text-sm font-medium transition-all ${
-                  sortBy === option
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
+                type="button"
+                onClick={handleBulkDelete}
+                disabled={deleteMutation.isPending}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
               >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Bulk Actions */}
-        {selected.length > 0 && (
-          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-300 rounded-xl p-4 mb-6 flex items-center justify-between shadow-sm">
-            <div>
-              <p className="font-semibold text-blue-900">{selected.length} ticket(s) selected</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={bulkAssign} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 font-medium transition-all hover:shadow-lg">
-                Assign
-              </button>
-              <button onClick={() => bulkStatus('RESOLVED')} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 font-medium transition-all hover:shadow-lg">
-                Resolve
-              </button>
-              <button onClick={bulkDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 font-medium transition-all hover:shadow-lg">
                 Delete
               </button>
-            </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      <p className="mt-6 text-sm font-medium text-slate-600">
+        {ticketsQuery.isLoading
+          ? "Loading tickets…"
+          : `Showing ${filtered.length} of ${tickets.length} tickets`}
+      </p>
+
+      <div className="mt-4 space-y-3">
+        {ticketsQuery.isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-24 animate-pulse rounded-lg bg-slate-100" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-8 text-center text-lg text-slate-500">No tickets found.</div>
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((ticket) => (
+              <div key={ticket.id} className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={selected.includes(ticket.id)}
+                  onChange={() => toggleSelect(ticket.id)}
+                  className="h-5 w-5 rounded border-gray-300"
+                />
+                <div className="flex-1">
+                  <TicketCard ticket={ticket} />
+                </div>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedTicketForAssign(ticket.id);
+                      setAssignModalOpen(true);
+                    }}
+                    className="shrink-0 rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-900 disabled:opacity-50"
+                  >
+                    Assign
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         )}
+      </div>
 
-        {/* Results Info */}
-        <div className="mb-4 text-sm text-slate-600 font-medium">
-          Showing {filtered.length} of {tickets.length} tickets
-        </div>
+      {isAdmin && (
+        <div className="mt-10 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-slate-900">Technician Performance</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Statistics for resolved tickets, ranked by ticket count
+            </p>
+          </div>
 
-        {/* Tickets Table */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-          {filtered.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-slate-500 text-lg">No tickets found.</p>
+          {performanceQuery.isLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-100" />
+              ))}
+            </div>
+          ) : performanceQuery.error ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Could not load technician performance data
+            </div>
+          ) : performanceData.length === 0 ? (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm text-slate-600">
+              No technicians have resolved tickets yet
             </div>
           ) : (
-            <div className="divide-y divide-slate-200">
-              {/* Header with select all */}
-              <div className="p-4 bg-slate-50 flex items-center gap-3 border-b border-slate-200">
-                <input type="checkbox" checked={selected.length === filtered.length && filtered.length > 0} onChange={toggleSelectAll} />
-                <div className="flex-1 grid grid-cols-5 gap-4 text-xs font-bold text-slate-700">
-                  <div>Ticket ID</div>
-                  <div>Title</div>
-                  <div>Status</div>
-                  <div>Assigned To</div>
-                  <div>Priority</div>
-                </div>
-              </div>
-
-              {/* Rows */}
-              {filtered.map(ticket => (
-                <div key={ticket.id} className="p-4 hover:bg-cyan-50/30 flex items-center gap-3 group transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(ticket.id)}
-                    onChange={() => toggleSelect(ticket.id)}
-                  />
-                  <div className="flex-1 grid grid-cols-5 gap-4 items-center">
-                    <div className="text-xs font-bold text-purple-700 bg-purple-100/50 px-2 py-1 rounded w-fit">{ticket.id}</div>
-                    <div>
-                      <p className="font-semibold text-slate-900 cursor-pointer hover:text-cyan-600 transition-colors" onClick={() => navigate(`/tickets/${ticket.id}`)}>
-                        {ticket.title}
-                      </p>
-                      <p className="text-xs text-slate-500">{ticket.reporter}</p>
-                    </div>
-                    <div>
-                      <StatusBadge status={ticket.status} />
-                    </div>
-                    <div className="text-sm font-semibold text-slate-900">
-                      {ticket.assignedTo ? (
-                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium">{ticket.assignedTo}</span>
-                      ) : (
-                        <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium">Unassigned</span>
-                      )}
-                    </div>
-                    <div className={`px-2 py-1 rounded text-xs font-bold w-fit ${priorityColors[ticket.priority]}`}>
-                      {ticket.priority}
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-cyan-500 transition-colors" />
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="px-4 py-3 text-left font-semibold text-slate-900">Technician</th>
+                    <th className="px-4 py-3 text-right font-semibold text-slate-900">Tickets Resolved</th>
+                    <th className="px-4 py-3 text-right font-semibold text-slate-900">Avg Resolution Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {performanceData.map((perf, idx) => (
+                    <tr
+                      key={perf.technicianId}
+                      className={`border-b border-slate-100 last:border-b-0 ${
+                        idx % 2 === 0 ? "bg-white" : "bg-slate-50"
+                      } hover:bg-slate-50`}
+                    >
+                      <td className="px-4 py-3 font-medium text-slate-900">
+                        {perf.technicianName}
+                      </td>
+                      <td className="px-4 py-3 text-right text-slate-600">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
+                          {perf.ticketsResolved}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right text-slate-600">
+                        {perf.avgResolutionHours != null ? (
+                          <span className="font-medium">
+                            {perf.avgResolutionHours.toFixed(1)} hours
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
-      </PageContainer>
-    </AppLayout>
+      )}
+
+      <AssignTechnicianModal
+        isOpen={assignModalOpen}
+        onClose={() => {
+          setAssignModalOpen(false);
+          setSelectedTicketForAssign(null);
+        }}
+        onAssign={handleAssignModalSubmit}
+        currentTechnicianName={
+          selectedTicketForAssign ? tickets.find(t => t.id === selectedTicketForAssign)?.assignedToName : null
+        }
+      />
+    </DashboardPageLayout>
   );
 }

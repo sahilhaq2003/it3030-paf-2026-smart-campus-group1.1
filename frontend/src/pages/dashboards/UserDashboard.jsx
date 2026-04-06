@@ -2,7 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Calendar, Ticket } from "lucide-react";
 import { ticketApi } from "../../api/ticketApi";
-import { DashboardPageLayout } from "../../components/dashboard/DashboardPrimitives";
+import {
+  DashboardPageLayout,
+  campusTextLink,
+  dashboardBtnSecondary,
+} from "../../components/dashboard/DashboardPrimitives";
 import {
   DashboardSummaryCard,
   DashboardSummaryStat,
@@ -47,14 +51,14 @@ export default function UserDashboard() {
       title="My campus overview"
       subtitle="Bookings and maintenance tickets in one place. Ticket counts load from your account; bookings show sample data until the facility API is linked."
     >
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
         <DashboardSummaryCard
           title="My bookings"
           description="Rooms, labs, and shared spaces you have reserved."
           icon={Calendar}
           headerAction={
-            <span className="rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800">
-              Sample data
+            <span className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-900">
+              Sample
             </span>
           }
         >
@@ -74,7 +78,7 @@ export default function UserDashboard() {
               value={BOOKINGS_PLACEHOLDER.cancelled}
             />
           </DashboardSummaryStatGrid>
-          <p className="mt-4 text-xs text-slate-400">
+          <p className="mt-4 text-xs leading-relaxed text-slate-400">
             Connect the bookings module to replace these figures with live reservations.
           </p>
         </DashboardSummaryCard>
@@ -84,10 +88,7 @@ export default function UserDashboard() {
           description="Maintenance requests you have reported or that mention you."
           icon={Ticket}
           headerAction={
-            <Link
-              to="/tickets/create"
-              className="text-sm font-medium text-blue-700 hover:text-blue-900"
-            >
+            <Link to="/tickets/create" className={`text-sm ${campusTextLink}`}>
               + New ticket
             </Link>
           }
@@ -106,7 +107,7 @@ export default function UserDashboard() {
             />
           </DashboardSummaryStatGrid>
           <div className="mt-6">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
               Recent tickets
             </p>
             <DashboardTicketList
@@ -120,17 +121,11 @@ export default function UserDashboard() {
         </DashboardSummaryCard>
       </div>
 
-      <div className="mt-8 flex flex-wrap gap-3 text-sm">
-        <Link
-          to="/tickets"
-          className="rounded-lg border border-slate-200 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm hover:border-blue-200 hover:text-blue-800"
-        >
+      <div className="mt-10 flex flex-wrap gap-3">
+        <Link to="/tickets" className={dashboardBtnSecondary}>
           Open ticket list
         </Link>
-        <Link
-          to="/tickets/create"
-          className="rounded-lg border border-slate-200 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm hover:border-blue-200 hover:text-blue-800"
-        >
+        <Link to="/tickets/create" className={dashboardBtnSecondary}>
           Report an issue
         </Link>
       </div>
