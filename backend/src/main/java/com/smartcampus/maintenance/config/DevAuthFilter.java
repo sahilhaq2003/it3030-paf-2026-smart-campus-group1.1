@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -15,8 +16,9 @@ import java.util.List;
 
 /**
  * Development filter: sets mock auth from X-User-Id header when no SecurityContext.
- * Remove or disable when integrating real auth (JWT, etc.).
+ * Runs after {@link com.smartcampus.auth.filter.JwtAuthenticationFilter}; remove for production-only JWT.
  */
+@Component
 public class DevAuthFilter extends OncePerRequestFilter {
 
     @Override

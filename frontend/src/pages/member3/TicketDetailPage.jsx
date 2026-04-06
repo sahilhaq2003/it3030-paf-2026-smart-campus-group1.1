@@ -1,22 +1,70 @@
-import AppLayout from '../../components/AppLayout';
-import PageContainer from '../../components/PageContainer';
+import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import {
+  ChevronLeft,
+  User,
+  MapPin,
+  Clock,
+  Tag,
+  Edit2,
+  Trash2,
+  Send,
+  MessageCircle,
+  CheckCircle2,
+  CircleDot,
+  Wrench,
+} from "lucide-react";
+import { ticketApi } from "../../api/ticketApi";
+import { useAuth } from "../../context/AuthContext";
+import {
+  DashboardPageLayout,
+  campusBtnPrimary,
+  campusInputFocus,
+} from "../../components/dashboard/DashboardPrimitives";
+import CommentThread from "../../components/CommentThread";
+import TicketAttachmentImage from "../../components/TicketAttachmentImage";
+import TicketStatusStepper from "../../components/TicketStatusStepper";
+import SlaTimer from "../../components/SlaTimer";
+import ImageLightbox from "../../components/ImageLightbox";
+import { normalizeRoles } from "../../utils/getDashboardRoute";
+import { isResolvedLikeTicket, ticketStatusLabel } from "../../utils/ticketStatusDisplay";
 
-const STATUS_STEPS = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
+const STATUS_STEPS = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+const STEP_HEADINGS = ["Submitted", "In progress", "Resolved", "Closed"];
+
+const PROCESS_COPY = {
+  OPEN: "Submitted",
+  IN_PROGRESS: "In progress",
+  RESOLVED: "Resolved",
+  CLOSED: "Closed",
+  REJECTED: "Rejected",
+};
 
 const priorityColors = {
-  LOW: 'bg-green-100 text-green-700 border border-green-300',
-  MEDIUM: 'bg-yellow-100 text-yellow-700 border border-yellow-300',
-  HIGH: 'bg-orange-100 text-orange-700 border border-orange-300',
-  CRITICAL: 'bg-red-100 text-red-700 border border-red-300',
+  LOW: "border border-green-300 bg-green-100 text-green-700",
+  MEDIUM: "border border-amber-300 bg-amber-100 text-amber-800",
+  HIGH: "border border-orange-300 bg-orange-100 text-orange-700",
+  CRITICAL: "border border-red-300 bg-red-100 text-red-700",
 };
 
 const statusColors = {
-  OPEN: 'bg-cyan-100 text-cyan-700 border border-cyan-300',
-  IN_PROGRESS: 'bg-blue-100 text-blue-700 border border-blue-300',
-  RESOLVED: 'bg-emerald-100 text-emerald-700 border border-emerald-300',
-  CLOSED: 'bg-slate-100 text-slate-700 border border-slate-300',
-  REJECTED: 'bg-red-100 text-red-700 border border-red-300',
+  OPEN: "border border-blue-200 bg-blue-50 text-blue-800",
+  IN_PROGRESS: "border border-indigo-200 bg-indigo-50 text-indigo-800",
+  RESOLVED: "border border-emerald-300 bg-emerald-100 text-emerald-800",
+  CLOSED: "border border-slate-300 bg-slate-100 text-slate-700",
+  REJECTED: "border border-red-300 bg-red-100 text-red-700",
 };
+
+function formatDate(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return String(iso);
+  }
+}
 
 export default function TicketDetailPage() {
   const { id } = useParams();
@@ -24,275 +72,436 @@ export default function TicketDetailPage() {
   const qc = useQueryClient();
   const { user } = useAuth();
 
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState("");
   const [editingCommentId, setEditingCommentId] = useState(null);
-  const [editContent, setEditContent] = useState('');
-  const [lightboxImg, setLightboxImg] = useState(null);
+  const [editContent, setEditContent] = useState("");
+  const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [resolutionNotes, setResolutionNotes] = useState("");
 
   const { data: ticket, isLoading } = useQuery({
-    queryKey: ['ticket', id],
-    queryFn: () => ticketApi.getTicketById(id).then(r => r.data),
+    queryKey: ["ticket", id],
+    queryFn: () => ticketApi.getTicketById(id).then((r) => r.data),
   });
 
   const { data: comments = [] } = useQuery({
-    queryKey: ['comments', id],
-    queryFn: () => ticketApi.getComments(id).then(r => r.data),
-    enabled: !!id,
+    queryKey: ["comments", id],
+    queryFn: () => ticketApi.getComments(id).then((r) => r.data),
+    enabled: Boolean(id && ticket),
   });
 
   const addComment = useMutation({
-    mutationFn: () => ticketApi.addComment(id, comment),
+    mutationFn: (data) => ticketApi.addComment(id, data.content),
     onSuccess: () => {
-      qc.invalidateQueries(['comments', id]);
-      setComment('');
-      toast.success('Comment added');
+      qc.invalidateQueries({ queryKey: ["comments", id] });
+      setComment("");
+      toast.success("Message sent");
+    },
+    onError: (err) => {
+      const msg =
+        err?.response?.data?.message ||
+        (typeof err?.response?.data === "string" ? err.response.data : null) ||
+        "Could not send message";
+      toast.error(typeof msg === "string" ? msg : "Could not send message");
     },
   });
 
   const editComment = useMutation({
     mutationFn: ({ cid, content }) => ticketApi.editComment(id, cid, content),
     onSuccess: () => {
-      qc.invalidateQueries(['comments', id]);
+      qc.invalidateQueries({ queryKey: ["comments", id] });
       setEditingCommentId(null);
-      toast.success('Comment updated');
+      toast.success("Comment updated");
     },
   });
 
   const deleteComment = useMutation({
     mutationFn: (cid) => ticketApi.deleteComment(id, cid),
     onSuccess: () => {
-      qc.invalidateQueries(['comments', id]);
-      toast.success('Comment deleted');
+      qc.invalidateQueries({ queryKey: ["comments", id] });
+      toast.success("Comment deleted");
     },
   });
 
-  if (isLoading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-    </div>
-  );
+  const startWorkMutation = useMutation({
+    mutationFn: () => ticketApi.updateStatus(id, { status: "IN_PROGRESS" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ticket", id] });
+      qc.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "assignedTickets"] });
+      qc.invalidateQueries({ queryKey: ["tickets", "my"] });
+      toast.success("Work started — ticket is now in progress");
+    },
+    onError: (err) => {
+      const msg =
+        err?.response?.data?.message ||
+        (typeof err?.response?.data === "string" ? err.response.data : null) ||
+        "Could not update status";
+      toast.error(typeof msg === "string" ? msg : "Could not update status");
+    },
+  });
 
-  if (!ticket) return <div className="text-center py-16 text-gray-500">Ticket not found</div>;
+  const resolveTicketMutation = useMutation({
+    mutationFn: (notes) =>
+      ticketApi.updateStatus(id, { status: "RESOLVED", resolutionNotes: notes.trim() }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ticket", id] });
+      qc.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "assignedTickets"] });
+      qc.invalidateQueries({ queryKey: ["tickets", "my"] });
+      setResolutionNotes("");
+      toast.success("Ticket marked resolved");
+    },
+    onError: (err) => {
+      const msg =
+        err?.response?.data?.message ||
+        (typeof err?.response?.data === "string" ? err.response.data : null) ||
+        "Could not resolve ticket";
+      toast.error(typeof msg === "string" ? msg : "Could not resolve ticket");
+    },
+  });
+
+  const roleSet = normalizeRoles(user?.roles ?? (user?.role != null ? [user.role] : []));
+  const isAdmin = roleSet.has("ADMIN");
+  const isTechnician = roleSet.has("TECHNICIAN");
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-full items-center justify-center bg-slate-50">
+        <div className="h-9 w-9 animate-spin rounded-full border-2 border-slate-200 border-t-campus-brand" />
+      </div>
+    );
+  }
+
+  if (!ticket) {
+    return (
+      <DashboardPageLayout eyebrow="Tickets" title="Not found" subtitle="This ticket could not be loaded.">
+        <p className="text-slate-600">Check the link or return to your ticket list.</p>
+      </DashboardPageLayout>
+    );
+  }
 
   const stepIndex = STATUS_STEPS.indexOf(ticket.status);
-  const isRejected = ticket.status === 'REJECTED';
+  const isRejected = ticket.status === "REJECTED";
 
-  // Calculate SLA elapsed time
+  const isReporter = Number(user?.id) === Number(ticket.reportedById);
+  const isAssignee =
+    ticket.assignedToId != null && Number(user?.id) === Number(ticket.assignedToId);
+  const canHandleTicket = isAdmin || (isTechnician && isAssignee);
+
+  const resolvedLike = isResolvedLikeTicket(ticket);
+
   const hoursElapsed = (Date.now() - new Date(ticket.createdAt)) / (1000 * 60 * 60);
   const slaBreached =
-    (ticket.priority === 'CRITICAL' && hoursElapsed > 2 && ticket.status !== 'RESOLVED' && ticket.status !== 'CLOSED') ||
-    (ticket.priority === 'HIGH' && hoursElapsed > 8 && ticket.status !== 'RESOLVED' && ticket.status !== 'CLOSED');
+    !resolvedLike &&
+    ((ticket.priority === "CRITICAL" && hoursElapsed > 2) ||
+      (ticket.priority === "HIGH" && hoursElapsed > 8));
+
+  const ta = `rounded-xl border border-slate-300 px-3 py-2 text-sm ${campusInputFocus}`;
+
+  const canPostMessage = isAdmin || isReporter || (isTechnician && isAssignee);
+
+  const conversationHint = isReporter
+    ? "Message the technician working on this request. You’ll be notified when the ticket is updated."
+    : isAssignee && isTechnician
+      ? "Coordinate with the person who submitted this request. They see your messages here."
+      : isAdmin
+        ? "Internal and requester-visible thread. The reporter and assigned technician can also post here."
+        : "Ticket conversation.";
+
+  const handleResolveSubmit = (e) => {
+    e.preventDefault();
+    if (!resolutionNotes.trim()) {
+      toast.error("Add resolution notes before marking resolved");
+      return;
+    }
+    resolveTicketMutation.mutate(resolutionNotes);
+  };
 
   return (
-    <AppLayout>
-      <PageContainer>
-        {/* ...existing code... */}
-      {/* Header */}
-        <button onClick={() => navigate(-1)}
-          className="flex items-center text-cyan-600 hover:text-cyan-700 mb-6 text-sm font-medium transition-colors">
-          <ChevronLeft size={16} className="mr-1" /> Back
-        </button>
+    <DashboardPageLayout
+      eyebrow={`Ticket #${ticket.id}`}
+      title={ticket.title}
+      subtitle={[ticket.category, ticket.location].filter(Boolean).join(" · ")}
+    >
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        className="mb-6 flex items-center text-sm font-medium text-campus-brand-hover transition hover:opacity-90"
+      >
+        <ChevronLeft size={16} className="mr-1" /> Back
+      </button>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        {/* Ticket Header */}
-          <div className="p-6 border-b border-slate-200">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <div className="flex flex-wrap gap-2 mb-3">
-                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${statusColors[ticket.status]}`}>{ticket.status.replace('_', ' ')}</span>
-                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${priorityColors[ticket.priority]}`}>{ticket.priority}</span>
-                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300">{ticket.category}</span>
-                {slaBreached && (
-                  <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-700 text-white animate-pulse shadow-lg">⚠ SLA BREACHED</span>
-                )}
+      <div className="mb-6 rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50 to-white px-5 py-4 shadow-sm ring-1 ring-slate-900/[0.04]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+          Service workflow
+        </p>
+        <p className="mt-1.5 text-sm font-medium leading-relaxed text-slate-800">
+          <span className="text-slate-900">Campus user</span> submits →{" "}
+          <span className="text-slate-900">Admin</span> assigns a technician →{" "}
+          <span className="text-slate-900">Technician</span> works the issue, chats with the requester, and marks{" "}
+          <span className="text-slate-900">resolved</span>
+          <span className="text-slate-600">
+            {" "}
+            — the ticket then closes automatically (admins still see full history and technician notes in the desk).
+          </span>
+        </p>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <div className="mb-3 flex flex-wrap gap-2">
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                    resolvedLike ? statusColors.RESOLVED : statusColors[ticket.status] ?? statusColors.CLOSED
+                  }`}
+                >
+                  {ticketStatusLabel(ticket)}
+                </span>
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-bold ${priorityColors[ticket.priority]}`}
+                >
+                  {ticket.priority}
+                </span>
+                <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                  {ticket.category}
+                </span>
+                {slaBreached ? (
+                  <span className="animate-pulse rounded-full bg-red-700 px-2.5 py-1 text-xs font-bold text-white shadow-lg">
+                    SLA breached
+                  </span>
+                ) : null}
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">{ticket.title}</h1>
             </div>
-            <span className="text-sm text-purple-700 font-bold whitespace-nowrap bg-purple-100 px-3 py-1 rounded-lg">#{ticket.id}</span>
           </div>
 
-          <div className="flex flex-wrap gap-4 mt-4 text-sm text-slate-600 font-medium">
+          <div className="mt-4 flex flex-wrap gap-4 text-sm font-medium text-slate-600">
             <span className="flex items-center gap-1.5 text-slate-900">
               <User size={14} /> {ticket.reportedByName}
             </span>
-            {ticket.location && (
+            {ticket.location ? (
               <span className="flex items-center gap-1.5 text-slate-900">
                 <MapPin size={14} /> {ticket.location}
               </span>
-            )}
+            ) : null}
             <span className="flex items-center gap-1.5 text-slate-900">
               <Clock size={14} /> {formatDate(ticket.createdAt)}
             </span>
-            {ticket.assignedToName && (
+            {ticket.assignedToName ? (
               <span className="flex items-center gap-1.5 text-slate-900">
                 <Tag size={14} /> Assigned: {ticket.assignedToName}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-amber-800">
+                <Tag size={14} /> Awaiting assignment
               </span>
             )}
           </div>
         </div>
 
-        {/* Status Stepper */}
-        {!isRejected && (
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
-            <div className="flex items-center">
-              {STATUS_STEPS.map((step, i) => (
-                <div key={step} className="flex items-center flex-1">
-                  <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-all
-                    ${i <= stepIndex ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md' : 'bg-slate-300 text-slate-600'}`}>
-                    {i < stepIndex ? '✓' : i + 1}
-                  </div>
-                  <div className="flex-1 mx-1">
-                    <div className={`h-1 rounded transition-colors ${i < stepIndex ? 'bg-gradient-to-r from-cyan-500 to-blue-500' : 'bg-slate-300'}`} />
-                  </div>
-                  <span className={`text-xs hidden sm:block font-bold transition-colors ${i <= stepIndex ? 'text-slate-900' : 'text-slate-400'}`}>
-                    {step.replace('_', ' ')}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <div className="border-b border-slate-200 bg-white px-6 py-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Status Timeline</p>
+          <TicketStatusStepper status={ticket.status} resolvedAt={ticket.resolvedAt} />
+          <ul className="mt-4 list-none space-y-4 pl-0">
+            <li className="flex gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-campus-brand/15 text-campus-brand">
+                <CircleDot className="h-4 w-4" strokeWidth={2} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Request submitted</p>
+                <p className="text-xs text-slate-500">{formatDate(ticket.createdAt)}</p>
+              </div>
+            </li>
+            <li className="flex gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-700">
+                <User className="h-4 w-4" strokeWidth={2} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Assignment</p>
+                <p className="text-xs text-slate-600">
+                  {ticket.assignedToName ? (
+                    <>
+                      Technician <span className="font-medium text-slate-800">{ticket.assignedToName}</span> is
+                      handling this ticket.
+                    </>
+                  ) : (
+                    "An admin will assign a technician. You’ll see their name here."
+                  )}
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
 
-        {isRejected && ticket.rejectionReason && (
-          <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-300 rounded-xl shadow-sm">
-            <p className="text-sm font-bold text-red-700 mb-1">⚠ Rejected</p>
-            <p className="text-sm text-red-700 font-medium">{ticket.rejectionReason}</p>
+        {!isRejected ? (
+          <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
+            {/* Status stepper is now in Status Timeline section above */}
           </div>
-        )}
+        ) : null}
 
-        {/* Body */}
+        {isRejected && ticket.rejectionReason ? (
+          <div className="mx-6 mt-4 rounded-xl border border-red-300 bg-red-50 p-4 shadow-sm">
+            <p className="mb-1 text-sm font-bold text-red-800">Rejected</p>
+            <p className="text-sm font-medium text-red-800">{ticket.rejectionReason}</p>
+          </div>
+        ) : null}
+
         <div className="p-6">
-          <p className="text-slate-900 leading-relaxed font-medium">{ticket.description}</p>
+          <p className="font-medium leading-relaxed text-slate-900">{ticket.description}</p>
 
-          {ticket.resolutionNotes && (
-            <div className="mt-4 p-4 bg-emerald-50 border border-emerald-300 rounded-xl shadow-sm">
-              <p className="text-sm font-bold text-emerald-900 mb-1">✓ Resolution Notes</p>
-              <p className="text-sm text-emerald-900 font-medium">{ticket.resolutionNotes}</p>
+          {/* SLA Timer */}
+          <div className="mt-6">
+            <SlaTimer 
+              createdAt={ticket.createdAt} 
+              priority={ticket.priority}
+              status={ticket.status}
+            />
+          </div>
+
+          {ticket.resolutionNotes ? (
+            <div className="mt-4 rounded-xl border border-emerald-300 bg-emerald-50 p-4 shadow-sm">
+              <p className="mb-1 text-sm font-bold text-emerald-900">Resolution notes</p>
+              <p className="text-sm font-medium text-emerald-900">{ticket.resolutionNotes}</p>
             </div>
-          )}
+          ) : null}
 
-          {/* Attachments */}
-          {ticket.attachments?.length > 0 && (
+          {ticket.attachments?.length > 0 ? (
             <div className="mt-6">
-              <h3 className="text-sm font-bold text-slate-900 mb-3">Attachments ({ticket.attachments.length})</h3>
-              <div className="flex gap-3 flex-wrap">
-                {ticket.attachments.map(a => (
-                  <div
+              <h3 className="mb-3 text-sm font-bold text-slate-900">
+                Attachments ({ticket.attachments.length})
+              </h3>
+              <div className="flex flex-wrap gap-3">
+                {ticket.attachments.map((a, idx) => (
+                  <button
                     key={a.id}
-                    onClick={() => setLightboxImg(a.url)}
-                    className="cursor-pointer group relative"
+                    type="button"
+                    onClick={() => setLightboxIndex(idx)}
+                    className="group relative cursor-pointer"
                   >
-                    <img
-                      src={a.url}
+                    <TicketAttachmentImage
+                      url={a.url}
                       alt={a.originalName}
-                      className="h-28 w-28 object-cover rounded-xl border-2 border-slate-200 group-hover:opacity-80 transition-opacity shadow-sm"
+                      className="h-28 w-28 rounded-xl border-2 border-slate-200 object-cover shadow-sm transition-opacity group-hover:opacity-80"
                     />
-                    <div className="absolute inset-0 rounded-xl bg-black/0 group-hover:bg-black/20 transition-colors" />
-                  </div>
+                    <div className="absolute inset-0 rounded-xl bg-black/0 transition-colors group-hover:bg-black/20" />
+                  </button>
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
         </div>
 
-        {/* Comments */}
-        <div className="border-t border-slate-200 p-6">
-          <h3 className="text-sm font-bold text-slate-900 mb-4">Comments ({comments.length})</h3>
-
-          <div className="space-y-4 mb-6">
-            {comments.map(c => (
-              <div key={c.id} className="flex gap-3">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-xs font-bold text-white shadow-sm">
-                  {c.authorName?.[0]?.toUpperCase()}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-bold text-slate-900">{c.authorName}</span>
-                    <span className="text-xs text-slate-500 font-medium">{formatDate(c.createdAt)}</span>
-                    {c.edited && <span className="text-xs text-slate-500 italic font-medium">(edited)</span>}
-                  </div>
-
-                  {editingCommentId === c.id ? (
-                    <div className="space-y-2">
-                      <textarea
-                        value={editContent}
-                        onChange={e => setEditContent(e.target.value)}
-                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400"
-                        rows={2}
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => editComment.mutate({ cid: c.id, content: editContent })}
-                          className="px-4 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 font-medium transition-all"
-                        >Save</button>
-                        <button
-                          onClick={() => setEditingCommentId(null)}
-                          className="px-4 py-1 border border-slate-300 text-slate-600 rounded-lg text-sm hover:bg-slate-100 font-medium transition-all"
-                        >Cancel</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-start justify-between group">
-                      <p className="text-sm text-slate-900 flex-1 font-medium">{c.content}</p>
-                      {(c.authorId === user?.id || user?.roles?.includes('ADMIN')) && (
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                          {c.authorId === user?.id && (
-                            <button onClick={() => { setEditingCommentId(c.id); setEditContent(c.content); }}
-                              className="p-1 text-slate-400 hover:text-blue-600 transition-colors">
-                              <Edit2 size={13} />
-                            </button>
-                          )}
-                            <button onClick={() => deleteComment.mutate(c.id)}
-                              className="p-1 text-slate-400 hover:text-red-600 transition-colors">
-                              <Trash2 size={13} />
-                            </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-            {comments.length === 0 && (
-              <p className="text-sm text-slate-500 text-center py-4 font-medium">No comments yet</p>
-            )}
-          </div>
-
-          {/* Add comment */}
-          <div className="flex gap-3">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-xs font-bold text-white shadow-sm">
-              {user?.name?.[0]?.toUpperCase()}
+        {canHandleTicket && !isRejected && (ticket.status === "OPEN" || ticket.status === "IN_PROGRESS") ? (
+          <div className="border-t border-slate-200 bg-slate-50/80 px-6 py-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-campus-brand" strokeWidth={2} />
+              <h3 className="text-sm font-bold text-slate-900">Technician / handler actions</h3>
             </div>
-            <div className="flex-1 flex gap-2">
-              <textarea
-                value={comment}
-                onChange={e => setComment(e.target.value)}
-                placeholder="Add a comment..."
-                rows={1}
-                className="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 resize-none font-medium"
-              />
+            <p className="mt-1 text-xs leading-relaxed text-slate-600">
+              {isAdmin && !isAssignee
+                ? "As an admin you can advance this ticket. Assignees use the same tools when they own the ticket."
+                : "Update status when you are ready. Marking resolved closes the ticket immediately — no separate admin step."}
+            </p>
+            {ticket.status === "OPEN" ? (
               <button
-                onClick={() => addComment.mutate()}
-                disabled={!comment.trim() || addComment.isPending}
-                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl hover:shadow-lg disabled:opacity-50 transition-all font-bold shadow-sm"
+                type="button"
+                onClick={() => startWorkMutation.mutate()}
+                disabled={startWorkMutation.isPending}
+                className={`mt-4 rounded-xl px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50 ${campusBtnPrimary}`}
               >
-                <Send size={16} />
+                {startWorkMutation.isPending ? "Updating…" : "Start work (in progress)"}
               </button>
-            </div>
+            ) : null}
+            {ticket.status === "IN_PROGRESS" ? (
+              <form onSubmit={handleResolveSubmit} className="mt-4 space-y-3">
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  Resolution notes <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  value={resolutionNotes}
+                  onChange={(e) => setResolutionNotes(e.target.value)}
+                  rows={4}
+                  className={`w-full ${ta}`}
+                  placeholder="Describe what was fixed or inspected so the requester and records are clear."
+                />
+                <button
+                  type="submit"
+                  disabled={resolveTicketMutation.isPending}
+                  className="rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-50"
+                >
+                  {resolveTicketMutation.isPending ? "Saving…" : "Mark as resolved"}
+                </button>
+              </form>
+            ) : null}
           </div>
+        ) : null}
+
+        <div className="border-t border-slate-200 bg-slate-50/50 p-6">
+          <div className="mb-4">
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-slate-600" strokeWidth={2} />
+              <h3 className="text-sm font-bold text-slate-900">Conversation</h3>
+              <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500 ring-1 ring-slate-200">
+                {comments.length}
+              </span>
+            </div>
+            <p className="text-xs leading-relaxed text-slate-600">{conversationHint}</p>
+          </div>
+
+          {canPostMessage ? (
+            <CommentThread
+              comments={comments}
+              currentUserId={user?.id}
+              isAdmin={isAdmin}
+              onAddComment={async (content) => {
+                return new Promise((resolve, reject) => {
+                  addComment.mutate(
+                    { content },
+                    {
+                      onSuccess: () => resolve(),
+                      onError: (err) => reject(err),
+                    }
+                  );
+                });
+              }}
+              onEditComment={async (cid, content) => {
+                return new Promise((resolve, reject) => {
+                  editComment.mutate(
+                    { cid, content },
+                    {
+                      onSuccess: () => resolve(),
+                      onError: (err) => reject(err),
+                    }
+                  );
+                });
+              }}
+              onDeleteComment={async (cid) => {
+                return new Promise((resolve, reject) => {
+                  deleteComment.mutate(cid, {
+                    onSuccess: () => resolve(),
+                    onError: (err) => reject(err),
+                  });
+                });
+              }}
+              loading={comments.isLoading}
+            />
+          ) : (
+            <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+              You can view this conversation. Messages can only be sent by the person who submitted the ticket, the
+              assigned technician, or an admin.
+            </p>
+          )}
         </div>
       </div>
 
-        {/* Lightbox */}
-        {lightboxImg && (
-          <div
-            onClick={() => setLightboxImg(null)}
-            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-          >
-            <img src={lightboxImg} className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain" />
-          </div>
-        )}
-      </PageContainer>
-    </AppLayout>
+      {lightboxIndex !== null && ticket.attachments && ticket.attachments.length > 0 ? (
+        <ImageLightbox
+          images={ticket.attachments}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      ) : null}
+    </DashboardPageLayout>
   );
 }

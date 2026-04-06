@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
   ClipboardList,
+  CircleUser,
   Home,
   LayoutDashboard,
   LogOut,
   PlusCircle,
   Ticket,
   UserRound,
+  Users,
   Building,
   Settings,
 } from "lucide-react";
@@ -33,6 +35,8 @@ function routeTitle(pathname) {
   if (pathname.startsWith("/admin/tickets")) return "Admin tickets";
   if (pathname === "/facilities") return "Facility Directory";
   if (pathname.startsWith("/admin/facilities")) return "Facility Management";
+  if (pathname.startsWith("/admin/users")) return "User management";
+  if (pathname === "/profile") return "Profile";
   return "Workspace";
 }
 
@@ -55,6 +59,12 @@ function AppHeader() {
     logout();
     navigate("/", { replace: true });
   };
+
+  const avatarSrc = useMemo(() => {
+    if (user?.avatarUrl && String(user.avatarUrl).trim()) return String(user.avatarUrl).trim();
+    const seed = encodeURIComponent(user?.email || user?.name || "user");
+    return `https://ui-avatars.com/api/?name=${seed}&background=EEF2FF&color=4338CA&size=64&bold=true`;
+  }, [user?.avatarUrl, user?.email, user?.name]);
 
   return (
     <>
@@ -88,11 +98,19 @@ function AppHeader() {
               </span>
             ) : null}
           </button>
-          <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600"
-            aria-hidden
-          >
-            <UserRound className="h-4 w-4" strokeWidth={2} />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+            <img
+              src={avatarSrc}
+              alt={user?.name ? `${user.name} avatar` : "Profile avatar"}
+              className="h-full w-full object-cover"
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  user?.name || user?.email || "user",
+                )}&background=EEF2FF&color=4338CA&size=64&bold=true`;
+                if (e.currentTarget.src !== fallback) e.currentTarget.src = fallback;
+              }}
+            />
           </div>
           <button
             type="button"
@@ -124,7 +142,8 @@ function Sidebar() {
   const { user } = useAuth();
   const roles = user?.roles ?? (user?.role != null ? [user.role] : []);
   const primaryDash = getDashboardRoute(roles);
-  const isAdmin = normalizeRoles(roles).has("ADMIN");
+  const isOpsAdmin =
+    normalizeRoles(roles).has("ADMIN") || normalizeRoles(roles).has("MANAGER");
 
   const dash =
     primaryDash === DASHBOARD_PATHS.ADMIN
@@ -147,6 +166,12 @@ function Sidebar() {
 
   const items = [
     { to: "/home", label: "Home", icon: Home, active: (p) => p === "/home" },
+    {
+      to: "/profile",
+      label: "Profile",
+      icon: CircleUser,
+      active: (p) => p === "/profile",
+    },
     { to: dash.to, label: dash.label, icon: LayoutDashboard, active: dash.active },
     { to: "/facilities", label: "Campus Facilities", icon: Building, active: (p) => p.startsWith("/facilities") },
   ];
@@ -175,7 +200,13 @@ function Sidebar() {
     });
   }
 
-  if (isAdmin) {
+  if (isOpsAdmin) {
+    items.push({
+      to: "/admin/users",
+      label: "Users",
+      icon: Users,
+      active: (p) => p.startsWith("/admin/users"),
+    });
     items.push({
       to: "/admin/facilities",
       label: "Facility Manager",

@@ -20,4 +20,5 @@ public class Attachment {
     private String storedName;   // UUID filename
     private String mimeType;
     private Long size;           // in bytes
+    private String fileUrl;      // Full Supabase public URL
 }

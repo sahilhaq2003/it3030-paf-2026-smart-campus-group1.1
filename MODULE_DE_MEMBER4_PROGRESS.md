@@ -7,10 +7,51 @@
 | Status | Meaning |
 |--------|---------|
 | **Done** | Implemented and broadly aligned with the guide |
-| **Partial** | Exists but differs from spec, incomplete, or only covers a subset |
-| **Missing** | Not found in the codebase (as of this audit) |
+| **Partial** | Differs from spec, incomplete, or subset only |
+| **Missing** | Not in the codebase |
 
-Use this file step-by-step: work **Missing** and **Partial** items toward **Done**.
+Last reviewed: matches repo after Member 4 hardening (MANAGER, JWT `sub`, in-memory front-end token, security integration tests, H2 test profile, error JSON consistency).
+
+---
+
+## Implementation flow (order we followed in-repo)
+
+Use this as the **step sequence** that was applied (aligns with your incremental “next” tasks):
+
+1. Notification **entity**, **enums**, **repository** + `MaintenanceApplication` JPA scan.
+2. **NotificationService** / **NotificationServiceImpl** + repo helpers (ownership, mark-all-read).
+3. **NotificationController** + **NotificationResponseDTO**; secured by existing `authenticated()` chain.
+4. **TicketEventListener** + stub **BookingEventListener**; ticket comment/status → notifications.
+5. Frontend: **notificationsApi**, **useNotifications** (30s refetch), **NotificationPanel**, bell in **AppShell**.
+6. **ProfilePage**, **PATCH /api/auth/me**, **createdAt** on **UserResponseDTO**, **AuthContext** `updateProfile`.
+7. **AdminUsersPage**, `/admin/users`, sidebar; later **roles read-only** (no role edits from UI).
+8. **GET /api/users?role=** + admin filter dropdown.
+9. **UnauthorizedPage**, **NotFoundPage**, catch-all route.
+10. **401** axios → **logout** + `/login` via **AuthUnauthorizedBridge**.
+11. **JwtServiceTest**; **NotificationServiceImplTest** + **TicketEventListenerTest**.
+12. **MANAGER** role end-to-end: **`Role.MANAGER`**, **UserController** `hasAnyRole('ADMIN','MANAGER')`, **Authz** + ticket/comment routes (parity with admin/staff where required).
+13. **JWT `sub` = user id** in **JwtService**; **`JwtAuthenticationFilter`** resolves user id from **`userId` claim or `sub`**; email **only** from **`email`** claim (not `sub`).
+14. Frontend **in-memory JWT** (**`authTokenMemory`**, **AuthContext** without `sessionStorage`); **axiosInstance** reads bearer from memory; refresh = logged out (strict “memory only” wording).
+15. **`ProtectedRoute` `requiredRoles`**, **`getDashboardRoute` / AppShell / HomePage / AdminFacilityRoute / AdminUsersPage** updated for MANAGER where appropriate.
+16. **Test profile**: H2 in-memory + **`application-test.properties`** (JWT secret, empty Google client id, Supabase placeholders) so **`@ActiveProfiles("test")`** needs no Postgres.
+17. **Integration tests**: **`Member4SecurityIntegrationTest`** (USER 403 on `/api/users`, ADMIN 200, notifications for USER), **`AuthGoogleIntegrationTest`** (mock **GoogleOAuthTokenVerifier**, `POST /api/auth/google`).
+18. **Regression fixes for tests**: MockMvc uses real **Bearer JWT** (not `SecurityContextHolder` alone); ticket/comment **`@BeforeEach`** deletes **`notifications`** before users; **`GlobalExceptionHandler`** maps **`ResponseStatusException`** to `{ status, error, message }`; **`CommentDTO`** **`@JsonProperty("isEdited")`** for JSON shape; unit/integration assertions aligned with actual validation messages.
+
+If your branch differs, diff against the paths and endpoints below.
+
+---
+
+## Suggested git commits (messages)
+
+Use one commit per bullet, or squash where your team prefers fewer commits.
+
+1. `feat(auth): add MANAGER role and align ticket/user authorization helpers`
+2. `fix(auth): use JWT sub as user id and resolve principal from sub or userId claim`
+3. `feat(frontend): store access token in memory only and wire axios + protected routes`
+4. `chore(test): add H2 test profile and integration tests for OAuth mock and user-list authz`
+5. `fix(api): handle ResponseStatusException in GlobalExceptionHandler; fix CommentDTO isEdited JSON`
+6. `test(maintenance): use Bearer JWT and notification cleanup in ticket/comment integration tests`
+7. `test(attachments): align AttachmentServiceTest assertions with current error messages`
 
 ---
 
@@ -20,171 +61,126 @@ Use this file step-by-step: work **Missing** and **Partial** items toward **Done
 
 | Item | Status | Notes |
 |------|--------|--------|
-| `auth/controller/AuthController.java` | **Done** | `/api/auth/google`, `/api/auth/login`, `/api/auth/me` |
-| `auth/controller/UserController.java` | **Partial** | User APIs live under `com.smartcampus.user.controller`, not `auth.controller` (acceptable split; differs from guide diagram) |
-| `auth/service/AuthService.java` | **Done** | Google + local password sign-in, profile |
-| `auth/service/UserService.java` | **Partial** | Implemented as `com.smartcampus.user.service.UserService` |
-| `auth/service/JwtService.java` | **Done** | HS256, configurable expiry (default 24h) |
-| `auth/config/SecurityConfig.java` | **Partial** | CORS + security chain live in `com.smartcampus.maintenance.config.SecurityConfig` (not a dedicated `auth.config.SecurityConfig`) |
-| `auth/config/OAuth2Config.java` | **Missing** | No separate OAuth2 config bean; Google verification uses `GoogleOAuthTokenVerifier` + `google-api-client` (not `spring-security-oauth2-client` as in guide) |
-| `auth/config/CorsConfig.java` | **Partial** | CORS is configured inside `SecurityConfig` (`corsConfigurationSource` bean), not a standalone `CorsConfig` class |
-| `auth/model/User.java` | **Partial** | Entity is `com.smartcampus.user.model.User` (not under `auth.model`) |
-| `auth/model/Role.java` (Enum) | **Partial** | `com.smartcampus.user.model.Role` has `USER`, `ADMIN`, `TECHNICIAN` only — **no `MANAGER`** |
-| `auth/dto/AuthResponseDTO.java` | **Done** | |
-| `auth/dto/UserProfileDTO.java` | **Partial** | Profile DTO exists as `com.smartcampus.user.dto.UserProfileDTO` |
-| `auth/dto/UpdateRoleDTO.java` | **Partial** | Exists under `com.smartcampus.user.dto` |
-| `auth/filter/JwtAuthFilter.java` | **Partial** | Implemented as `JwtAuthenticationFilter` (same role) |
-| **`com.smartcampus.notification` package** | **Missing** | No `NotificationController`, `NotificationService`, repository, model, or listeners |
-
-### Entity: `User.java` (guide fields)
-
-| Field | Status | Notes |
-|-------|--------|--------|
-| `id` Long `@Id` `@GeneratedValue` | **Done** | |
-| `email` unique | **Done** | |
-| `name` | **Done** | |
-| `avatarUrl` | **Done** | |
-| `provider` GOOGLE / LOCAL | **Done** | Enum name: `AuthProvider` |
-| `roles` Set&lt;Role&gt; | **Done** | `MANAGER` role not in enum |
-| `enabled` | **Done** | |
-| `createdAt` `@CreationTimestamp` | **Done** | |
-
-Extra fields present: `passwordHash`, `technicianCategory` (beyond minimal spec).
+| `auth/controller/AuthController.java` | **Done** | + **`PATCH /me`**, `GET/POST` as before |
+| `user/controller/UserController.java` | **Partial** | Not under `auth.controller`; **`GET /users?role=`** supported; **ADMIN or MANAGER** |
+| `notification/*` | **Done** | Entity, repo, service, controller, listeners under `com.smartcampus.notification` |
+| `OAuth2Config` / `spring-security-oauth2-client` | **Missing** | Google via **GoogleOAuthTokenVerifier** + google-api-client |
+| `CorsConfig` standalone | **Partial** | CORS in **SecurityConfig** |
+| `Role` / **MANAGER** | **Done** | **`USER, ADMIN, TECHNICIAN, MANAGER`** |
+| `auth/filter/JwtAuthFilter` | **Done** | Named **JwtAuthenticationFilter**; **`sub`** = user id |
 
 ### Entity: `Notification.java`
 
 | Item | Status |
 |------|--------|
-| Full entity + enums (`BOOKING_APPROVED`, …, `referenceType`, etc.) | **Missing** |
+| Fields per guide + `NotificationType` / `ReferenceType` | **Done** |
 
-### REST endpoints
+### REST endpoints (D+E table)
 
-| Method | Endpoint | Auth | Status | Notes |
-|--------|----------|------|--------|-------|
-| GET | `/api/auth/me` | USER | **Done** | |
-| POST | `/api/auth/google` | PUBLIC | **Done** | Body `{ idToken }` |
-| GET | `/api/users` | ADMIN | **Partial** | List works; **no role filter** query param as in guide |
-| GET | `/api/users/{id}` | ADMIN | **Done** | |
-| PATCH | `/api/users/{id}/role` | ADMIN | **Done** | |
-| PATCH | `/api/users/{id}/enable` | ADMIN | **Done** | |
-| GET | `/api/notifications` | USER | **Missing** | |
-| PATCH | `/api/notifications/{id}/read` | USER | **Missing** | |
-| PATCH | `/api/notifications/read-all` | USER | **Missing** | |
-| DELETE | `/api/notifications/{id}` | USER | **Missing** | |
+| Method | Endpoint | Status |
+|--------|----------|--------|
+| GET | `/api/auth/me` | **Done** |
+| PATCH | `/api/auth/me` | **Done** (profile update — extra vs bare table) |
+| POST | `/api/auth/google` | **Done** |
+| GET | `/api/users` | **Done** + **`?role=`** (ADMIN/MANAGER) |
+| GET | `/api/users/{id}` | **Done** |
+| PATCH | `/api/users/{id}/role` | **Done** (API); **UI does not call** (by design) |
+| PATCH | `/api/users/{id}/enable` | **Done** |
+| GET | `/api/notifications` | **Done** |
+| PATCH | `/api/notifications/{id}/read` | **Done** |
+| PATCH | `/api/notifications/read-all` | **Done** |
+| DELETE | `/api/notifications/{id}` | **Done** |
 
-Extra backend endpoints exist (e.g. `/api/auth/login`, technician CRUD under `/api/users/technicians`) — not part of the D+E minimal table but useful for the app.
-
-### OAuth 2.0 + JWT flow (steps 1–10)
+### OAuth + JWT flow
 
 | Step | Status | Notes |
 |------|--------|--------|
-| 1–2 Frontend Google ID token → POST `/api/auth/google` | **Done** | `@react-oauth/google` + `LoginPage` |
-| 3 Verify with Google | **Partial** | Uses Google API client / verifier; guide mentions `spring-security-oauth2-client` |
-| 4–5 Extract claims; find/create user; USER on first login | **Done** | |
-| 6 App JWT HS256, claims | **Partial** | Uses `userId`, `email`, `roles` claims; **subject is email**, not `sub: userId` as in guide wording |
-| 7 `AuthResponseDTO` | **Done** | |
-| 8 Bearer token on requests | **Done** | |
-| 9 `JwtAuthenticationFilter` + `SecurityContext` | **Done** | |
-| 10 `@PreAuthorize` / method security | **Done** | e.g. `UserController` class-level ADMIN |
+| 1–10 overall | **Partial** | Works end-to-end; **JWT `sub`** = **user id**; **`email`**, **`userId`**, **`roles`** claims |
 
-**Dev-only behaviour:** `DevAuthFilter` and `dummy-google-token` / simulated tokens — document for demo vs production.
+### Notifications + events
 
-### Notification service architecture (events + listeners)
-
-| Item | Status | Notes |
-|------|--------|--------|
-| `NotificationService` + persistence | **Missing** | |
-| `BookingEventListener` | **Missing** | No booking event wiring found for notifications |
-| `TicketEventListener` | **Missing** | `TicketStatusChangedEvent` / `NewCommentEvent` are published in maintenance services, but **no `@EventListener`** creates notifications |
-| Future SSE/WebSocket | **Missing** | |
+| Item | Status |
+|------|--------|
+| **NotificationService** + DB | **Done** |
+| **TicketEventListener** | **Done** |
+| **BookingEventListener** | **Partial** | Stub until booking events exist |
+| **SSE** / WebSocket | **Missing** |
 
 ---
 
-## 4.2 Frontend — React Pages & Components
+## 4.2 Frontend
 
-### Pages under `src/pages/member4/`
+### Pages (`member4` + related)
 
 | Page | Status | Notes |
 |------|--------|--------|
-| `LoginPage.jsx` | **Done** | Google + optional password login, navigation after sign-in |
-| `ProfilePage.jsx` | **Missing** | |
-| `AdminUsersPage.jsx` | **Missing** | |
-| `NotificationPanel.jsx` | **Missing** | |
-| `AdminDashboardPage.jsx` | **Partial** | `pages/dashboards/AdminDashboard.jsx` exists with ticket/user metrics; bookings total is **placeholder sample**; not under `member4/` |
-| `UnauthorizedPage.jsx` | **Missing** | |
-| `NotFoundPage.jsx` | **Missing** | No catch-all 404 route component found |
+| `LoginPage.jsx` | **Done** | |
+| `ProfilePage.jsx` | **Done** | |
+| `AdminUsersPage.jsx` | **Done** | **Roles read-only**; enable/disable others only; **MANAGER** in filters |
+| `NotificationPanel.jsx` | **Partial** | Under **`components/notifications/`** (not `member4/`) |
+| Admin dashboard | **Partial** | `AdminDashboard.jsx`; bookings still sample if unchanged |
+| `UnauthorizedPage.jsx` | **Done** | Route `/unauthorized` |
+| `NotFoundPage.jsx` | **Done** | `path="*"` |
 
-Other `member4` files: `HomePage.jsx`, `LandingPage.jsx` (extra).
+### Auth & HTTP
 
-### Authentication context & guards
-
-| Item | Status | Notes |
-|------|--------|--------|
-| `AuthContext.jsx` — token, user, login, logout, `isAuthenticated` | **Partial** | Token persisted in **sessionStorage** (`AUTH_TOKEN_STORAGE_KEY`); guide asks for token **in memory only** |
-| `ProtectedRoute.jsx` | **Partial** | Auth + bootstrap; **no `requiredRoles` prop** |
-| App mount: restore via GET `/api/auth/me` | **Done** | When token exists |
-| Axios: attach Bearer | **Done** | `axiosInstance` request interceptor |
-| Axios: 401 → logout + redirect | **Missing** | No response interceptor; 401 only affects error strings in auth error helper |
+| Item | Status |
+|------|--------|
+| `AuthContext` + bootstrap | **Done** | Token in **memory** + React state (not `sessionStorage`) |
+| `ProtectedRoute` | **Done** | Optional **`requiredRoles`** → **`/unauthorized`** |
+| Axios Bearer | **Done** | From **memory** store |
+| **401** → logout + `/login` | **Done** | **AuthUnauthorizedBridge** |
 
 ### Notification UI
 
-| Item | Status | Notes |
-|------|--------|--------|
-| Bell + unread badge in `TopBar` / `AppShell` | **Missing** | Header shows user + logout only |
-| `NotificationPanel` drawer | **Missing** | |
-| `useNotifications` + React Query 30s refetch | **Missing** | |
+| Item | Status |
+|------|--------|
+| Bell + badge + 30s refetch | **Done** | `useNotifications` |
 
 ---
 
 ## 4.3 Innovation (Member 4)
 
-| Innovation | Status | Notes |
-|------------|--------|--------|
-| SSE real-time notifications (`SseEmitter`) | **Missing** | |
-| Admin dashboard: system-wide metrics (bookings week, tickets by priority, user growth chart) | **Partial** | Admin dashboard has ticket/user counts; bookings **not** wired; **no charts** / user growth |
-| Role-based onboarding (`react-joyride`) | **Missing** | |
-| Notification preferences (per category) | **Missing** | |
-| Audit log (admin view of actions) | **Missing** | |
+| Item | Status |
+|------|--------|
+| SSE | **Done** |
+| Full admin analytics (charts, bookings week, user growth) | **Partial** / **Missing** |
+| `react-joyride` | **Missing** |
+| Notification preferences | **Done** |
+| Audit log | **Missing** |
 
 ---
 
 ## 4.4 Testing responsibilities
 
-| Test | Status | Notes |
-|------|--------|-------|
-| Unit: `JwtService` (generate, validate, expiry, tampered token) | **Missing** | No `JwtServiceTest` in `src/test` |
-| Unit: `NotificationService` (events → correct records) | **Missing** | No notification module |
-| Integration: OAuth flow with mocked Google verification | **Missing** | |
-| Integration: USER → ADMIN endpoint returns 403 | **Missing** | Maintenance tests use auth mocks; no dedicated authz test for `/api/users` |
-| Integration: Notification CRUD | **Missing** | |
-
-Existing tests cover maintenance (tickets, comments, attachments), not Module D+E items above.
+| Test | Status |
+|------|--------|
+| Unit: **JwtService** | **Done** | `JwtServiceTest` |
+| Unit: **NotificationService** / listeners | **Done** | `NotificationServiceImplTest`, `TicketEventListenerTest` |
+| Integration: OAuth mock | **Done** | `AuthGoogleIntegrationTest` |
+| Integration: USER → **403** on `/api/users` | **Done** | `Member4SecurityIntegrationTest` |
+| Integration: Notification **HTTP** CRUD | **Partial** | Covered indirectly; dedicated notification-controller MockMvc suite optional |
 
 ---
 
 ## Quick summary
 
-| Area | Done | Partial | Missing |
-|------|------|---------|---------|
-| Core auth API + JWT + Google sign-in | Most | Package naming, JWT `sub` claim, token storage story | — |
-| User admin endpoints | Most | Role filter on list | — |
-| `MANAGER` role | — | — | Enum + any UI/backend use |
-| Notification **backend** | — | — | **All** |
-| Notification **frontend** | — | — | **All** |
-| Spec pages (profile, admin users, errors, panel) | Login + partial admin dash | Admin dashboard location/content | Profile, AdminUsers, Unauthorized, NotFound, NotificationPanel |
-| Innovation block | — | Admin metrics partly | SSE, joyride, prefs, audit |
-| Module D+E tests | — | — | **All listed** |
+| Area | Status |
+|------|--------|
+| Auth API + JWT + Google + profile patch | **Mostly done** |
+| Users admin API | **Done**; UI **read-only roles** |
+| Notifications backend + listeners + REST | **Done** |
+| Notifications frontend | **Done** (polling + SSE) |
+| Error pages + 401 redirect | **Done** |
+| `MANAGER`, in-memory token, `requiredRoles` | **Done** |
+| SSE, innovation extras | **Partial** / **Done** |
+| Integration tests (OAuth, authz) | **Done** |
+| API errors from **ResponseStatusException** as JSON `message` | **Done** |
 
 ---
 
-## Suggested order of work (for your step-by-step runs)
+## Suggested **next** work (if marks require them)
 
-1. **Notification domain:** JPA entity, enums, repository, service, REST API, security rules.  
-2. **Event listeners:** Subscribe to existing ticket (and later booking) events → create notifications.  
-3. **Frontend:** API client + `useNotifications`, bell + `NotificationPanel`, optional polling or SSE.  
-4. **Gap-fill pages:** `ProfilePage`, `AdminUsersPage`, `UnauthorizedPage`, `NotFound` route.  
-5. **Align spec details:** `MANAGER` role, `GET /api/users?role=`, JWT claims if markers require `sub`, response interceptor on 401.  
-6. **Innovation (if required):** SSE endpoint, richer admin analytics, joyride, preferences, audit log.  
-7. **Tests:** `JwtService` unit tests first, then notification + security integration tests.
-
-*This file is audit-only — no implementation was performed when generating it.*
+1. **Notification controller** integration tests (mark read, read-all, delete) with JWT fixtures.
+2. Coursework **innovation** items your rubric weights (SSE, audit, joyride, etc.).
+3. Optional: **`@WebMvcTest`** slices for faster controller-only runs.
