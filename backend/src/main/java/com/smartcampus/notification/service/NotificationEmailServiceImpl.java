@@ -6,10 +6,14 @@ import com.smartcampus.user.model.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.MessagingException;
 import org.springframework.stereotype.Service;
+import java.nio.charset.StandardCharsets;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +31,9 @@ public class NotificationEmailServiceImpl implements NotificationEmailService {
     @Value("${spring.mail.username:}")
     private String mailUsername;
 
+    @Value("classpath:/templates/system-notification-email.html")
+    private Resource templateResource;
+
     @Override
     public void sendNotificationEmail(User recipient, Notification notification) {
         if (!mailEnabled) return;
@@ -43,39 +50,73 @@ public class NotificationEmailServiceImpl implements NotificationEmailService {
             return;
         }
 
-        SimpleMailMessage msg = new SimpleMailMessage();
-        msg.setFrom(effectiveFrom);
-        msg.setTo(recipient.getEmail());
-        msg.setSubject(notification.getTitle() != null ? notification.getTitle() : "Smart Campus Notification");
-        msg.setText(buildBody(notification));
+        MimeMessage mimeMessage = mailSender.createMimeMessage();
+        try {
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "UTF-8");
+            helper.setFrom(effectiveFrom);
+            helper.setTo(recipient.getEmail());
+            helper.setSubject(
+                    notification.getTitle() != null
+                            ? notification.getTitle()
+                            : "Smart Campus Notification");
+            helper.setText(buildHtml(recipient, notification), true);
+        } catch (MessagingException e) {
+            log.error("Failed to build notification email content: {}", e.getMessage());
+            return;
+        }
 
         try {
-            mailSender.send(msg);
+            mailSender.send(mimeMessage);
         } catch (MailException e) {
             // Don't break the main request if email fails.
             log.error("Failed to send notification email to {}: {}", recipient.getEmail(), e.getMessage());
         }
     }
 
-    private String buildBody(Notification n) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Hello user,").append(System.lineSeparator());
-        sb.append(System.lineSeparator());
-        sb.append(n.getMessage() != null ? n.getMessage() : "").append(System.lineSeparator());
-        if (n.getReferenceId() != null && n.getReferenceType() != null) {
-            sb.append(System.lineSeparator());
-            sb.append("Reference: ")
-                    .append(n.getReferenceType())
-                    .append("#")
-                    .append(n.getReferenceId())
-                    .append(System.lineSeparator());
+    private String buildHtml(User recipient, Notification n) {
+        String rawTemplate = "";
+        try {
+            rawTemplate = new String(templateResource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            log.warn("Email template not readable; falling back to basic HTML. error={}", e.getMessage());
         }
-        sb.append(System.lineSeparator());
-        sb.append("Do not reply to this email.").append(System.lineSeparator());
-        sb.append("This is a system generated notification email.").append(System.lineSeparator());
-        sb.append(System.lineSeparator());
-        sb.append("Thanks, Smart Campus Team");
-        return sb.toString();
+
+        String title = escapeHtml(n.getTitle() != null ? n.getTitle() : "Smart Campus Notification");
+        String message = escapeHtml(n.getMessage() != null ? n.getMessage() : "");
+        String recipientName = escapeHtml(recipient.getName() != null ? recipient.getName() : "User");
+
+        String reference = "N/A";
+        if (n.getReferenceType() != null && n.getReferenceId() != null) {
+            reference =
+                    escapeHtml(n.getReferenceType().toString())
+                            + "#"
+                            + escapeHtml(String.valueOf(n.getReferenceId()));
+        }
+
+        if (rawTemplate == null || rawTemplate.isBlank()) {
+            return "<html><body style='font-family:Arial,sans-serif;background:#f5f7fb;padding:24px;'>" +
+                    "<div style='max-width:640px;margin:0 auto;background:#fff;border-radius:16px;padding:20px;'>" +
+                    "<h2 style='margin-top:0;color:#4f46e5;'>" + title + "</h2>" +
+                    "<p style='color:#0f172a;white-space:pre-wrap;'>" + message + "</p>" +
+                    "<p style='color:#64748b;'>" +
+                    "<strong>Do not reply</strong><br/>This is a system generated notification email." +
+                    "</p>" +
+                    "</div></body></html>";
+        }
+
+        return rawTemplate
+                .replace("{{title}}", title)
+                .replace("{{message}}", message)
+                .replace("{{recipientName}}", recipientName)
+                .replace("{{reference}}", reference);
+    }
+
+    private static String escapeHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 }
-

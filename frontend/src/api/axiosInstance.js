@@ -1,15 +1,50 @@
-import axios from 'axios';
+import axios from "axios";
+import { getMemoryToken } from "./authTokenMemory";
+import { notifyUnauthorizedResponse } from "./unauthorizedSession";
 
+/**
+ * Do not set a default Content-Type: application/json — it sticks to multipart POSTs and can
+ * break FormData (wrong boundary / wrong consumes on the server) and confuse Spring Security.
+ * Axios sets application/json automatically when the body is a plain object.
+ */
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:8080/api',
-  headers: { 'Content-Type': 'application/json' },
+  baseURL: "http://localhost:8081/api",
 });
 
-// Attach JWT token to every request
 axiosInstance.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const token = getMemoryToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  if (config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
+    delete config.headers["content-type"];
+  } else if (
+    config.data != null &&
+    typeof config.data === "object" &&
+    !(config.data instanceof ArrayBuffer) &&
+    !(config.data instanceof Blob)
+  ) {
+    // Required for Spring @RequestBody JSON after we removed the default instance Content-Type.
+    config.headers["Content-Type"] = "application/json";
+  }
   return config;
 });
+
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (!axios.isAxiosError(error) || error.response?.status !== 401) {
+      return Promise.reject(error);
+    }
+    const url = String(error.config?.url ?? "");
+    const isAuthAttempt =
+      url.includes("/auth/login") || url.includes("/auth/google");
+    if (!isAuthAttempt) {
+      notifyUnauthorizedResponse();
+    }
+    return Promise.reject(error);
+  },
+);
 
 export default axiosInstance;
