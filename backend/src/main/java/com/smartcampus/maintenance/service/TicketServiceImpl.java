@@ -221,6 +221,38 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
+    public TicketResponseDTO closeTicket(Long ticketId, Long currentUserId) {
+        var ticket = findTicketOrThrow(ticketId);
+
+        // Only the reporter may close their own ticket
+        if (!ticket.getReportedBy().getId().equals(currentUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only the ticket reporter can close this ticket.");
+        }
+
+        // Ticket must be in RESOLVED state before a user can close it
+        if (ticket.getStatus() != TicketStatus.RESOLVED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Ticket must be RESOLVED before it can be closed by the reporter.");
+        }
+
+        var previousStatus = ticket.getStatus();
+        ticket.setStatus(TicketStatus.CLOSED);
+        ticket.setClosedAt(LocalDateTime.now());
+        var saved = ticketRepo.save(ticket);
+
+        eventPublisher.publishEvent(
+                new TicketStatusChangedEvent(
+                        this,
+                        saved.getId(),
+                        saved.getReportedBy().getId(),
+                        previousStatus,
+                        TicketStatus.CLOSED));
+
+        return mapToResponse(saved);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Page<TicketResponseDTO> getTicketsByTechnician(Long techId, Pageable pageable) {
         return ticketRepo.findByAssignedToId(techId, pageable).map(this::mapToResponse);
@@ -382,6 +414,7 @@ public class TicketServiceImpl implements TicketService {
             .createdAt(t.getCreatedAt())
             .updatedAt(t.getUpdatedAt())
             .resolvedAt(t.getResolvedAt())
+            .closedAt(t.getClosedAt())
             .slaDeadline(effectiveSlaDeadline(t))
             .slaViolated(slaViolated)
             .timeElapsed(timeElapsed)

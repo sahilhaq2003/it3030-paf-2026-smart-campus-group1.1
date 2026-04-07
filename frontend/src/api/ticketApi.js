@@ -11,6 +11,7 @@ export const ticketApi = {
   createTicket: (formData) => axiosInstance.post('/tickets', formData),
 
   updateStatus: (id, data) => axiosInstance.patch(`/tickets/${id}/status`, data),
+  closeTicket: (id) => axiosInstance.post(`/tickets/${id}/close`),
   assignTechnician: (id, technicianId) =>
     axiosInstance.patch(`/tickets/${id}/assign`, null, { params: { technicianId } }),
   deleteTicket: (id) => axiosInstance.delete(`/tickets/${id}`),
