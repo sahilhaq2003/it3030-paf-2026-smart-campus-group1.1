@@ -328,7 +328,9 @@ export default function LoginPage() {
 
           <p className="mt-8 text-center text-xs text-slate-400">
             Need help?{" "}
-            <span className="text-slate-500">Contact your campus IT desk.</span>
+            <Link to="/login/help" className="font-semibold text-campus-brand hover:text-campus-brand-hover">
+              View login process help
+            </Link>
           </p>
         </div>
       </div>
