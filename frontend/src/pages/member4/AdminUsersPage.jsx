@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 import { fetchUsers, toggleUserEnabled } from "../../api/userAdminApi";
 
-const ROLE_OPTIONS = ["USER", "ADMIN", "TECHNICIAN", "MANAGER"];
+const ROLE_OPTIONS = ["USER", "ADMIN", "TECHNICIAN"];
 
 function rolesLabel(roles) {
   if (!roles?.length) return "—";
@@ -17,18 +17,28 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState("");
 
   const usersQuery = useQuery({
-    queryKey: ["admin", "users", roleFilter || "all"],
-    queryFn: () => fetchUsers(roleFilter ? { role: roleFilter } : {}),
+    queryKey: ["admin", "users", "all"],
+    queryFn: () => fetchUsers({}),
   });
 
   const sortedUsers = useMemo(() => {
     const list = Array.isArray(usersQuery.data) ? [...usersQuery.data] : [];
-    return list.sort((a, b) =>
+    const filtered = roleFilter
+      ? list.filter((row) => {
+          const rolesArr = row.roles
+            ? Array.isArray(row.roles)
+              ? row.roles
+              : [...row.roles]
+            : [];
+          return rolesArr.includes(roleFilter);
+        })
+      : list;
+    return filtered.sort((a, b) =>
       String(a.email).localeCompare(String(b.email), undefined, {
         sensitivity: "base",
       }),
     );
-  }, [usersQuery.data]);
+  }, [usersQuery.data, roleFilter]);
 
   const enableMutation = useMutation({
     mutationFn: (id) => toggleUserEnabled(id),
@@ -63,23 +73,66 @@ export default function AdminUsersPage() {
           sign-in for other accounts; you cannot change your own status from this screen.
         </p>
 
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <label htmlFor="admin-users-role-filter" className="text-xs font-medium text-slate-600">
-            Filter by role
-          </label>
-          <select
-            id="admin-users-role-filter"
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none ring-campus-brand/20 focus:border-campus-brand focus:ring-2"
-          >
-            <option value="">All roles</option>
-            {ROLE_OPTIONS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
+        <div className="mt-6 space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
+            <div>
+              <p className="text-xs font-medium text-slate-600">Filter by role</p>
+              <div
+                className="mt-2 flex flex-wrap gap-2"
+                role="group"
+                aria-label="Quick filter by role"
+              >
+                <button
+                  type="button"
+                  onClick={() => setRoleFilter("")}
+                  aria-pressed={roleFilter === ""}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand ${
+                    roleFilter === ""
+                      ? "border-campus-brand bg-campus-brand text-white shadow-sm"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                  }`}
+                >
+                  All
+                </button>
+                {ROLE_OPTIONS.map((r) => {
+                  const selected = roleFilter === r;
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRoleFilter(r)}
+                      aria-pressed={selected}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand ${
+                        selected
+                          ? "border-campus-brand bg-campus-brand text-white shadow-sm"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label htmlFor="admin-users-role-filter" className="text-xs font-medium text-slate-600">
+                More options
+              </label>
+              <select
+                id="admin-users-role-filter"
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none ring-campus-brand/20 focus:border-campus-brand focus:ring-2"
+              >
+                <option value="">All roles</option>
+                {ROLE_OPTIONS.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
         <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm ring-1 ring-slate-900/[0.03]">
