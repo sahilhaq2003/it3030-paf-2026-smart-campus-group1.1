@@ -14,11 +14,22 @@ function isValidEmail(value) {
 const LOGIN_SUCCESS_MESSAGE = "Welcome back. You are signed in and your workspace is ready.";
 
 export default function LoginPage() {
-  const { loginWithPassword, loginWithGoogle, loginLoading, loginError, clearLoginError } =
+  const {
+    loginWithPassword,
+    loginWithGoogle,
+    registerLecturer,
+    loginLoading,
+    loginError,
+    clearLoginError,
+  } =
     useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [lecturerName, setLecturerName] = useState("");
+  const [lecturerEmail, setLecturerEmail] = useState("");
+  const [lecturerPassword, setLecturerPassword] = useState("");
+  const [lecturerMode, setLecturerMode] = useState("signin");
   const [fieldErrors, setFieldErrors] = useState({});
   const [loginMode, setLoginMode] = useState("student");
 
@@ -75,10 +86,57 @@ export default function LoginPage() {
     }
   };
 
+  const handleLecturerRegister = async (e) => {
+    e.preventDefault();
+    clearLoginError();
+    const next = {};
+    if (!lecturerName.trim()) next.lecturerName = "Name is required";
+    if (!isValidEmail(lecturerEmail)) next.lecturerEmail = "Enter a valid email address";
+    if (!lecturerPassword || lecturerPassword.length < 8) {
+      next.lecturerPassword = "Password must be at least 8 characters";
+    }
+    setFieldErrors(next);
+    if (Object.keys(next).length) return;
+
+    try {
+      const signedIn = await registerLecturer({
+        name: lecturerName.trim(),
+        email: lecturerEmail.trim(),
+        password: lecturerPassword,
+      });
+      navigate(getDashboardRoute(signedIn?.roles), {
+        state: { loginSuccess: "Lecturer account created. You are now signed in." },
+      });
+    } catch {
+      /* loginError set in AuthContext */
+    }
+  };
+
+  const handleLecturerSignIn = async (e) => {
+    e.preventDefault();
+    clearLoginError();
+    const next = {};
+    if (!isValidEmail(lecturerEmail)) next.lecturerEmail = "Enter a valid email address";
+    if (!lecturerPassword) next.lecturerPassword = "Password is required";
+    setFieldErrors(next);
+    if (Object.keys(next).length) return;
+    try {
+      const signedIn = await loginWithPassword(lecturerEmail.trim(), lecturerPassword);
+      navigate(getDashboardRoute(signedIn?.roles), {
+        state: { loginSuccess: "Welcome back, lecturer." },
+      });
+    } catch {
+      /* loginError set in AuthContext */
+    }
+  };
+
   const switchLoginMode = (mode) => {
     setLoginMode(mode);
     clearLoginError();
     setFieldErrors({});
+    if (mode === "lecturer") {
+      setLecturerMode("signin");
+    }
   };
 
   return (
@@ -147,12 +205,13 @@ export default function LoginPage() {
                 Welcome back
               </h2>
               <p className="mt-2 text-sm text-slate-500">
-                Admin and technicians use password login. Students continue with Google.
+                Admin and technicians use password login, students continue with Google, and
+                lecturers can create an account here.
               </p>
             </div>
 
             <div className="mt-2 lg:mt-8">
-              <div className="mx-auto mb-5 grid w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1">
+              <div className="mx-auto mb-5 grid w-full grid-cols-3 rounded-xl border border-slate-200 bg-slate-50 p-1">
                 <button
                   type="button"
                   onClick={() => switchLoginMode("student")}
@@ -174,6 +233,17 @@ export default function LoginPage() {
                   }`}
                 >
                   Admin / Technician
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchLoginMode("lecturer")}
+                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    loginMode === "lecturer"
+                      ? "bg-white text-campus-brand shadow-sm"
+                      : "text-slate-600 hover:text-slate-800"
+                  }`}
+                >
+                  Lecturer
                 </button>
               </div>
             </div>
@@ -255,7 +325,7 @@ export default function LoginPage() {
                 </button>
               </form>
               </div>
-            ) : (
+            ) : loginMode === "student" ? (
               <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
                 <div className="mb-4 text-center">
                   <p className="text-xs font-semibold uppercase tracking-wide text-campus-brand">
@@ -281,6 +351,153 @@ export default function LoginPage() {
                     Continue with Google (student)
                   </button>
                 ) : null}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+                <div className="mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-campus-brand">
+                    Lecturer Account
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Lecturers can sign in with email/password, or create a new lecturer account.
+                  </p>
+                </div>
+
+                <div className="mb-4 grid w-full grid-cols-2 rounded-xl border border-slate-200 bg-white p-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLecturerMode("signin");
+                      setFieldErrors({});
+                      clearLoginError();
+                    }}
+                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                      lecturerMode === "signin"
+                        ? "bg-slate-100 text-campus-brand shadow-sm"
+                        : "text-slate-600 hover:text-slate-800"
+                    }`}
+                  >
+                    Sign in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLecturerMode("create");
+                      setFieldErrors({});
+                      clearLoginError();
+                    }}
+                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                      lecturerMode === "create"
+                        ? "bg-slate-100 text-campus-brand shadow-sm"
+                        : "text-slate-600 hover:text-slate-800"
+                    }`}
+                  >
+                    Create account
+                  </button>
+                </div>
+
+                <form
+                  onSubmit={lecturerMode === "signin" ? handleLecturerSignIn : handleLecturerRegister}
+                  className="space-y-4"
+                  noValidate
+                >
+                  {loginError ? (
+                    <div
+                      role="alert"
+                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                    >
+                      {loginError}
+                    </div>
+                  ) : null}
+
+                  {lecturerMode === "create" ? (
+                    <div>
+                      <label htmlFor="lecturer-name" className="block text-sm font-medium text-slate-700">
+                        Full name
+                      </label>
+                      <input
+                        id="lecturer-name"
+                        type="text"
+                        value={lecturerName}
+                        onChange={(ev) => {
+                          setLecturerName(ev.target.value);
+                          if (fieldErrors.lecturerName) {
+                            setFieldErrors((f) => ({ ...f, lecturerName: undefined }));
+                          }
+                        }}
+                        className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
+                        placeholder="Dr. Jane Doe"
+                        disabled={loginLoading}
+                      />
+                      {fieldErrors.lecturerName ? (
+                        <p className="mt-1 text-xs text-red-600">{fieldErrors.lecturerName}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <div>
+                    <label htmlFor="lecturer-email" className="block text-sm font-medium text-slate-700">
+                      Email
+                    </label>
+                    <input
+                      id="lecturer-email"
+                      type="email"
+                      value={lecturerEmail}
+                      onChange={(ev) => {
+                        setLecturerEmail(ev.target.value);
+                        if (fieldErrors.lecturerEmail) {
+                          setFieldErrors((f) => ({ ...f, lecturerEmail: undefined }));
+                        }
+                      }}
+                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
+                      placeholder="lecturer@campus.edu"
+                      disabled={loginLoading}
+                    />
+                    {fieldErrors.lecturerEmail ? (
+                      <p className="mt-1 text-xs text-red-600">{fieldErrors.lecturerEmail}</p>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="lecturer-password"
+                      className="block text-sm font-medium text-slate-700"
+                    >
+                      Password
+                    </label>
+                    <input
+                      id="lecturer-password"
+                      type="password"
+                      value={lecturerPassword}
+                      onChange={(ev) => {
+                        setLecturerPassword(ev.target.value);
+                        if (fieldErrors.lecturerPassword) {
+                          setFieldErrors((f) => ({ ...f, lecturerPassword: undefined }));
+                        }
+                      }}
+                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
+                      placeholder="At least 8 characters"
+                      disabled={loginLoading}
+                    />
+                    {fieldErrors.lecturerPassword ? (
+                      <p className="mt-1 text-xs text-red-600">{fieldErrors.lecturerPassword}</p>
+                    ) : null}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loginLoading}
+                    className="w-full rounded-xl bg-campus-brand px-4 py-3.5 text-sm font-semibold text-white shadow-md shadow-slate-900/10 transition hover:bg-campus-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand disabled:pointer-events-none disabled:opacity-60"
+                  >
+                    {loginLoading
+                      ? lecturerMode === "signin"
+                        ? "Signing in…"
+                        : "Creating account…"
+                      : lecturerMode === "signin"
+                        ? "Sign in as Lecturer"
+                        : "Create Lecturer Account"}
+                  </button>
+                </form>
               </div>
             )}
 

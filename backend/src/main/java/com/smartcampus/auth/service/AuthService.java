@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartcampus.auth.dto.AuthResponseDTO;
 import com.smartcampus.auth.dto.GoogleUserClaims;
+import com.smartcampus.auth.dto.LecturerRegisterRequestDTO;
 import com.smartcampus.auth.dto.LoginRequestDTO;
 import com.smartcampus.auth.dto.UpdateProfileDTO;
 import com.smartcampus.auth.dto.UserResponseDTO;
@@ -107,6 +108,38 @@ public class AuthService {
         }
         String token = jwtService.generateToken(user);
         return AuthResponseDTO.builder().token(token).user(toUserResponse(user)).build();
+    }
+
+    @Transactional
+    public AuthResponseDTO registerLecturer(LecturerRegisterRequestDTO body) {
+        String email = body.getEmail() != null ? body.getEmail().trim().toLowerCase() : "";
+        String rawPassword = body.getPassword() != null ? body.getPassword().trim() : "";
+        String name = body.getName() != null ? body.getName().trim() : "";
+
+        if (email.isEmpty() || rawPassword.isEmpty() || name.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name, email and password required");
+        }
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This email is already registered");
+        }
+
+        Set<Role> roles = new HashSet<>();
+        roles.add(Role.LECTURER);
+        roles.add(Role.USER);
+
+        User user =
+                User.builder()
+                        .email(email)
+                        .name(name)
+                        .passwordHash(passwordEncoder.encode(rawPassword))
+                        .provider(User.AuthProvider.LOCAL)
+                        .roles(roles)
+                        .enabled(true)
+                        .build();
+
+        User saved = userRepository.save(user);
+        String token = jwtService.generateToken(saved);
+        return AuthResponseDTO.builder().token(token).user(toUserResponse(saved)).build();
     }
 
     /** Resolves the current user from the security context (JWT) and returns the persisted profile. */

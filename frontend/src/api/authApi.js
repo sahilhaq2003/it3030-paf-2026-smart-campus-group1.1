@@ -18,6 +18,16 @@ export async function loginWithPassword({ email, password }) {
   return data;
 }
 
+/**
+ * POST /auth/register/lecturer — creates lecturer account and signs in.
+ * @param {{ name: string, email: string, password: string }} body
+ * @returns {Promise<{ token: string, user: object }>}
+ */
+export async function registerLecturer(body) {
+  const { data } = await axiosInstance.post("/auth/register/lecturer", body);
+  return data;
+}
+
 /** GET /auth/me — requires Authorization header (set by axios interceptor). */
 export async function fetchCurrentUser() {
   const { data } = await axiosInstance.get("/auth/me");

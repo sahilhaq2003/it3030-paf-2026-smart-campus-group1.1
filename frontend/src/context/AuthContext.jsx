@@ -11,6 +11,7 @@ import {
   fetchCurrentUser,
   loginWithGoogle as loginWithGoogleApi,
   loginWithPassword as loginWithPasswordApi,
+  registerLecturer as registerLecturerApi,
   updateCurrentUserProfile as updateCurrentUserProfileApi,
 } from "../api/authApi";
 import {
@@ -109,6 +110,28 @@ export function AuthProvider({ children }) {
     [applyAuthResponse],
   );
 
+  const registerLecturer = useCallback(
+    async ({ name, email, password }) => {
+      setLoginError(null);
+      setLoginLoading(true);
+      try {
+        const { token: accessToken, user: nextUser } = await registerLecturerApi({
+          name,
+          email,
+          password,
+        });
+        return applyAuthResponse(accessToken, nextUser);
+      } catch (err) {
+        const message = resolveAuthErrorMessage(err);
+        setLoginError(message);
+        throw err;
+      } finally {
+        setLoginLoading(false);
+      }
+    },
+    [applyAuthResponse],
+  );
+
   const logout = useCallback(() => {
     clearMemoryToken();
     setToken(null);
@@ -142,6 +165,7 @@ export function AuthProvider({ children }) {
       token,
       loginWithGoogle,
       loginWithPassword,
+      registerLecturer,
       logout,
       isAuthenticated: Boolean(user && token),
       isBootstrapping: bootstrapping,
@@ -156,6 +180,7 @@ export function AuthProvider({ children }) {
       token,
       loginWithGoogle,
       loginWithPassword,
+      registerLecturer,
       logout,
       bootstrapping,
       loginLoading,
