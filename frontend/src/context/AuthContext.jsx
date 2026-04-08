@@ -11,6 +11,9 @@ import {
   fetchCurrentUser,
   loginWithGoogle as loginWithGoogleApi,
   loginWithPassword as loginWithPasswordApi,
+  requestLecturerOtp as requestLecturerOtpApi,
+  registerLecturer as registerLecturerApi,
+  verifyLecturerOtp as verifyLecturerOtpApi,
   updateCurrentUserProfile as updateCurrentUserProfileApi,
 } from "../api/authApi";
 import {
@@ -109,6 +112,57 @@ export function AuthProvider({ children }) {
     [applyAuthResponse],
   );
 
+  const registerLecturer = useCallback(
+    async ({ name, email, password, verificationToken }) => {
+      setLoginError(null);
+      setLoginLoading(true);
+      try {
+        const { token: accessToken, user: nextUser } = await registerLecturerApi({
+          name,
+          email,
+          password,
+          verificationToken,
+        });
+        return applyAuthResponse(accessToken, nextUser);
+      } catch (err) {
+        const message = resolveAuthErrorMessage(err);
+        setLoginError(message);
+        throw err;
+      } finally {
+        setLoginLoading(false);
+      }
+    },
+    [applyAuthResponse],
+  );
+
+  const requestLecturerOtp = useCallback(async (email) => {
+    setLoginError(null);
+    setLoginLoading(true);
+    try {
+      await requestLecturerOtpApi(email);
+    } catch (err) {
+      const message = resolveAuthErrorMessage(err);
+      setLoginError(message);
+      throw err;
+    } finally {
+      setLoginLoading(false);
+    }
+  }, []);
+
+  const verifyLecturerOtp = useCallback(async ({ email, otp }) => {
+    setLoginError(null);
+    setLoginLoading(true);
+    try {
+      return await verifyLecturerOtpApi({ email, otp });
+    } catch (err) {
+      const message = resolveAuthErrorMessage(err);
+      setLoginError(message);
+      throw err;
+    } finally {
+      setLoginLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(() => {
     clearMemoryToken();
     setToken(null);
@@ -142,6 +196,9 @@ export function AuthProvider({ children }) {
       token,
       loginWithGoogle,
       loginWithPassword,
+      requestLecturerOtp,
+      verifyLecturerOtp,
+      registerLecturer,
       logout,
       isAuthenticated: Boolean(user && token),
       isBootstrapping: bootstrapping,
@@ -156,6 +213,9 @@ export function AuthProvider({ children }) {
       token,
       loginWithGoogle,
       loginWithPassword,
+      requestLecturerOtp,
+      verifyLecturerOtp,
+      registerLecturer,
       logout,
       bootstrapping,
       loginLoading,

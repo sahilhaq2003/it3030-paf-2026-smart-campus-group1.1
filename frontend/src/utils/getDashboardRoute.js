@@ -1,6 +1,7 @@
 /** Canonical paths for role-based landing after sign-in */
 export const DASHBOARD_PATHS = {
   USER: "/UserDashboard",
+  LECTURER: "/LecturerDashboard",
   ADMIN: "/AdminDashboard",
   TECHNICIAN: "/TechnicianDashboard",
 };
@@ -17,6 +18,7 @@ export function getDashboardRoute(roles) {
   if (normalized.has("ADMIN")) return DASHBOARD_PATHS.ADMIN;
   if (normalized.has("MANAGER")) return DASHBOARD_PATHS.ADMIN;
   if (normalized.has("TECHNICIAN")) return DASHBOARD_PATHS.TECHNICIAN;
+  if (normalized.has("LECTURER")) return DASHBOARD_PATHS.LECTURER;
   return DASHBOARD_PATHS.USER;
 }
 
@@ -45,8 +47,11 @@ export function canAccessDashboardRoute(roles, dashboardPath) {
   if (dashboardPath === DASHBOARD_PATHS.TECHNICIAN) {
     return n.has("TECHNICIAN") && !n.has("ADMIN") && !n.has("MANAGER");
   }
+  if (dashboardPath === DASHBOARD_PATHS.LECTURER) {
+    return n.has("LECTURER") && !n.has("ADMIN") && !n.has("TECHNICIAN") && !n.has("MANAGER");
+  }
   if (dashboardPath === DASHBOARD_PATHS.USER) {
-    return !n.has("ADMIN") && !n.has("TECHNICIAN") && !n.has("MANAGER");
+    return !n.has("ADMIN") && !n.has("TECHNICIAN") && !n.has("MANAGER") && !n.has("LECTURER");
   }
   return true;
 }

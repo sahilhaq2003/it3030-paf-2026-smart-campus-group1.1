@@ -15,6 +15,7 @@ import NotFoundPage from "../pages/member4/NotFoundPage";
 import UserDashboard from "../pages/dashboards/UserDashboard";
 import AdminDashboard from "../pages/dashboards/AdminDashboard";
 import TechnicianDashboard from "../pages/dashboards/TechnicianDashboard";
+import LecturerDashboard from "../pages/dashboards/LecturerDashboard";
 import ProtectedRoute from "./ProtectedRoute";
 import CreateTicketRoute from "./CreateTicketRoute";
 import UserMyTicketsRoute from "./UserMyTicketsRoute";
@@ -30,7 +31,7 @@ import AdminFacilitiesPage from "../pages/member1/AdminFacilitiesPage";
  * Router setup:
  * - / → public landing
  * - /login → LoginPage
- * - Role dashboards: /UserDashboard, /AdminDashboard, /TechnicianDashboard
+ * - Role dashboards: /UserDashboard, /LecturerDashboard, /AdminDashboard, /TechnicianDashboard
  */
 export default function AppRoutes() {
   return (
@@ -59,6 +60,14 @@ export default function AppRoutes() {
           }
         />
         <Route
+          path="/LecturerDashboard"
+          element={
+            <RoleProtectedDashboard dashboardPath={DASHBOARD_PATHS.LECTURER}>
+              <LecturerDashboard />
+            </RoleProtectedDashboard>
+          }
+        />
+        <Route
           path="/AdminDashboard"
           element={
             <RoleProtectedDashboard dashboardPath={DASHBOARD_PATHS.ADMIN}>
@@ -75,11 +84,16 @@ export default function AppRoutes() {
           }
         />
         <Route path="/dashboard" element={<Navigate to="/UserDashboard" replace />} />
+        <Route path="/lecturer-dashboard" element={<Navigate to="/LecturerDashboard" replace />} />
         <Route path="/admin-dashboard" element={<Navigate to="/AdminDashboard" replace />} />
         <Route path="/technician-dashboard" element={<Navigate to="/TechnicianDashboard" replace />} />
         <Route
           path="/dashboard/user"
           element={<Navigate to="/UserDashboard" replace />}
+        />
+        <Route
+          path="/dashboard/lecturer"
+          element={<Navigate to="/LecturerDashboard" replace />}
         />
         <Route
           path="/dashboard/admin"
