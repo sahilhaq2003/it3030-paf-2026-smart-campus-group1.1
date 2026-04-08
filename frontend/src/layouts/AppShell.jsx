@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -17,6 +17,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../hooks/useNotifications";
 import NotificationPanel from "../components/notifications/NotificationPanel";
+import FlashToast from "../components/feedback/FlashToast";
 import {
   DASHBOARD_PATHS,
   canAccessAdminTickets,
@@ -27,7 +28,12 @@ import {
 
 function routeTitle(pathname) {
   if (pathname === "/home") return "Home";
-  if (pathname === "/UserDashboard" || pathname === "/AdminDashboard" || pathname === "/TechnicianDashboard")
+  if (
+    pathname === "/UserDashboard" ||
+    pathname === "/LecturerDashboard" ||
+    pathname === "/AdminDashboard" ||
+    pathname === "/TechnicianDashboard"
+  )
     return "Dashboard";
   if (pathname.startsWith("/tickets/create")) return "New ticket";
   if (pathname.startsWith("/tickets/") && pathname !== "/tickets") return "Ticket details";
@@ -158,6 +164,12 @@ function Sidebar() {
             label: "Technician dashboard",
             active: (p) => p.startsWith("/TechnicianDashboard"),
           }
+        : primaryDash === DASHBOARD_PATHS.LECTURER
+          ? {
+              to: DASHBOARD_PATHS.LECTURER,
+              label: "Lecturer dashboard",
+              active: (p) => p.startsWith("/LecturerDashboard"),
+            }
         : {
             to: DASHBOARD_PATHS.USER,
             label: "User dashboard",
@@ -248,8 +260,31 @@ function Sidebar() {
 }
 
 export default function AppShell() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [flashMessage, setFlashMessage] = useState(
+    typeof location.state?.loginSuccess === "string" ? location.state.loginSuccess : "",
+  );
+
+  useEffect(() => {
+    const nextMessage =
+      typeof location.state?.loginSuccess === "string" ? location.state.loginSuccess : "";
+    if (!nextMessage) return;
+
+    setFlashMessage(nextMessage);
+    const timer = setTimeout(() => setFlashMessage(""), 3500);
+
+    navigate(location.pathname, {
+      replace: true,
+      state: { ...(location.state || {}), loginSuccess: undefined },
+    });
+
+    return () => clearTimeout(timer);
+  }, [location.pathname, location.state, navigate]);
+
   return (
     <div className="min-h-screen bg-slate-100">
+      <FlashToast message={flashMessage} onClose={() => setFlashMessage("")} />
       <Sidebar />
       <div className="flex min-h-screen flex-1 flex-col pl-56">
         <AppHeader />

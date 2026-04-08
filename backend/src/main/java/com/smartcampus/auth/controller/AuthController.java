@@ -2,6 +2,10 @@ package com.smartcampus.auth.controller;
 
 import com.smartcampus.auth.dto.AuthResponseDTO;
 import com.smartcampus.auth.dto.GoogleAuthRequest;
+import com.smartcampus.auth.dto.LecturerOtpRequestDTO;
+import com.smartcampus.auth.dto.LecturerRegisterRequestDTO;
+import com.smartcampus.auth.dto.LecturerOtpVerifyRequestDTO;
+import com.smartcampus.auth.dto.LecturerOtpVerifyResponseDTO;
 import com.smartcampus.auth.dto.LoginRequestDTO;
 import com.smartcampus.auth.dto.UpdateProfileDTO;
 import com.smartcampus.auth.dto.UserResponseDTO;
@@ -30,6 +34,22 @@ public class AuthController {
     @PostMapping("/login")
     public AuthResponseDTO login(@Valid @RequestBody LoginRequestDTO body) {
         return authService.signInWithPassword(body);
+    }
+
+    @PostMapping("/register/lecturer")
+    public AuthResponseDTO registerLecturer(@Valid @RequestBody LecturerRegisterRequestDTO body) {
+        return authService.registerLecturer(body);
+    }
+
+    @PostMapping("/register/lecturer/request-otp")
+    public void requestLecturerOtp(@Valid @RequestBody LecturerOtpRequestDTO body) {
+        authService.requestLecturerOtp(body);
+    }
+
+    @PostMapping("/register/lecturer/verify-otp")
+    public LecturerOtpVerifyResponseDTO verifyLecturerOtp(
+            @Valid @RequestBody LecturerOtpVerifyRequestDTO body) {
+        return authService.verifyLecturerOtp(body);
     }
 
     @GetMapping("/me")

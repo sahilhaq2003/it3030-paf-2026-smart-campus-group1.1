@@ -13,8 +13,16 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use((config) => {
   const token = getMemoryToken();
-  if (token) {
+  const url = String(config.url ?? "");
+  const isPublicAuthCall =
+    url.includes("/auth/login") ||
+    url.includes("/auth/google") ||
+    url.includes("/auth/register/lecturer");
+  if (token && !isPublicAuthCall) {
     config.headers.Authorization = `Bearer ${token}`;
+  } else if (isPublicAuthCall) {
+    delete config.headers.Authorization;
+    delete config.headers.authorization;
   }
   if (config.data instanceof FormData) {
     delete config.headers["Content-Type"];

@@ -51,32 +51,43 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.createTechnician(body));
     }
 
-    @PatchMapping(value = "/technicians/{id:\\d+}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/technicians/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserProfileDTO> updateTechnician(
             @PathVariable Long id, @Valid @RequestBody UpdateTechnicianDTO body) {
         return ResponseEntity.ok(userService.updateTechnician(id, body));
     }
 
-    @DeleteMapping("/technicians/{id:\\d+}")
+    @DeleteMapping("/technicians/{id}")
     public ResponseEntity<Void> deleteTechnician(@PathVariable Long id, Authentication auth) {
         Long actorId = ((UserPrincipal) auth.getPrincipal()).getId();
         userService.deleteTechnician(id, actorId);
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Declared before GET {@code /{id}} so DELETE is registered as a first-class mapping for numeric
+     * ids (avoids method-not-allowed issues in some handler setups).
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id, Authentication auth) {
+        Long actorId = ((UserPrincipal) auth.getPrincipal()).getId();
+        userService.deleteUser(id, actorId);
+        return ResponseEntity.noContent().build();
+    }
+
     /** Path variable is digits only — does not match the segment {@code technicians}. */
-    @GetMapping("/{id:\\d+}")
+    @GetMapping("/{id}")
     public ResponseEntity<UserProfileDTO> getUser(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
-    @PatchMapping("/{id:\\d+}/role")
+    @PatchMapping("/{id}/role")
     public ResponseEntity<UserProfileDTO> updateRole(
             @PathVariable Long id, @Valid @RequestBody UpdateRoleDTO body) {
         return ResponseEntity.ok(userService.updateUserRole(id, body.getRole()));
     }
 
-    @PatchMapping("/{id:\\d+}/enable")
+    @PatchMapping("/{id}/enable")
     public ResponseEntity<UserProfileDTO> toggleEnabled(@PathVariable Long id) {
         return ResponseEntity.ok(userService.toggleUserStatus(id));
     }
