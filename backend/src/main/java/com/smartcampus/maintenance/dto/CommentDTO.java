@@ -22,7 +22,7 @@ public class CommentDTO {
     private String authorName;
     private String authorAvatarUrl;
     @NotBlank(message = "Comment content cannot be empty")
-    @Size(max = 1000, message = "Comment content exceeds maximum length of 1000 characters")
+    @Size(max = 500, message = "Comment content exceeds maximum length of 500 characters")
     private String content;
     @JsonProperty("isEdited")
     private boolean isEdited;
