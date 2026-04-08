@@ -11,6 +11,8 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
+const LOGIN_SUCCESS_MESSAGE = "Welcome back. You are signed in and your workspace is ready.";
+
 export default function LoginPage() {
   const { loginWithPassword, loginWithGoogle, loginLoading, loginError, clearLoginError } =
     useAuth();
@@ -30,7 +32,9 @@ export default function LoginPage() {
       void (async () => {
         try {
           const signedIn = await loginWithGoogle(cred);
-          navigate(getPostLoginRoute(signedIn?.roles, { viaGoogle: true }));
+          navigate(getPostLoginRoute(signedIn?.roles, { viaGoogle: true }), {
+            state: { loginSuccess: LOGIN_SUCCESS_MESSAGE },
+          });
         } catch {
           /* loginError set in AuthContext */
         }
@@ -50,7 +54,9 @@ export default function LoginPage() {
 
     try {
       const signedIn = await loginWithPassword(email.trim(), password);
-      navigate(getDashboardRoute(signedIn?.roles));
+      navigate(getDashboardRoute(signedIn?.roles), {
+        state: { loginSuccess: LOGIN_SUCCESS_MESSAGE },
+      });
     } catch {
       /* loginError set in AuthContext */
     }
@@ -61,7 +67,9 @@ export default function LoginPage() {
     setFieldErrors({});
     try {
       const signedIn = await loginWithGoogle();
-      navigate(getPostLoginRoute(signedIn?.roles, { viaGoogle: true }));
+      navigate(getPostLoginRoute(signedIn?.roles, { viaGoogle: true }), {
+        state: { loginSuccess: LOGIN_SUCCESS_MESSAGE },
+      });
     } catch {
       /* loginError set in AuthContext */
     }
