@@ -5,6 +5,7 @@ import CreateTicketPage from "../pages/member3/CreateTicketPage";
 import TicketDetailPage from "../pages/member3/TicketDetailPage";
 import AdminTicketsPage from "../pages/member3/AdminTicketsPage";
 import LoginPage from "../pages/member4/LoginPage";
+import LoginHelpPage from "../pages/member4/LoginHelpPage";
 import LandingPage from "../pages/member4/LandingPage";
 import HomePage from "../pages/member4/HomePage";
 import ProfilePage from "../pages/member4/ProfilePage";
@@ -36,6 +37,7 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/login/help" element={<LoginHelpPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
       <Route
         element={
