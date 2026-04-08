@@ -6,6 +6,11 @@ import { fetchUsers, toggleUserEnabled } from "../../api/userAdminApi";
 
 const ROLE_OPTIONS = ["USER", "ADMIN", "TECHNICIAN"];
 
+function rolesArrayFromRow(row) {
+  if (!row?.roles) return [];
+  return Array.isArray(row.roles) ? row.roles : [...row.roles];
+}
+
 function rolesLabel(roles) {
   if (!roles?.length) return "—";
   return [...roles].sort().join(", ");
@@ -21,17 +26,26 @@ export default function AdminUsersPage() {
     queryFn: () => fetchUsers({}),
   });
 
+  const userSummary = useMemo(() => {
+    const list = Array.isArray(usersQuery.data) ? usersQuery.data : [];
+    let admins = 0;
+    let managers = 0;
+    let technicians = 0;
+    let users = 0;
+    for (const row of list) {
+      const rs = new Set(rolesArrayFromRow(row));
+      if (rs.has("ADMIN")) admins += 1;
+      if (rs.has("MANAGER")) managers += 1;
+      if (rs.has("TECHNICIAN")) technicians += 1;
+      if (rs.has("USER")) users += 1;
+    }
+    return { total: list.length, admins, managers, technicians, users };
+  }, [usersQuery.data]);
+
   const sortedUsers = useMemo(() => {
     const list = Array.isArray(usersQuery.data) ? [...usersQuery.data] : [];
     const filtered = roleFilter
-      ? list.filter((row) => {
-          const rolesArr = row.roles
-            ? Array.isArray(row.roles)
-              ? row.roles
-              : [...row.roles]
-            : [];
-          return rolesArr.includes(roleFilter);
-        })
+      ? list.filter((row) => rolesArrayFromRow(row).includes(roleFilter))
       : list;
     return filtered.sort((a, b) =>
       String(a.email).localeCompare(String(b.email), undefined, {
@@ -135,6 +149,36 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
+        {!usersQuery.isLoading && !usersQuery.isError ? (
+          <section
+            className="mt-8 rounded-2xl border border-slate-200/80 bg-white px-4 py-4 shadow-sm ring-1 ring-slate-900/[0.03] sm:px-6"
+            aria-label="User directory summary"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              Summary
+            </p>
+            <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              {[
+                ["Total users", userSummary.total],
+                ["Admins", userSummary.admins],
+                ["Managers", userSummary.managers],
+                ["Technicians", userSummary.technicians],
+                ["Users", userSummary.users],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5"
+                >
+                  <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                    {label}
+                  </dt>
+                  <dd className="mt-1 text-xl font-semibold tabular-nums text-slate-900">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ) : null}
+
         <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm ring-1 ring-slate-900/[0.03]">
           {usersQuery.isLoading ? (
             <div className="flex justify-center py-20">
@@ -156,11 +200,7 @@ export default function AdminUsersPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {sortedUsers.map((row) => {
-                    const rolesArr = row.roles
-                      ? Array.isArray(row.roles)
-                        ? row.roles
-                        : [...row.roles]
-                      : [];
+                    const rolesArr = rolesArrayFromRow(row);
                     const isSelf = currentUser?.id != null && row.id === currentUser.id;
                     return (
                       <tr key={row.id} className="text-slate-800">
