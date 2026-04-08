@@ -62,7 +62,7 @@ public class AuthService {
         }
         String trimmed = idToken.trim();
         if ("dummy-google-token".equals(trimmed)) {
-            return new SimulatedGoogleProfile("dev@smartcampus.local", "Dev User", null);
+            return new SimulatedGoogleProfile("IT23603004@my.sliit.lk", "Pasindi", null);
         }
         if (googleOAuthTokenVerifier.isEnabled()) {
             Optional<GoogleUserClaims> verified = googleOAuthTokenVerifier.verify(trimmed);
@@ -185,7 +185,7 @@ public class AuthService {
         }
         String trimmed = idToken.trim();
         if ("dummy-google-token".equals(trimmed)) {
-            return new SimulatedGoogleProfile("dev@smartcampus.local", "Dev User", null);
+            return new SimulatedGoogleProfile("IT23603004@my.sliit.lk", "Pasindi", null);
         }
         String jsonPayload = null;
         if (trimmed.startsWith("{")) {

@@ -26,6 +26,9 @@ public interface TicketService {
 
     void deleteTicket(Long id);
 
+    /** Allows the ticket reporter to close a ticket that is already RESOLVED. */
+    TicketResponseDTO closeTicket(Long ticketId, Long currentUserId);
+
     Page<TicketResponseDTO> getTicketsByTechnician(Long techId, Pageable pageable);
 
     List<TechnicianPerformanceDTO> getTechnicianPerformance();

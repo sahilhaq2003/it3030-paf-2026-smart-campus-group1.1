@@ -34,6 +34,8 @@ public class TicketResponseDTO {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime resolvedAt;
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime closedAt;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime slaDeadline;
     private Boolean slaViolated;
     private Long timeElapsed; // hours since creation

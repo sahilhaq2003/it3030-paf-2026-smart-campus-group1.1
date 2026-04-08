@@ -72,6 +72,20 @@ export default function CreateTicketPage() {
   });
 
   // Validation rules
+  const validatePhoneNumber = (phone) => {
+    if (!phone) return null; // Allow empty for now, will be required in step 2
+    
+    // Pattern: optional +94 or +, followed by either:
+    // - 10 digits starting with 0, OR
+    // - 9 digits starting with 7
+    const phoneRegex = /^(\+94)?(0\d{9}|7\d{8})$/;
+    
+    if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
+      return 'Enter a valid phone number (+94771234567, 0771234567, or 771234567)';
+    }
+    return null;
+  };
+
   const validate = (field, value) => {
     const newErrors = { ...errors };
     
@@ -101,6 +115,20 @@ export default function CreateTicketPage() {
       }
     }
     
+    // Add phone validation
+    if (field === 'contact') {
+      if (!value) {
+        newErrors.contact = 'Phone number is required';
+      } else {
+        const phoneError = validatePhoneNumber(value);
+        if (phoneError) {
+          newErrors.contact = phoneError;
+        } else {
+          delete newErrors.contact;
+        }
+      }
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -122,7 +150,7 @@ export default function CreateTicketPage() {
 
   // Step validation
   const canProceedStep1 = formData.title && formData.description && formData.category && !errors.title && !errors.description && !errors.category;
-  const canProceedStep2 = formData.location && formData.contact;
+  const canProceedStep2 = formData.location && formData.contact && !errors.contact;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -292,13 +320,33 @@ export default function CreateTicketPage() {
                 <div>
                   <label className="block text-sm font-bold text-slate-900 mb-2">Preferred Contact <span className="text-red-500">*</span></label>
                   <input
-                    type="text"
+                    type="tel"
                     name="contact"
                     value={formData.contact}
                     onChange={handleInputChange}
-                    placeholder="Email or phone number"
-                    className={`w-full rounded-xl border-2 border-slate-300 px-3 py-2 text-slate-900 ${focusOk}`}
+                    onBlur={handleBlur}
+                    placeholder="e.g. +94771234567, 0771234567, or 771234567"
+                    className={`w-full border-2 rounded-lg px-3 py-2 focus:outline-none transition-all ${
+                      touched.contact && errors.contact
+                        ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200'
+                        : formData.contact && !errors.contact
+                        ? 'border-emerald-500 bg-emerald-50'
+                        : `border-slate-300 ${focusOk}`
+                    }`}
                   />
+                  {touched.contact && errors.contact && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                      <AlertCircle size={14} /> {errors.contact}
+                    </p>
+                  )}
+                  {!errors.contact && formData.contact && (
+                    <p className="text-emerald-600 text-sm mt-1 flex items-center gap-1">
+                      <CheckCircle size={14} /> Valid phone number
+                    </p>
+                  )}
+                  <p className="text-xs text-slate-500 mt-1 font-medium">
+                    Format: +94, 10 digits (0XXXXXXXX), or 9 digits (7XXXXXXXX)
+                  </p>
                 </div>
 
                 {/* Upload Images */}
