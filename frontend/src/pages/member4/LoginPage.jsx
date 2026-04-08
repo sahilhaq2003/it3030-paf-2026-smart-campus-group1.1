@@ -18,6 +18,7 @@ export default function LoginPage() {
     loginWithPassword,
     loginWithGoogle,
     requestLecturerOtp,
+    verifyLecturerOtp,
     registerLecturer,
     loginLoading,
     loginError,
@@ -30,8 +31,11 @@ export default function LoginPage() {
   const [lecturerName, setLecturerName] = useState("");
   const [lecturerEmail, setLecturerEmail] = useState("");
   const [lecturerPassword, setLecturerPassword] = useState("");
+  const [lecturerConfirmPassword, setLecturerConfirmPassword] = useState("");
   const [lecturerOtp, setLecturerOtp] = useState("");
   const [lecturerOtpSent, setLecturerOtpSent] = useState(false);
+  const [lecturerOtpVerified, setLecturerOtpVerified] = useState(false);
+  const [lecturerVerificationToken, setLecturerVerificationToken] = useState("");
   const [lecturerMode, setLecturerMode] = useState("signin");
   const [fieldErrors, setFieldErrors] = useState({});
   const [loginMode, setLoginMode] = useState("student");
@@ -95,11 +99,14 @@ export default function LoginPage() {
     const next = {};
     if (!lecturerName.trim()) next.lecturerName = "Name is required";
     if (!isValidEmail(lecturerEmail)) next.lecturerEmail = "Enter a valid email address";
+    if (!lecturerOtpVerified) {
+      next.lecturerOtp = "Verify OTP before creating account";
+    }
     if (!lecturerPassword || lecturerPassword.length < 8) {
       next.lecturerPassword = "Password must be at least 8 characters";
     }
-    if (!/^\d{6}$/.test(lecturerOtp)) {
-      next.lecturerOtp = "Enter the 6-digit OTP";
+    if (lecturerPassword !== lecturerConfirmPassword) {
+      next.lecturerConfirmPassword = "Passwords do not match";
     }
     setFieldErrors(next);
     if (Object.keys(next).length) return;
@@ -109,7 +116,7 @@ export default function LoginPage() {
         name: lecturerName.trim(),
         email: lecturerEmail.trim(),
         password: lecturerPassword,
-        otp: lecturerOtp.trim(),
+        verificationToken: lecturerVerificationToken,
       });
       navigate(getDashboardRoute(signedIn?.roles), {
         state: { loginSuccess: "Lecturer account created. You are now signed in." },
@@ -128,6 +135,24 @@ export default function LoginPage() {
     try {
       await requestLecturerOtp(lecturerEmail.trim());
       setLecturerOtpSent(true);
+      setLecturerOtpVerified(false);
+      setLecturerVerificationToken("");
+    } catch {
+      /* loginError set in AuthContext */
+    }
+  };
+
+  const handleVerifyLecturerOtp = async () => {
+    clearLoginError();
+    const next = {};
+    if (!isValidEmail(lecturerEmail)) next.lecturerEmail = "Enter a valid email address";
+    if (!/^\d{6}$/.test(lecturerOtp)) next.lecturerOtp = "Enter the 6-digit OTP";
+    setFieldErrors((f) => ({ ...f, ...next }));
+    if (Object.keys(next).length) return;
+    try {
+      const res = await verifyLecturerOtp({ email: lecturerEmail.trim(), otp: lecturerOtp.trim() });
+      setLecturerOtpVerified(true);
+      setLecturerVerificationToken(res?.verificationToken ?? "");
     } catch {
       /* loginError set in AuthContext */
     }
@@ -156,6 +181,8 @@ export default function LoginPage() {
     clearLoginError();
     setFieldErrors({});
     setLecturerOtpSent(false);
+    setLecturerOtpVerified(false);
+    setLecturerVerificationToken("");
     if (mode === "lecturer") {
       setLecturerMode("signin");
     }
@@ -393,6 +420,8 @@ export default function LoginPage() {
                       setFieldErrors({});
                       clearLoginError();
                       setLecturerOtpSent(false);
+                      setLecturerOtpVerified(false);
+                      setLecturerVerificationToken("");
                     }}
                     className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
                       lecturerMode === "signin"
@@ -409,6 +438,8 @@ export default function LoginPage() {
                       setFieldErrors({});
                       clearLoginError();
                       setLecturerOtpSent(false);
+                      setLecturerOtpVerified(false);
+                      setLecturerVerificationToken("");
                     }}
                     className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
                       lecturerMode === "create"
@@ -524,38 +555,82 @@ export default function LoginPage() {
                       {fieldErrors.lecturerOtp ? (
                         <p className="mt-1 text-xs text-red-600">{fieldErrors.lecturerOtp}</p>
                       ) : null}
+                      <button
+                        type="button"
+                        onClick={handleVerifyLecturerOtp}
+                        disabled={loginLoading}
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-60"
+                      >
+                        {loginLoading ? "Verifying OTP…" : lecturerOtpVerified ? "OTP Verified" : "Verify OTP"}
+                      </button>
                     </div>
                   ) : null}
 
-                  <div>
-                    <label
-                      htmlFor="lecturer-password"
-                      className="block text-sm font-medium text-slate-700"
-                    >
-                      Password
-                    </label>
-                    <input
-                      id="lecturer-password"
-                      type="password"
-                      value={lecturerPassword}
-                      onChange={(ev) => {
-                        setLecturerPassword(ev.target.value);
-                        if (fieldErrors.lecturerPassword) {
-                          setFieldErrors((f) => ({ ...f, lecturerPassword: undefined }));
-                        }
-                      }}
-                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
-                      placeholder="At least 8 characters"
-                      disabled={loginLoading}
-                    />
-                    {fieldErrors.lecturerPassword ? (
-                      <p className="mt-1 text-xs text-red-600">{fieldErrors.lecturerPassword}</p>
-                    ) : null}
-                  </div>
+                  {lecturerMode === "signin" || lecturerOtpVerified ? (
+                    <>
+                      <div>
+                        <label
+                          htmlFor="lecturer-password"
+                          className="block text-sm font-medium text-slate-700"
+                        >
+                          Password
+                        </label>
+                        <input
+                          id="lecturer-password"
+                          type="password"
+                          value={lecturerPassword}
+                          onChange={(ev) => {
+                            setLecturerPassword(ev.target.value);
+                            if (fieldErrors.lecturerPassword) {
+                              setFieldErrors((f) => ({ ...f, lecturerPassword: undefined }));
+                            }
+                          }}
+                          className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
+                          placeholder="At least 8 characters"
+                          disabled={loginLoading}
+                        />
+                        {fieldErrors.lecturerPassword ? (
+                          <p className="mt-1 text-xs text-red-600">{fieldErrors.lecturerPassword}</p>
+                        ) : null}
+                      </div>
+                      {lecturerMode === "create" ? (
+                        <div>
+                          <label
+                            htmlFor="lecturer-confirm-password"
+                            className="block text-sm font-medium text-slate-700"
+                          >
+                            Re-enter password
+                          </label>
+                          <input
+                            id="lecturer-confirm-password"
+                            type="password"
+                            value={lecturerConfirmPassword}
+                            onChange={(ev) => {
+                              setLecturerConfirmPassword(ev.target.value);
+                              if (fieldErrors.lecturerConfirmPassword) {
+                                setFieldErrors((f) => ({
+                                  ...f,
+                                  lecturerConfirmPassword: undefined,
+                                }));
+                              }
+                            }}
+                            className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
+                            placeholder="Re-enter password"
+                            disabled={loginLoading}
+                          />
+                          {fieldErrors.lecturerConfirmPassword ? (
+                            <p className="mt-1 text-xs text-red-600">
+                              {fieldErrors.lecturerConfirmPassword}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </>
+                  ) : null}
 
                   <button
                     type="submit"
-                    disabled={loginLoading}
+                    disabled={loginLoading || (lecturerMode === "create" && !lecturerOtpVerified)}
                     className="w-full rounded-xl bg-campus-brand px-4 py-3.5 text-sm font-semibold text-white shadow-md shadow-slate-900/10 transition hover:bg-campus-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand disabled:pointer-events-none disabled:opacity-60"
                   >
                     {loginLoading

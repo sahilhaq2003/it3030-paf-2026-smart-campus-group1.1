@@ -6,6 +6,8 @@ import com.smartcampus.auth.dto.AuthResponseDTO;
 import com.smartcampus.auth.dto.GoogleUserClaims;
 import com.smartcampus.auth.dto.LecturerOtpRequestDTO;
 import com.smartcampus.auth.dto.LecturerRegisterRequestDTO;
+import com.smartcampus.auth.dto.LecturerOtpVerifyRequestDTO;
+import com.smartcampus.auth.dto.LecturerOtpVerifyResponseDTO;
 import com.smartcampus.auth.dto.LoginRequestDTO;
 import com.smartcampus.auth.dto.UpdateProfileDTO;
 import com.smartcampus.auth.dto.UserResponseDTO;
@@ -144,20 +146,36 @@ public class AuthService {
     }
 
     @Transactional
+    public LecturerOtpVerifyResponseDTO verifyLecturerOtp(LecturerOtpVerifyRequestDTO body) {
+        String email = body.getEmail() != null ? body.getEmail().trim().toLowerCase() : "";
+        String otp = body.getOtp() != null ? body.getOtp().trim() : "";
+        if (email.isEmpty() || otp.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email and OTP required");
+        }
+        String verificationToken = lecturerOtpService.verifyOtpAndIssueToken(email, otp);
+        if (verificationToken == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or expired OTP");
+        }
+        return LecturerOtpVerifyResponseDTO.builder().verificationToken(verificationToken).build();
+    }
+
+    @Transactional
     public AuthResponseDTO registerLecturer(LecturerRegisterRequestDTO body) {
         String email = body.getEmail() != null ? body.getEmail().trim().toLowerCase() : "";
         String rawPassword = body.getPassword() != null ? body.getPassword().trim() : "";
         String name = body.getName() != null ? body.getName().trim() : "";
-        String otp = body.getOtp() != null ? body.getOtp().trim() : "";
+        String verificationToken =
+                body.getVerificationToken() != null ? body.getVerificationToken().trim() : "";
 
-        if (email.isEmpty() || rawPassword.isEmpty() || name.isEmpty() || otp.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name, email, password and OTP required");
+        if (email.isEmpty() || rawPassword.isEmpty() || name.isEmpty() || verificationToken.isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Name, email, password and verification token required");
         }
         if (userRepository.findByEmail(email).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This email is already registered");
         }
-        if (!lecturerOtpService.verifyAndConsume(email, otp)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or expired OTP");
+        if (!lecturerOtpService.consumeVerifiedToken(email, verificationToken)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is not OTP-verified");
         }
 
         Set<Role> roles = new HashSet<>();

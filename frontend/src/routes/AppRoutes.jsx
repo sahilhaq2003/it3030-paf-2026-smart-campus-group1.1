@@ -15,6 +15,7 @@ import NotFoundPage from "../pages/member4/NotFoundPage";
 import UserDashboard from "../pages/dashboards/UserDashboard";
 import AdminDashboard from "../pages/dashboards/AdminDashboard";
 import TechnicianDashboard from "../pages/dashboards/TechnicianDashboard";
+import LecturerDashboard from "../pages/dashboards/LecturerDashboard";
 import ProtectedRoute from "./ProtectedRoute";
 import CreateTicketRoute from "./CreateTicketRoute";
 import UserMyTicketsRoute from "./UserMyTicketsRoute";
@@ -62,7 +63,7 @@ export default function AppRoutes() {
           path="/LecturerDashboard"
           element={
             <RoleProtectedDashboard dashboardPath={DASHBOARD_PATHS.LECTURER}>
-              <UserDashboard />
+              <LecturerDashboard />
             </RoleProtectedDashboard>
           }
         />

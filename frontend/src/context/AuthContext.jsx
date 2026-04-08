@@ -13,6 +13,7 @@ import {
   loginWithPassword as loginWithPasswordApi,
   requestLecturerOtp as requestLecturerOtpApi,
   registerLecturer as registerLecturerApi,
+  verifyLecturerOtp as verifyLecturerOtpApi,
   updateCurrentUserProfile as updateCurrentUserProfileApi,
 } from "../api/authApi";
 import {
@@ -112,7 +113,7 @@ export function AuthProvider({ children }) {
   );
 
   const registerLecturer = useCallback(
-    async ({ name, email, password }) => {
+    async ({ name, email, password, verificationToken }) => {
       setLoginError(null);
       setLoginLoading(true);
       try {
@@ -120,6 +121,7 @@ export function AuthProvider({ children }) {
           name,
           email,
           password,
+          verificationToken,
         });
         return applyAuthResponse(accessToken, nextUser);
       } catch (err) {
@@ -138,6 +140,20 @@ export function AuthProvider({ children }) {
     setLoginLoading(true);
     try {
       await requestLecturerOtpApi(email);
+    } catch (err) {
+      const message = resolveAuthErrorMessage(err);
+      setLoginError(message);
+      throw err;
+    } finally {
+      setLoginLoading(false);
+    }
+  }, []);
+
+  const verifyLecturerOtp = useCallback(async ({ email, otp }) => {
+    setLoginError(null);
+    setLoginLoading(true);
+    try {
+      return await verifyLecturerOtpApi({ email, otp });
     } catch (err) {
       const message = resolveAuthErrorMessage(err);
       setLoginError(message);
@@ -181,6 +197,7 @@ export function AuthProvider({ children }) {
       loginWithGoogle,
       loginWithPassword,
       requestLecturerOtp,
+      verifyLecturerOtp,
       registerLecturer,
       logout,
       isAuthenticated: Boolean(user && token),
@@ -197,6 +214,7 @@ export function AuthProvider({ children }) {
       loginWithGoogle,
       loginWithPassword,
       requestLecturerOtp,
+      verifyLecturerOtp,
       registerLecturer,
       logout,
       bootstrapping,

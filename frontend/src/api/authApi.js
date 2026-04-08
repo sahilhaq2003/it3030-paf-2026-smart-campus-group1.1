@@ -33,6 +33,12 @@ export async function requestLecturerOtp(email) {
   await axiosInstance.post("/auth/register/lecturer/request-otp", { email });
 }
 
+/** POST /auth/register/lecturer/verify-otp — verifies OTP and returns verification token. */
+export async function verifyLecturerOtp({ email, otp }) {
+  const { data } = await axiosInstance.post("/auth/register/lecturer/verify-otp", { email, otp });
+  return data;
+}
+
 /** GET /auth/me — requires Authorization header (set by axios interceptor). */
 export async function fetchCurrentUser() {
   const { data } = await axiosInstance.get("/auth/me");
