@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
-import { fetchUsers, toggleUserEnabled } from "../../api/userAdminApi";
+import { deleteUser, fetchUsers, toggleUserEnabled } from "../../api/userAdminApi";
 
 const ROLE_OPTIONS = ["USER", "ADMIN", "TECHNICIAN"];
 
@@ -14,6 +14,21 @@ function rolesArrayFromRow(row) {
 function rolesLabel(roles) {
   if (!roles?.length) return "—";
   return [...roles].sort().join(", ");
+}
+
+function isStaffProtectedFromRemoval(roles) {
+  const s = new Set(roles ?? []);
+  return s.has("ADMIN") || s.has("MANAGER");
+}
+
+function apiErrorMessage(error, fallback) {
+  const d = error?.response?.data;
+  if (typeof d === "string" && d.trim()) return d;
+  if (d && typeof d === "object") {
+    const msg = d.detail ?? d.message ?? d.error;
+    if (typeof msg === "string" && msg.trim()) return msg;
+  }
+  return fallback;
 }
 
 export default function AdminUsersPage() {
@@ -58,12 +73,26 @@ export default function AdminUsersPage() {
     mutationFn: (id) => toggleUserEnabled(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"], exact: false });
-      toast.success("Account status updated");
+      toast.success("Account access updated");
     },
-    onError: () => {
-      toast.error("Could not update account status");
+    onError: (error) => {
+      toast.error(apiErrorMessage(error, "Could not update account access"));
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => deleteUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"], exact: false });
+      toast.success("User removed");
+    },
+    onError: (error) => {
+      toast.error(apiErrorMessage(error, "Could not remove user"));
+    },
+  });
+
+  const accessBusyId = enableMutation.isPending ? enableMutation.variables : null;
+  const removeBusyId = deleteMutation.isPending ? deleteMutation.variables : null;
 
   return (
     <div className="relative min-h-full bg-slate-100">
@@ -83,8 +112,9 @@ export default function AdminUsersPage() {
           Users
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-          Roles are shown for reference only and cannot be changed here. You can enable or disable
-          sign-in for other accounts; you cannot change your own status from this screen.
+          Roles are shown for reference only and cannot be changed here. You can block or unblock
+          sign-in for other accounts, or remove accounts that are not administrators or managers.
+          You cannot change your own access from this screen.
         </p>
 
         <div className="mt-6 space-y-3">
@@ -195,13 +225,21 @@ export default function AdminUsersPage() {
                   <tr>
                     <th className="px-4 py-3 sm:px-6">User</th>
                     <th className="px-4 py-3 sm:px-6">Roles</th>
-                    <th className="px-4 py-3 sm:px-6">Active</th>
+                    <th className="px-4 py-3 sm:px-6">Access</th>
+                    <th className="px-4 py-3 sm:px-6 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {sortedUsers.map((row) => {
                     const rolesArr = rolesArrayFromRow(row);
                     const isSelf = currentUser?.id != null && row.id === currentUser.id;
+                    const rowAccessBusy = accessBusyId === row.id;
+                    const rowRemoveBusy = removeBusyId === row.id;
+                    const canToggleAccess = !isSelf && !enableMutation.isPending;
+                    const canRemove =
+                      !isSelf &&
+                      !isStaffProtectedFromRemoval(rolesArr) &&
+                      !deleteMutation.isPending;
                     return (
                       <tr key={row.id} className="text-slate-800">
                         <td className="px-4 py-3 sm:px-6">
@@ -214,19 +252,64 @@ export default function AdminUsersPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 sm:px-6">
-                          <label className="inline-flex cursor-pointer items-center gap-2">
-                            <input
-                              type="checkbox"
-                              className="h-4 w-4 rounded border-slate-300 text-campus-brand focus:ring-campus-brand disabled:cursor-not-allowed disabled:opacity-50"
-                              checked={Boolean(row.enabled)}
-                              disabled={isSelf || enableMutation.isPending}
-                              onChange={() => enableMutation.mutate(row.id)}
-                              aria-label={`Account active for ${row.email}`}
-                            />
-                            <span className="text-xs text-slate-600">
-                              {row.enabled ? "Enabled" : "Disabled"}
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                            <span
+                              className={`inline-flex w-fit rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
+                                row.enabled
+                                  ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-600/15"
+                                  : "bg-amber-50 text-amber-900 ring-1 ring-amber-600/20"
+                              }`}
+                            >
+                              {row.enabled ? "Active" : "Blocked"}
                             </span>
-                          </label>
+                            {row.enabled ? (
+                              <button
+                                type="button"
+                                disabled={!canToggleAccess}
+                                onClick={() => enableMutation.mutate(row.id)}
+                                className="w-fit rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {rowAccessBusy ? "…" : "Block"}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={!canToggleAccess}
+                                onClick={() => enableMutation.mutate(row.id)}
+                                className="w-fit rounded-lg border border-campus-brand/40 bg-campus-brand/5 px-2.5 py-1 text-xs font-semibold text-campus-brand shadow-sm transition hover:bg-campus-brand/10 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {rowAccessBusy ? "…" : "Unblock"}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 sm:px-6">
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              disabled={!canRemove}
+                              title={
+                                isSelf
+                                  ? "You cannot remove your own account"
+                                  : isStaffProtectedFromRemoval(rolesArr)
+                                    ? "Administrator and manager accounts cannot be removed here"
+                                    : undefined
+                              }
+                              onClick={() => {
+                                if (
+                                  !window.confirm(
+                                    `Remove account ${row.email}? This cannot be undone.`,
+                                  )
+                                ) {
+                                  return;
+                                }
+                                deleteMutation.mutate(row.id);
+                              }}
+                              className="rounded-lg border border-red-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-700 shadow-sm transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {rowRemoveBusy ? "…" : "Remove"}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );

@@ -12,6 +12,8 @@ import java.util.Optional;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
+    long deleteByRecipient_Id(Long recipientId);
+
     Page<Notification> findByRecipientIdOrderByCreatedAtDesc(Long recipientId, Pageable pageable);
 
     Optional<Notification> findByIdAndRecipient_Id(Long id, Long recipientId);
