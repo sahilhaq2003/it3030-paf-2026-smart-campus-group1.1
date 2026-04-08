@@ -17,6 +17,7 @@ export default function LoginPage() {
   const {
     loginWithPassword,
     loginWithGoogle,
+    requestLecturerOtp,
     registerLecturer,
     loginLoading,
     loginError,
@@ -29,6 +30,8 @@ export default function LoginPage() {
   const [lecturerName, setLecturerName] = useState("");
   const [lecturerEmail, setLecturerEmail] = useState("");
   const [lecturerPassword, setLecturerPassword] = useState("");
+  const [lecturerOtp, setLecturerOtp] = useState("");
+  const [lecturerOtpSent, setLecturerOtpSent] = useState(false);
   const [lecturerMode, setLecturerMode] = useState("signin");
   const [fieldErrors, setFieldErrors] = useState({});
   const [loginMode, setLoginMode] = useState("student");
@@ -95,6 +98,9 @@ export default function LoginPage() {
     if (!lecturerPassword || lecturerPassword.length < 8) {
       next.lecturerPassword = "Password must be at least 8 characters";
     }
+    if (!/^\d{6}$/.test(lecturerOtp)) {
+      next.lecturerOtp = "Enter the 6-digit OTP";
+    }
     setFieldErrors(next);
     if (Object.keys(next).length) return;
 
@@ -103,10 +109,25 @@ export default function LoginPage() {
         name: lecturerName.trim(),
         email: lecturerEmail.trim(),
         password: lecturerPassword,
+        otp: lecturerOtp.trim(),
       });
       navigate(getDashboardRoute(signedIn?.roles), {
         state: { loginSuccess: "Lecturer account created. You are now signed in." },
       });
+    } catch {
+      /* loginError set in AuthContext */
+    }
+  };
+
+  const handleSendLecturerOtp = async () => {
+    clearLoginError();
+    const next = {};
+    if (!isValidEmail(lecturerEmail)) next.lecturerEmail = "Enter a valid email address";
+    setFieldErrors((f) => ({ ...f, ...next }));
+    if (Object.keys(next).length) return;
+    try {
+      await requestLecturerOtp(lecturerEmail.trim());
+      setLecturerOtpSent(true);
     } catch {
       /* loginError set in AuthContext */
     }
@@ -134,6 +155,7 @@ export default function LoginPage() {
     setLoginMode(mode);
     clearLoginError();
     setFieldErrors({});
+    setLecturerOtpSent(false);
     if (mode === "lecturer") {
       setLecturerMode("signin");
     }
@@ -370,6 +392,7 @@ export default function LoginPage() {
                       setLecturerMode("signin");
                       setFieldErrors({});
                       clearLoginError();
+                      setLecturerOtpSent(false);
                     }}
                     className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
                       lecturerMode === "signin"
@@ -385,6 +408,7 @@ export default function LoginPage() {
                       setLecturerMode("create");
                       setFieldErrors({});
                       clearLoginError();
+                      setLecturerOtpSent(false);
                     }}
                     className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
                       lecturerMode === "create"
@@ -457,6 +481,51 @@ export default function LoginPage() {
                       <p className="mt-1 text-xs text-red-600">{fieldErrors.lecturerEmail}</p>
                     ) : null}
                   </div>
+
+                  {lecturerMode === "create" ? (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={handleSendLecturerOtp}
+                        disabled={loginLoading}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-60"
+                      >
+                        {loginLoading ? "Sending OTP…" : lecturerOtpSent ? "Resend OTP" : "Send OTP"}
+                      </button>
+                      {lecturerOtpSent ? (
+                        <p className="text-xs text-emerald-700">
+                          OTP sent to your email. Check inbox/spam and enter it below.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {lecturerMode === "create" ? (
+                    <div>
+                      <label htmlFor="lecturer-otp" className="block text-sm font-medium text-slate-700">
+                        OTP
+                      </label>
+                      <input
+                        id="lecturer-otp"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={lecturerOtp}
+                        onChange={(ev) => {
+                          setLecturerOtp(ev.target.value.replace(/\D/g, ""));
+                          if (fieldErrors.lecturerOtp) {
+                            setFieldErrors((f) => ({ ...f, lecturerOtp: undefined }));
+                          }
+                        }}
+                        className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm tracking-[0.2em] text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
+                        placeholder="123456"
+                        disabled={loginLoading}
+                      />
+                      {fieldErrors.lecturerOtp ? (
+                        <p className="mt-1 text-xs text-red-600">{fieldErrors.lecturerOtp}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   <div>
                     <label

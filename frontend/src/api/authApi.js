@@ -28,6 +28,11 @@ export async function registerLecturer(body) {
   return data;
 }
 
+/** POST /auth/register/lecturer/request-otp — sends lecturer verification OTP via email. */
+export async function requestLecturerOtp(email) {
+  await axiosInstance.post("/auth/register/lecturer/request-otp", { email });
+}
+
 /** GET /auth/me — requires Authorization header (set by axios interceptor). */
 export async function fetchCurrentUser() {
   const { data } = await axiosInstance.get("/auth/me");

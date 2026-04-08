@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartcampus.auth.dto.AuthResponseDTO;
 import com.smartcampus.auth.dto.GoogleUserClaims;
+import com.smartcampus.auth.dto.LecturerOtpRequestDTO;
 import com.smartcampus.auth.dto.LecturerRegisterRequestDTO;
 import com.smartcampus.auth.dto.LoginRequestDTO;
 import com.smartcampus.auth.dto.UpdateProfileDTO;
@@ -13,7 +14,11 @@ import com.smartcampus.user.model.Role;
 import com.smartcampus.user.model.User;
 import com.smartcampus.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.MailException;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,6 +43,17 @@ public class AuthService {
     private final ObjectMapper objectMapper;
     private final PasswordEncoder passwordEncoder;
     private final GoogleOAuthTokenVerifier googleOAuthTokenVerifier;
+    private final LecturerOtpService lecturerOtpService;
+    private final JavaMailSender mailSender;
+
+    @Value("${app.mail.enabled:false}")
+    private boolean mailEnabled;
+
+    @Value("${app.mail.from:}")
+    private String from;
+
+    @Value("${spring.mail.username:}")
+    private String mailUsername;
 
     /**
      * Google Sign-In: when {@code app.google.client-id} is set, verifies the credential JWT with
@@ -111,16 +127,37 @@ public class AuthService {
     }
 
     @Transactional
+    public void requestLecturerOtp(LecturerOtpRequestDTO body) {
+        String email = body.getEmail() != null ? body.getEmail().trim().toLowerCase() : "";
+        if (email.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email required");
+        }
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This email is already registered");
+        }
+        if (!mailEnabled) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE, "Email verification is not available right now");
+        }
+        String otp = lecturerOtpService.issueOtp(email);
+        sendLecturerOtpEmail(email, otp);
+    }
+
+    @Transactional
     public AuthResponseDTO registerLecturer(LecturerRegisterRequestDTO body) {
         String email = body.getEmail() != null ? body.getEmail().trim().toLowerCase() : "";
         String rawPassword = body.getPassword() != null ? body.getPassword().trim() : "";
         String name = body.getName() != null ? body.getName().trim() : "";
+        String otp = body.getOtp() != null ? body.getOtp().trim() : "";
 
-        if (email.isEmpty() || rawPassword.isEmpty() || name.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name, email and password required");
+        if (email.isEmpty() || rawPassword.isEmpty() || name.isEmpty() || otp.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name, email, password and OTP required");
         }
         if (userRepository.findByEmail(email).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This email is already registered");
+        }
+        if (!lecturerOtpService.verifyAndConsume(email, otp)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or expired OTP");
         }
 
         Set<Role> roles = new HashSet<>();
@@ -140,6 +177,36 @@ public class AuthService {
         User saved = userRepository.save(user);
         String token = jwtService.generateToken(saved);
         return AuthResponseDTO.builder().token(token).user(toUserResponse(saved)).build();
+    }
+
+    private void sendLecturerOtpEmail(String toEmail, String otp) {
+        String effectiveFrom = (from != null && !from.isBlank()) ? from : mailUsername;
+        if (effectiveFrom == null || effectiveFrom.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE, "Email verification is not configured");
+        }
+        try {
+            var mime = mailSender.createMimeMessage();
+            var helper = new MimeMessageHelper(mime, "UTF-8");
+            helper.setFrom(effectiveFrom);
+            helper.setTo(toEmail);
+            helper.setSubject("Smart Campus Lecturer Verification Code");
+            helper.setText(
+                    "<html><body style='font-family:Arial,sans-serif;background:#f8fafc;padding:20px;'>"
+                            + "<div style='max-width:540px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;'>"
+                            + "<h2 style='margin-top:0;color:#1e293b;'>Lecturer account verification</h2>"
+                            + "<p style='color:#334155;'>Use this one-time code to verify your email:</p>"
+                            + "<p style='font-size:28px;font-weight:700;letter-spacing:4px;color:#4f46e5;margin:12px 0;'>"
+                            + otp
+                            + "</p>"
+                            + "<p style='color:#64748b;'>This code expires in 5 minutes.</p>"
+                            + "</div></body></html>",
+                    true);
+            mailSender.send(mime);
+        } catch (MailException | jakarta.mail.MessagingException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE, "Unable to send verification email");
+        }
     }
 
     /** Resolves the current user from the security context (JWT) and returns the persisted profile. */
