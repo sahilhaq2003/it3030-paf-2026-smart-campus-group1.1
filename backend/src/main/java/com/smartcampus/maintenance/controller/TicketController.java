@@ -120,6 +120,16 @@ public class TicketController {
                         Authz.isTechnician(auth)));
     }
 
+    // POST /api/tickets/{id}/close — reporter closes their own resolved ticket
+    @PostMapping("/{id:\\d+}/close")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<TicketResponseDTO> closeTicket(
+        @PathVariable Long id,
+        Authentication auth
+    ) {
+        return ResponseEntity.ok(ticketService.closeTicket(id, getUserId(auth)));
+    }
+
     // PATCH /api/tickets/{id}/assign
     @PatchMapping("/{id:\\d+}/assign")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")

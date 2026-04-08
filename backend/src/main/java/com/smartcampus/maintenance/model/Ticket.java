@@ -76,6 +76,9 @@ public class Ticket {
 
     private LocalDateTime resolvedAt;
 
+    /** Timestamp when the reporter (campus user) confirmed closure after resolution. */
+    private LocalDateTime closedAt;
+
     /** Target resolution time from {@link #createdAt}, derived from {@link #priority} (CRITICAL 2h, HIGH 8h, …). */
     private LocalDateTime slaDeadline;
 }

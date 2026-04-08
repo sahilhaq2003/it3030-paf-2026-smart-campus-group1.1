@@ -160,6 +160,22 @@ export default function TicketDetailPage() {
     },
   });
 
+  const closeTicketMutation = useMutation({
+    mutationFn: () => ticketApi.closeTicket(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ticket", id] });
+      qc.invalidateQueries({ queryKey: ["tickets", "my"] });
+      toast.success("Ticket successfully closed");
+    },
+    onError: (err) => {
+      const msg =
+        err?.response?.data?.message ||
+        (typeof err?.response?.data === "string" ? err.response.data : null) ||
+        "Could not close ticket";
+      toast.error(typeof msg === "string" ? msg : "Could not close ticket");
+    },
+  });
+
   const roleSet = normalizeRoles(user?.roles ?? (user?.role != null ? [user.role] : []));
   const isAdmin = roleSet.has("ADMIN");
   const isTechnician = roleSet.has("TECHNICIAN");
@@ -302,7 +318,7 @@ export default function TicketDetailPage() {
 
         <div className="border-b border-slate-200 bg-white px-6 py-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Status Timeline</p>
-          <TicketStatusStepper status={ticket.status} resolvedAt={ticket.resolvedAt} />
+          <TicketStatusStepper status={ticket.status} resolvedAt={ticket.resolvedAt} closedAt={ticket.closedAt} />
           <ul className="mt-4 list-none space-y-4 pl-0">
             <li className="flex gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-campus-brand/15 text-campus-brand">
@@ -363,6 +379,59 @@ export default function TicketDetailPage() {
             <div className="mt-4 rounded-xl border border-emerald-300 bg-emerald-50 p-4 shadow-sm">
               <p className="mb-1 text-sm font-bold text-emerald-900">Resolution notes</p>
               <p className="text-sm font-medium text-emerald-900">{ticket.resolutionNotes}</p>
+            </div>
+          ) : null}
+
+          {/* Close Ticket — shown to the reporter when the ticket is Resolved */}
+          {isReporter && ticket.status === "RESOLVED" ? (
+            <div className="mt-5 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-slate-900">Satisfied with the resolution?</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
+                    Close the ticket to confirm the issue has been resolved to your satisfaction.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  id="close-ticket-btn"
+                  disabled={closeTicketMutation.isPending}
+                  onClick={() => {
+                    if (window.confirm("Are you sure you want to close this ticket?")) {
+                      closeTicketMutation.mutate();
+                    }
+                  }}
+                  className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-60"
+                >
+                  {closeTicketMutation.isPending ? (
+                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : null}
+                  {closeTicketMutation.isPending ? "Closing…" : "Close Ticket"}
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Closed state — non-interactive badge shown after the user closes */}
+          {isReporter && ticket.status === "CLOSED" ? (
+            <div className="mt-5 rounded-2xl border border-blue-300 bg-blue-50 p-5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-blue-900">Ticket closed</p>
+                  {ticket.closedAt ? (
+                    <p className="mt-0.5 text-xs text-blue-700">
+                      Closed on {formatDate(ticket.closedAt)}
+                    </p>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  disabled
+                  className="flex cursor-not-allowed items-center gap-2 rounded-xl bg-blue-400 px-5 py-2.5 text-sm font-semibold text-white opacity-70 shadow-sm"
+                >
+                  Closed
+                </button>
+              </div>
             </div>
           ) : null}
 
