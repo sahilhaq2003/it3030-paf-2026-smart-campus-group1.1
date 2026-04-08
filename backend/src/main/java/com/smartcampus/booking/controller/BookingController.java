@@ -1,0 +1,107 @@
+package com.smartcampus.booking.controller;
+
+import com.smartcampus.auth.model.UserPrincipal;
+import com.smartcampus.booking.dto.BookingRequestDTO;
+import com.smartcampus.booking.dto.BookingResponseDTO;
+import com.smartcampus.booking.dto.BookingReviewDTO;
+import com.smartcampus.booking.service.BookingService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/bookings")
+@RequiredArgsConstructor
+public class BookingController {
+
+    private final BookingService bookingService;
+
+    // GET /api/bookings — ADMIN only
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<BookingResponseDTO>> getAllBookings() {
+        return ResponseEntity.ok(bookingService.getAllBookings());
+    }
+
+    // GET /api/bookings/my — STUDENT, LECTURER
+    @GetMapping("/my")
+    @PreAuthorize("hasAnyRole('STUDENT', 'LECTURER')")
+    public ResponseEntity<List<BookingResponseDTO>> getMyBookings(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(bookingService.getMyBookings(principal.getId()));
+    }
+
+    // GET /api/bookings/{id} — STUDENT, LECTURER, ADMIN
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('STUDENT', 'LECTURER', 'ADMIN')")
+    public ResponseEntity<BookingResponseDTO> getBookingById(
+            @PathVariable Long id) {
+        return ResponseEntity.ok(bookingService.getBookingById(id));
+    }
+
+    // GET /api/bookings/availability — STUDENT, LECTURER
+    @GetMapping("/availability")
+    @PreAuthorize("hasAnyRole('STUDENT', 'LECTURER')")
+    public ResponseEntity<Boolean> checkAvailability(
+            @RequestParam Long facilityId,
+            @RequestParam LocalDate date,
+            @RequestParam LocalTime startTime,
+            @RequestParam LocalTime endTime) {
+        return ResponseEntity.ok(
+                bookingService.isAvailable(facilityId, date, startTime, endTime));
+    }
+
+    // POST /api/bookings — STUDENT, LECTURER
+    @PostMapping
+    @PreAuthorize("hasAnyRole('STUDENT', 'LECTURER')")
+    public ResponseEntity<BookingResponseDTO> createBooking(
+            @Valid @RequestBody BookingRequestDTO request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        BookingResponseDTO response = bookingService.createBooking(request, principal.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    // PATCH /api/bookings/{id}/approve — ADMIN only
+    @PatchMapping("/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BookingResponseDTO> approveBooking(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(bookingService.approveBooking(id, principal.getId()));
+    }
+
+    // PATCH /api/bookings/{id}/reject — ADMIN only
+    @PatchMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BookingResponseDTO> rejectBooking(
+            @PathVariable Long id,
+            @Valid @RequestBody BookingReviewDTO review,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(bookingService.rejectBooking(id, review, principal.getId()));
+    }
+
+    // PATCH /api/bookings/{id}/cancel — STUDENT, LECTURER, ADMIN
+    @PatchMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('STUDENT', 'LECTURER', 'ADMIN')")
+    public ResponseEntity<BookingResponseDTO> cancelBooking(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(bookingService.cancelBooking(id, principal.getId()));
+    }
+
+    // DELETE /api/bookings/{id} — ADMIN only
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteBooking(@PathVariable Long id) {
+        bookingService.deleteBooking(id);
+        return ResponseEntity.noContent().build();
+    }
+}
