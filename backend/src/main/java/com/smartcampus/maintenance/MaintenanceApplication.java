@@ -34,18 +34,32 @@ public class MaintenanceApplication {
         SpringApplication.run(MaintenanceApplication.class, args);
     }
 
-    /** Reads {@code backend/.env} when present; OS env vars take precedence. */
+    /**
+     * Reads the first {@code .env} found (OS env vars still take precedence).
+     * Tries {@code backend/.env} then {@code backend/src/main/.env} because {@code mvnw} is run from {@code backend/}.
+     */
     private static void loadDotenv() {
-        Dotenv dotenv = Dotenv.configure().directory("./").ignoreIfMissing().load();
-        dotenv
-                .entries()
-                .forEach(
-                        e -> {
-                            String key = e.getKey();
-                            if (System.getenv(key) == null && System.getProperty(key) == null) {
-                                System.setProperty(key, e.getValue());
-                            }
-                        });
+        String[] directories = {".", "src/main"};
+        for (String dir : directories) {
+            try {
+                Dotenv dotenv = Dotenv.configure().directory(dir).load();
+                if (dotenv.entries().isEmpty()) {
+                    continue;
+                }
+                dotenv
+                        .entries()
+                        .forEach(
+                                e -> {
+                                    String key = e.getKey();
+                                    if (System.getenv(key) == null && System.getProperty(key) == null) {
+                                        System.setProperty(key, e.getValue());
+                                    }
+                                });
+                return;
+            } catch (Exception ignored) {
+                // Try next directory
+            }
+        }
     }
 
     /**
