@@ -33,6 +33,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, "Bad Request", "Invalid parameter provided.");
     }
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleResponseStatusException(org.springframework.web.server.ResponseStatusException ex) {
+        return buildErrorResponse(HttpStatus.valueOf(ex.getStatusCode().value()), "Error", ex.getReason());
+    }
     
     // Add additional generic business exceptions here using 400, 409, 404 accordingly.
     
