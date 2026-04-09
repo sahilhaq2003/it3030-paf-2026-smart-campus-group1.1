@@ -54,15 +54,15 @@ public class BookingServiceImpl implements BookingService {
         facility.setId(request.getFacilityId());
 
         Booking booking = Booking.builder()
-                .user(user)
-                .facility(facility)
-                .bookingDate(request.getBookingDate())
-                .startTime(request.getStartTime())
-                .endTime(request.getEndTime())
-                .purpose(request.getPurpose())
-                .status(BookingStatus.PENDING)
-                .build();
-
+        .user(user)
+        .facility(facility)
+        .bookingDate(request.getBookingDate())
+        .startTime(request.getStartTime())
+        .endTime(request.getEndTime())
+        .purpose(request.getPurpose())
+        .expectedAttendees(request.getExpectedAttendees()) // ADD THIS
+        .status(BookingStatus.PENDING)
+        .build();
         Booking saved = bookingRepository.save(booking);
         return mapToResponse(saved);
     }
