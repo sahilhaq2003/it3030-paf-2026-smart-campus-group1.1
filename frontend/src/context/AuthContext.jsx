@@ -74,7 +74,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const loginWithGoogle = useCallback(
-    async (idToken = "dummy-google-token") => {
+    async (idToken) => {
       setLoginError(null);
       setLoginLoading(true);
       try {
@@ -171,6 +171,9 @@ export function AuthProvider({ children }) {
   }, []);
 
   const clearLoginError = useCallback(() => setLoginError(null), []);
+  const reportLoginError = useCallback((message) => {
+    setLoginError(message ? String(message) : "Sign-in failed");
+  }, []);
 
   /** Re-fetch profile from the server (e.g. after PATCH /auth/me). */
   const refreshUser = useCallback(async () => {
@@ -205,6 +208,7 @@ export function AuthProvider({ children }) {
       loginLoading,
       loginError,
       clearLoginError,
+      reportLoginError,
       refreshUser,
       updateProfile,
     }),
@@ -221,6 +225,7 @@ export function AuthProvider({ children }) {
       loginLoading,
       loginError,
       clearLoginError,
+      reportLoginError,
       refreshUser,
       updateProfile,
     ],

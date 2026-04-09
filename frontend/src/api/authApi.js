@@ -1,13 +1,14 @@
 import axiosInstance from "./axiosInstance";
 
-const DEFAULT_ID_TOKEN = "dummy-google-token";
-
 /**
  * POST /auth/google — backend accepts simulated payload for development.
- * @param {string} [idToken]
+ * @param {string} idToken
  * @returns {Promise<{ token: string, user: object }>}
  */
-export async function loginWithGoogle(idToken = DEFAULT_ID_TOKEN) {
+export async function loginWithGoogle(idToken) {
+  if (!idToken || !String(idToken).trim()) {
+    throw new Error("Google sign-in did not return a credential. Check Google client ID/origin setup.");
+  }
   const { data } = await axiosInstance.post("/auth/google", { idToken });
   return data;
 }
