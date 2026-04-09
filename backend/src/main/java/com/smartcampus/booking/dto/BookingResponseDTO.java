@@ -21,6 +21,9 @@ public class BookingResponseDTO {
     private BookingStatus status;
     private String purpose;
     private String rejectionReason;
+    private Integer expectedAttendees;
+    private Long reviewedById;
+    private String reviewedByName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
