@@ -17,14 +17,16 @@ import org.springframework.scheduling.annotation.EnableScheduling;
             "com.smartcampus.maintenance",
             "com.smartcampus.user",
             "com.smartcampus.facilities",
-            "com.smartcampus.notification"
+            "com.smartcampus.notification",
+            "com.smartcampus.booking"      
         })
 @EnableJpaRepositories(
         basePackages = {
             "com.smartcampus.maintenance",
             "com.smartcampus.user",
             "com.smartcampus.facilities",
-            "com.smartcampus.notification"
+            "com.smartcampus.notification",
+             "com.smartcampus.booking"   
         })
 public class MaintenanceApplication {
 
