@@ -1,4 +1,14 @@
-export default function FlashToast({ message, onClose }) {
+import { useEffect } from "react";
+
+const DEFAULT_AUTO_HIDE_MS = 3500;
+
+export default function FlashToast({ message, onClose, autoHideMs = DEFAULT_AUTO_HIDE_MS }) {
+  useEffect(() => {
+    if (!message) return undefined;
+    const timer = setTimeout(() => onClose?.(), autoHideMs);
+    return () => clearTimeout(timer);
+  }, [autoHideMs, message, onClose]);
+
   if (!message) return null;
 
   return (
