@@ -1,6 +1,7 @@
 /** Canonical paths for role-based landing after sign-in */
 export const DASHBOARD_PATHS = {
   USER: "/UserDashboard",
+  LECTURER: "/LecturerDashboard",
   ADMIN: "/AdminDashboard",
   TECHNICIAN: "/TechnicianDashboard",
 };
@@ -15,7 +16,9 @@ export const DASHBOARD_PATHS = {
 export function getDashboardRoute(roles) {
   const normalized = normalizeRoles(roles);
   if (normalized.has("ADMIN")) return DASHBOARD_PATHS.ADMIN;
+  if (normalized.has("MANAGER")) return DASHBOARD_PATHS.ADMIN;
   if (normalized.has("TECHNICIAN")) return DASHBOARD_PATHS.TECHNICIAN;
+  if (normalized.has("LECTURER")) return DASHBOARD_PATHS.LECTURER;
   return DASHBOARD_PATHS.USER;
 }
 
@@ -38,12 +41,17 @@ export function getPostLoginRoute(roles, options = {}) {
  */
 export function canAccessDashboardRoute(roles, dashboardPath) {
   const n = normalizeRoles(roles);
-  if (dashboardPath === DASHBOARD_PATHS.ADMIN) return n.has("ADMIN");
+  if (dashboardPath === DASHBOARD_PATHS.ADMIN) {
+    return n.has("ADMIN") || n.has("MANAGER");
+  }
   if (dashboardPath === DASHBOARD_PATHS.TECHNICIAN) {
-    return n.has("TECHNICIAN") && !n.has("ADMIN");
+    return n.has("TECHNICIAN") && !n.has("ADMIN") && !n.has("MANAGER");
+  }
+  if (dashboardPath === DASHBOARD_PATHS.LECTURER) {
+    return n.has("LECTURER") && !n.has("ADMIN") && !n.has("TECHNICIAN") && !n.has("MANAGER");
   }
   if (dashboardPath === DASHBOARD_PATHS.USER) {
-    return !n.has("ADMIN") && !n.has("TECHNICIAN");
+    return !n.has("ADMIN") && !n.has("TECHNICIAN") && !n.has("MANAGER") && !n.has("LECTURER");
   }
   return true;
 }
@@ -51,13 +59,13 @@ export function canAccessDashboardRoute(roles, dashboardPath) {
 /** Admin ticket queue API is restricted to ADMIN / TECHNICIAN on the backend. */
 export function canAccessAdminTickets(roles) {
   const n = normalizeRoles(roles);
-  return n.has("ADMIN") || n.has("TECHNICIAN");
+  return n.has("ADMIN") || n.has("TECHNICIAN") || n.has("MANAGER");
 }
 
 /** Only campus users (not admin/technician staff) may open the create-ticket flow. */
 export function canCreateTickets(roles) {
   const n = normalizeRoles(roles);
-  return !n.has("ADMIN") && !n.has("TECHNICIAN");
+  return !n.has("ADMIN") && !n.has("TECHNICIAN") && !n.has("MANAGER");
 }
 
 /** @param {string[] | Set<string> | string | null | undefined} roles */

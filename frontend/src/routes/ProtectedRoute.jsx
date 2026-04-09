@@ -1,7 +1,13 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { normalizeRoles } from "../utils/getDashboardRoute";
 
-export default function ProtectedRoute({ children }) {
+/**
+ * @param {object} props
+ * @param {React.ReactNode} props.children
+ * @param {string[]} [props.requiredRoles] — user must have at least one (e.g. ['ADMIN','MANAGER'])
+ */
+export default function ProtectedRoute({ children, requiredRoles }) {
   const { user, isBootstrapping } = useAuth();
 
   if (isBootstrapping) {
@@ -13,6 +19,12 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!user) return <Navigate to="/login" replace />;
+
+  if (requiredRoles?.length) {
+    const n = normalizeRoles(user.roles ?? (user.role != null ? [user.role] : []));
+    const ok = requiredRoles.some((r) => n.has(String(r).trim().toUpperCase()));
+    if (!ok) return <Navigate to="/unauthorized" replace />;
+  }
 
   return children;
 }

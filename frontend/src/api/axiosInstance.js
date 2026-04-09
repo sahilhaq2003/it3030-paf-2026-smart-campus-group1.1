@@ -1,5 +1,6 @@
 import axios from "axios";
-import { AUTH_TOKEN_STORAGE_KEY } from "../constants/authStorage";
+import { getMemoryToken } from "./authTokenMemory";
+import { notifyUnauthorizedResponse } from "./unauthorizedSession";
 
 /**
  * Do not set a default Content-Type: application/json — it sticks to multipart POSTs and can
@@ -11,9 +12,17 @@ const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
-  if (token) {
+  const token = getMemoryToken();
+  const url = String(config.url ?? "");
+  const isPublicAuthCall =
+    url.includes("/auth/login") ||
+    url.includes("/auth/google") ||
+    url.includes("/auth/register/lecturer");
+  if (token && !isPublicAuthCall) {
     config.headers.Authorization = `Bearer ${token}`;
+  } else if (isPublicAuthCall) {
+    delete config.headers.Authorization;
+    delete config.headers.authorization;
   }
   if (config.data instanceof FormData) {
     delete config.headers["Content-Type"];
@@ -29,5 +38,21 @@ axiosInstance.interceptors.request.use((config) => {
   }
   return config;
 });
+
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (!axios.isAxiosError(error) || error.response?.status !== 401) {
+      return Promise.reject(error);
+    }
+    const url = String(error.config?.url ?? "");
+    const isAuthAttempt =
+      url.includes("/auth/login") || url.includes("/auth/google");
+    if (!isAuthAttempt) {
+      notifyUnauthorizedResponse();
+    }
+    return Promise.reject(error);
+  },
+);
 
 export default axiosInstance;

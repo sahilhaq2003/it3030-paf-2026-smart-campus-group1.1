@@ -1,8 +1,11 @@
 import axiosInstance from "./axiosInstance";
 
-/** GET /users — ADMIN only */
-export function fetchUsers() {
-  return axiosInstance.get("/users").then((r) => r.data);
+/** GET /users — ADMIN only; optional `role` query: USER | ADMIN | TECHNICIAN */
+export function fetchUsers(params = {}) {
+  const role = params.role;
+  return axiosInstance
+    .get("/users", { params: role ? { role } : {} })
+    .then((r) => r.data);
 }
 
 /** GET /users/technicians — ADMIN only */
@@ -34,4 +37,21 @@ export function updateTechnician(id, body) {
 /** DELETE /users/technicians/:id — ADMIN only */
 export function deleteTechnician(id) {
   return axiosInstance.delete(`/users/technicians/${id}`);
+}
+
+/** PATCH /users/:id/role — ADMIN only (@RequestBody { role: "USER"|"ADMIN"|"TECHNICIAN" }) */
+export function updateUserRole(id, role) {
+  return axiosInstance
+    .patch(`/users/${id}/role`, { role }, { headers: { "Content-Type": "application/json" } })
+    .then((r) => r.data);
+}
+
+/** PATCH /users/:id/enable — ADMIN only (toggles enabled flag) */
+export function toggleUserEnabled(id) {
+  return axiosInstance.patch(`/users/${id}/enable`).then((r) => r.data);
+}
+
+/** DELETE /users/:id — ADMIN / MANAGER (removes account; blocked if user has tickets as reporter) */
+export function deleteUser(id) {
+  return axiosInstance.delete(`/users/${id}`);
 }

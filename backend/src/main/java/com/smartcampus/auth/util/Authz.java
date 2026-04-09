@@ -25,8 +25,17 @@ public final class Authz {
         return hasAuthority(auth, "ROLE_TECHNICIAN");
     }
 
+    public static boolean isManager(Authentication auth) {
+        return hasAuthority(auth, "ROLE_MANAGER");
+    }
+
+    /** Admin or campus manager (operations hub). */
+    public static boolean isTicketAdmin(Authentication auth) {
+        return isAdmin(auth) || isManager(auth);
+    }
+
     /** Full ticket visibility (same idea as {@code GET /api/tickets} for staff). */
     public static boolean isTicketStaff(Authentication auth) {
-        return isAdmin(auth) || isTechnician(auth);
+        return isAdmin(auth) || isTechnician(auth) || isManager(auth);
     }
 }

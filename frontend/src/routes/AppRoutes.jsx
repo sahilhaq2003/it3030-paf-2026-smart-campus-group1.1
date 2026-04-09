@@ -5,11 +5,17 @@ import CreateTicketPage from "../pages/member3/CreateTicketPage";
 import TicketDetailPage from "../pages/member3/TicketDetailPage";
 import AdminTicketsPage from "../pages/member3/AdminTicketsPage";
 import LoginPage from "../pages/member4/LoginPage";
+import LoginHelpPage from "../pages/member4/LoginHelpPage";
 import LandingPage from "../pages/member4/LandingPage";
 import HomePage from "../pages/member4/HomePage";
+import ProfilePage from "../pages/member4/ProfilePage";
+import AdminUsersPage from "../pages/member4/AdminUsersPage";
+import UnauthorizedPage from "../pages/member4/UnauthorizedPage";
+import NotFoundPage from "../pages/member4/NotFoundPage";
 import UserDashboard from "../pages/dashboards/UserDashboard";
 import AdminDashboard from "../pages/dashboards/AdminDashboard";
 import TechnicianDashboard from "../pages/dashboards/TechnicianDashboard";
+import LecturerDashboard from "../pages/dashboards/LecturerDashboard";
 import ProtectedRoute from "./ProtectedRoute";
 import CreateTicketRoute from "./CreateTicketRoute";
 import UserMyTicketsRoute from "./UserMyTicketsRoute";
@@ -25,13 +31,16 @@ import AdminFacilitiesPage from "../pages/member1/AdminFacilitiesPage";
  * Router setup:
  * - / → public landing
  * - /login → LoginPage
- * - Role dashboards: /UserDashboard, /AdminDashboard, /TechnicianDashboard
+ * - Role dashboards: /UserDashboard, /LecturerDashboard, /AdminDashboard, /TechnicianDashboard
  */
 export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<LoginPage />} />      <Route
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/login/help" element={<LoginHelpPage />} />
+      <Route path="/unauthorized" element={<UnauthorizedPage />} />
+      <Route
         element={
           <ProtectedRoute>
             <AppShell />
@@ -41,11 +50,20 @@ export default function AppRoutes() {
         <Route path="/facilities" element={<FacilitiesListPage />} />
         <Route path="/facilities/:id" element={<FacilityDetailPage />} />
         <Route path="/home" element={<HomePage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route
           path="/UserDashboard"
           element={
             <RoleProtectedDashboard dashboardPath={DASHBOARD_PATHS.USER}>
               <UserDashboard />
+            </RoleProtectedDashboard>
+          }
+        />
+        <Route
+          path="/LecturerDashboard"
+          element={
+            <RoleProtectedDashboard dashboardPath={DASHBOARD_PATHS.LECTURER}>
+              <LecturerDashboard />
             </RoleProtectedDashboard>
           }
         />
@@ -66,11 +84,16 @@ export default function AppRoutes() {
           }
         />
         <Route path="/dashboard" element={<Navigate to="/UserDashboard" replace />} />
+        <Route path="/lecturer-dashboard" element={<Navigate to="/LecturerDashboard" replace />} />
         <Route path="/admin-dashboard" element={<Navigate to="/AdminDashboard" replace />} />
         <Route path="/technician-dashboard" element={<Navigate to="/TechnicianDashboard" replace />} />
         <Route
           path="/dashboard/user"
           element={<Navigate to="/UserDashboard" replace />}
+        />
+        <Route
+          path="/dashboard/lecturer"
+          element={<Navigate to="/LecturerDashboard" replace />}
         />
         <Route
           path="/dashboard/admin"
@@ -118,7 +141,16 @@ export default function AppRoutes() {
             </AdminFacilityRoute>
           }
         />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminFacilityRoute>
+              <AdminUsersPage />
+            </AdminFacilityRoute>
+          }
+        />
       </Route>
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

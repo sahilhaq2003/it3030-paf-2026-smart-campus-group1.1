@@ -11,12 +11,32 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
+const LOGIN_SUCCESS_MESSAGE = "Welcome back. You are signed in and your workspace is ready.";
+
 export default function LoginPage() {
-  const { loginWithPassword, loginWithGoogle, loginLoading, loginError, clearLoginError } =
+  const {
+    loginWithPassword,
+    loginWithGoogle,
+    requestLecturerOtp,
+    verifyLecturerOtp,
+    registerLecturer,
+    loginLoading,
+    loginError,
+    clearLoginError,
+  } =
     useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [lecturerName, setLecturerName] = useState("");
+  const [lecturerEmail, setLecturerEmail] = useState("");
+  const [lecturerPassword, setLecturerPassword] = useState("");
+  const [lecturerConfirmPassword, setLecturerConfirmPassword] = useState("");
+  const [lecturerOtp, setLecturerOtp] = useState("");
+  const [lecturerOtpSent, setLecturerOtpSent] = useState(false);
+  const [lecturerOtpVerified, setLecturerOtpVerified] = useState(false);
+  const [lecturerVerificationToken, setLecturerVerificationToken] = useState("");
+  const [lecturerMode, setLecturerMode] = useState("signin");
   const [fieldErrors, setFieldErrors] = useState({});
   const [loginMode, setLoginMode] = useState("student");
 
@@ -30,7 +50,9 @@ export default function LoginPage() {
       void (async () => {
         try {
           const signedIn = await loginWithGoogle(cred);
-          navigate(getPostLoginRoute(signedIn?.roles, { viaGoogle: true }));
+          navigate(getPostLoginRoute(signedIn?.roles, { viaGoogle: true }), {
+            state: { loginSuccess: LOGIN_SUCCESS_MESSAGE },
+          });
         } catch {
           /* loginError set in AuthContext */
         }
@@ -50,7 +72,9 @@ export default function LoginPage() {
 
     try {
       const signedIn = await loginWithPassword(email.trim(), password);
-      navigate(getDashboardRoute(signedIn?.roles));
+      navigate(getDashboardRoute(signedIn?.roles), {
+        state: { loginSuccess: LOGIN_SUCCESS_MESSAGE },
+      });
     } catch {
       /* loginError set in AuthContext */
     }
@@ -61,7 +85,92 @@ export default function LoginPage() {
     setFieldErrors({});
     try {
       const signedIn = await loginWithGoogle();
-      navigate(getPostLoginRoute(signedIn?.roles, { viaGoogle: true }));
+      navigate(getPostLoginRoute(signedIn?.roles, { viaGoogle: true }), {
+        state: { loginSuccess: LOGIN_SUCCESS_MESSAGE },
+      });
+    } catch {
+      /* loginError set in AuthContext */
+    }
+  };
+
+  const handleLecturerRegister = async (e) => {
+    e.preventDefault();
+    clearLoginError();
+    const next = {};
+    if (!lecturerName.trim()) next.lecturerName = "Name is required";
+    if (!isValidEmail(lecturerEmail)) next.lecturerEmail = "Enter a valid email address";
+    if (!lecturerOtpVerified) {
+      next.lecturerOtp = "Verify OTP before creating account";
+    }
+    if (!lecturerPassword || lecturerPassword.length < 8) {
+      next.lecturerPassword = "Password must be at least 8 characters";
+    }
+    if (lecturerPassword !== lecturerConfirmPassword) {
+      next.lecturerConfirmPassword = "Passwords do not match";
+    }
+    setFieldErrors(next);
+    if (Object.keys(next).length) return;
+
+    try {
+      const signedIn = await registerLecturer({
+        name: lecturerName.trim(),
+        email: lecturerEmail.trim(),
+        password: lecturerPassword,
+        verificationToken: lecturerVerificationToken,
+      });
+      navigate(getDashboardRoute(signedIn?.roles), {
+        state: { loginSuccess: "Lecturer account created. You are now signed in." },
+      });
+    } catch {
+      /* loginError set in AuthContext */
+    }
+  };
+
+  const handleSendLecturerOtp = async () => {
+    clearLoginError();
+    const next = {};
+    if (!isValidEmail(lecturerEmail)) next.lecturerEmail = "Enter a valid email address";
+    setFieldErrors((f) => ({ ...f, ...next }));
+    if (Object.keys(next).length) return;
+    try {
+      await requestLecturerOtp(lecturerEmail.trim());
+      setLecturerOtpSent(true);
+      setLecturerOtpVerified(false);
+      setLecturerVerificationToken("");
+    } catch {
+      /* loginError set in AuthContext */
+    }
+  };
+
+  const handleVerifyLecturerOtp = async () => {
+    clearLoginError();
+    const next = {};
+    if (!isValidEmail(lecturerEmail)) next.lecturerEmail = "Enter a valid email address";
+    if (!/^\d{6}$/.test(lecturerOtp)) next.lecturerOtp = "Enter the 6-digit OTP";
+    setFieldErrors((f) => ({ ...f, ...next }));
+    if (Object.keys(next).length) return;
+    try {
+      const res = await verifyLecturerOtp({ email: lecturerEmail.trim(), otp: lecturerOtp.trim() });
+      setLecturerOtpVerified(true);
+      setLecturerVerificationToken(res?.verificationToken ?? "");
+    } catch {
+      /* loginError set in AuthContext */
+    }
+  };
+
+  const handleLecturerSignIn = async (e) => {
+    e.preventDefault();
+    clearLoginError();
+    const next = {};
+    if (!isValidEmail(lecturerEmail)) next.lecturerEmail = "Enter a valid email address";
+    if (!lecturerPassword) next.lecturerPassword = "Password is required";
+    setFieldErrors(next);
+    if (Object.keys(next).length) return;
+    try {
+      const signedIn = await loginWithPassword(lecturerEmail.trim(), lecturerPassword);
+      navigate(getDashboardRoute(signedIn?.roles), {
+        state: { loginSuccess: "Welcome back, lecturer." },
+      });
     } catch {
       /* loginError set in AuthContext */
     }
@@ -71,6 +180,12 @@ export default function LoginPage() {
     setLoginMode(mode);
     clearLoginError();
     setFieldErrors({});
+    setLecturerOtpSent(false);
+    setLecturerOtpVerified(false);
+    setLecturerVerificationToken("");
+    if (mode === "lecturer") {
+      setLecturerMode("signin");
+    }
   };
 
   return (
@@ -139,12 +254,13 @@ export default function LoginPage() {
                 Welcome back
               </h2>
               <p className="mt-2 text-sm text-slate-500">
-                Admin and technicians use password login. Students continue with Google.
+                Admin and technicians use password login, students continue with Google, and
+                lecturers can create an account here.
               </p>
             </div>
 
             <div className="mt-2 lg:mt-8">
-              <div className="mx-auto mb-5 grid w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1">
+              <div className="mx-auto mb-5 grid w-full grid-cols-3 rounded-xl border border-slate-200 bg-slate-50 p-1">
                 <button
                   type="button"
                   onClick={() => switchLoginMode("student")}
@@ -166,6 +282,17 @@ export default function LoginPage() {
                   }`}
                 >
                   Admin / Technician
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchLoginMode("lecturer")}
+                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    loginMode === "lecturer"
+                      ? "bg-white text-campus-brand shadow-sm"
+                      : "text-slate-600 hover:text-slate-800"
+                  }`}
+                >
+                  Lecturer
                 </button>
               </div>
             </div>
@@ -247,7 +374,7 @@ export default function LoginPage() {
                 </button>
               </form>
               </div>
-            ) : (
+            ) : loginMode === "student" ? (
               <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
                 <div className="mb-4 text-center">
                   <p className="text-xs font-semibold uppercase tracking-wide text-campus-brand">
@@ -258,40 +385,7 @@ export default function LoginPage() {
                   </p>
                 </div>
 
-                {GOOGLE_CLIENT_ID ? (
-                  <div
-                    className={`login-google-wrap relative flex w-full min-w-0 justify-center ${loginLoading ? "pointer-events-none opacity-60" : ""}`}
-                  >
-                    {/*
-                      Keep GoogleLogin mounted while signing in so google.accounts.id.initialize()
-                      is not called again (avoids GSI_LOGGER duplicate init warnings).
-                      Fixed width: GSI re-inits when `width` changes.
-                    */}
-                    <GoogleLogin
-                      width={300}
-                      type="standard"
-                      theme="filled_blue"
-                      size="large"
-                      text="continue_with"
-                      shape="pill"
-                      logo_alignment="left"
-                      containerProps={{
-                        className: "login-google-inner flex w-full max-w-full items-center justify-center p-0",
-                      }}
-                      onSuccess={onGoogleCredential}
-                      onError={clearLoginError}
-                    />
-                    {loginLoading ? (
-                      <div
-                        className="absolute inset-0 flex items-center justify-center gap-2 rounded-md bg-white/80 text-sm font-semibold text-slate-700 backdrop-blur-[1px]"
-                        aria-live="polite"
-                      >
-                        <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-campus-brand" />
-                        Signing in…
-                      </div>
-                    ) : null}
-                  </div>
-                ) : (
+                {!GOOGLE_CLIENT_ID ? (
                   <button
                     type="button"
                     onClick={handleGoogle}
@@ -305,9 +399,295 @@ export default function LoginPage() {
                     )}
                     Continue with Google (student)
                   </button>
-                )}
+                ) : null}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+                <div className="mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-campus-brand">
+                    Lecturer Account
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Lecturers can sign in with email/password, or create a new lecturer account.
+                  </p>
+                </div>
+
+                <div className="mb-4 grid w-full grid-cols-2 rounded-xl border border-slate-200 bg-white p-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLecturerMode("signin");
+                      setFieldErrors({});
+                      clearLoginError();
+                      setLecturerOtpSent(false);
+                      setLecturerOtpVerified(false);
+                      setLecturerVerificationToken("");
+                    }}
+                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                      lecturerMode === "signin"
+                        ? "bg-slate-100 text-campus-brand shadow-sm"
+                        : "text-slate-600 hover:text-slate-800"
+                    }`}
+                  >
+                    Sign in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLecturerMode("create");
+                      setFieldErrors({});
+                      clearLoginError();
+                      setLecturerOtpSent(false);
+                      setLecturerOtpVerified(false);
+                      setLecturerVerificationToken("");
+                    }}
+                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                      lecturerMode === "create"
+                        ? "bg-slate-100 text-campus-brand shadow-sm"
+                        : "text-slate-600 hover:text-slate-800"
+                    }`}
+                  >
+                    Create account
+                  </button>
+                </div>
+
+                <form
+                  onSubmit={lecturerMode === "signin" ? handleLecturerSignIn : handleLecturerRegister}
+                  className="space-y-4"
+                  noValidate
+                >
+                  {loginError ? (
+                    <div
+                      role="alert"
+                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                    >
+                      {loginError}
+                    </div>
+                  ) : null}
+
+                  {lecturerMode === "create" ? (
+                    <div>
+                      <label htmlFor="lecturer-name" className="block text-sm font-medium text-slate-700">
+                        Full name
+                      </label>
+                      <input
+                        id="lecturer-name"
+                        type="text"
+                        value={lecturerName}
+                        onChange={(ev) => {
+                          setLecturerName(ev.target.value);
+                          if (fieldErrors.lecturerName) {
+                            setFieldErrors((f) => ({ ...f, lecturerName: undefined }));
+                          }
+                        }}
+                        className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
+                        placeholder="Dr. Jane Doe"
+                        disabled={loginLoading}
+                      />
+                      {fieldErrors.lecturerName ? (
+                        <p className="mt-1 text-xs text-red-600">{fieldErrors.lecturerName}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <div>
+                    <label htmlFor="lecturer-email" className="block text-sm font-medium text-slate-700">
+                      Email
+                    </label>
+                    <input
+                      id="lecturer-email"
+                      type="email"
+                      value={lecturerEmail}
+                      onChange={(ev) => {
+                        setLecturerEmail(ev.target.value);
+                        if (fieldErrors.lecturerEmail) {
+                          setFieldErrors((f) => ({ ...f, lecturerEmail: undefined }));
+                        }
+                      }}
+                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
+                      placeholder="lecturer@campus.edu"
+                      disabled={loginLoading}
+                    />
+                    {fieldErrors.lecturerEmail ? (
+                      <p className="mt-1 text-xs text-red-600">{fieldErrors.lecturerEmail}</p>
+                    ) : null}
+                  </div>
+
+                  {lecturerMode === "create" ? (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={handleSendLecturerOtp}
+                        disabled={loginLoading}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-60"
+                      >
+                        {loginLoading ? "Sending OTP…" : lecturerOtpSent ? "Resend OTP" : "Send OTP"}
+                      </button>
+                      {lecturerOtpSent ? (
+                        <p className="text-xs text-emerald-700">
+                          OTP sent to your email. Check inbox/spam and enter it below.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {lecturerMode === "create" ? (
+                    <div>
+                      <label htmlFor="lecturer-otp" className="block text-sm font-medium text-slate-700">
+                        OTP
+                      </label>
+                      <input
+                        id="lecturer-otp"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={lecturerOtp}
+                        onChange={(ev) => {
+                          setLecturerOtp(ev.target.value.replace(/\D/g, ""));
+                          if (fieldErrors.lecturerOtp) {
+                            setFieldErrors((f) => ({ ...f, lecturerOtp: undefined }));
+                          }
+                        }}
+                        className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm tracking-[0.2em] text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
+                        placeholder="123456"
+                        disabled={loginLoading}
+                      />
+                      {fieldErrors.lecturerOtp ? (
+                        <p className="mt-1 text-xs text-red-600">{fieldErrors.lecturerOtp}</p>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={handleVerifyLecturerOtp}
+                        disabled={loginLoading}
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-60"
+                      >
+                        {loginLoading ? "Verifying OTP…" : lecturerOtpVerified ? "OTP Verified" : "Verify OTP"}
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {lecturerMode === "signin" || lecturerOtpVerified ? (
+                    <>
+                      <div>
+                        <label
+                          htmlFor="lecturer-password"
+                          className="block text-sm font-medium text-slate-700"
+                        >
+                          Password
+                        </label>
+                        <input
+                          id="lecturer-password"
+                          type="password"
+                          value={lecturerPassword}
+                          onChange={(ev) => {
+                            setLecturerPassword(ev.target.value);
+                            if (fieldErrors.lecturerPassword) {
+                              setFieldErrors((f) => ({ ...f, lecturerPassword: undefined }));
+                            }
+                          }}
+                          className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
+                          placeholder="At least 8 characters"
+                          disabled={loginLoading}
+                        />
+                        {fieldErrors.lecturerPassword ? (
+                          <p className="mt-1 text-xs text-red-600">{fieldErrors.lecturerPassword}</p>
+                        ) : null}
+                      </div>
+                      {lecturerMode === "create" ? (
+                        <div>
+                          <label
+                            htmlFor="lecturer-confirm-password"
+                            className="block text-sm font-medium text-slate-700"
+                          >
+                            Re-enter password
+                          </label>
+                          <input
+                            id="lecturer-confirm-password"
+                            type="password"
+                            value={lecturerConfirmPassword}
+                            onChange={(ev) => {
+                              setLecturerConfirmPassword(ev.target.value);
+                              if (fieldErrors.lecturerConfirmPassword) {
+                                setFieldErrors((f) => ({
+                                  ...f,
+                                  lecturerConfirmPassword: undefined,
+                                }));
+                              }
+                            }}
+                            className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-campus-brand-muted focus:ring-2 focus:ring-campus-brand/15"
+                            placeholder="Re-enter password"
+                            disabled={loginLoading}
+                          />
+                          {fieldErrors.lecturerConfirmPassword ? (
+                            <p className="mt-1 text-xs text-red-600">
+                              {fieldErrors.lecturerConfirmPassword}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={loginLoading || (lecturerMode === "create" && !lecturerOtpVerified)}
+                    className="w-full rounded-xl bg-campus-brand px-4 py-3.5 text-sm font-semibold text-white shadow-md shadow-slate-900/10 transition hover:bg-campus-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand disabled:pointer-events-none disabled:opacity-60"
+                  >
+                    {loginLoading
+                      ? lecturerMode === "signin"
+                        ? "Signing in…"
+                        : "Creating account…"
+                      : lecturerMode === "signin"
+                        ? "Sign in as Lecturer"
+                        : "Create Lecturer Account"}
+                  </button>
+                </form>
               </div>
             )}
+
+            {/*
+              Keep GoogleLogin mounted when switching Student ↔ Staff so google.accounts.id.initialize()
+              runs once (avoids GSI_LOGGER duplicate init). Hide with CSS on staff tab.
+            */}
+            {GOOGLE_CLIENT_ID ? (
+              <div
+                className={
+                  loginMode === "student"
+                    ? "mt-4"
+                    : "hidden h-0 w-0 overflow-hidden p-0"
+                }
+                aria-hidden={loginMode !== "student"}
+              >
+                <div
+                  className={`login-google-wrap relative flex w-full min-w-0 justify-center ${loginLoading ? "pointer-events-none opacity-60" : ""}`}
+                >
+                  <GoogleLogin
+                    width={300}
+                    type="standard"
+                    theme="filled_blue"
+                    size="large"
+                    text="continue_with"
+                    shape="pill"
+                    logo_alignment="left"
+                    locale="en"
+                    containerProps={{
+                      className: "login-google-inner flex w-full max-w-full items-center justify-center p-0",
+                    }}
+                    onSuccess={onGoogleCredential}
+                    onError={clearLoginError}
+                  />
+                  {loginLoading ? (
+                    <div
+                      className="absolute inset-0 flex items-center justify-center gap-2 rounded-md bg-white/80 text-sm font-semibold text-slate-700 backdrop-blur-[1px]"
+                      aria-live="polite"
+                    >
+                      <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-campus-brand" />
+                      Signing in…
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
 
             <p className="mt-3 text-center text-xs text-slate-500">
               Switch role to choose the correct sign-in method.
@@ -317,7 +697,9 @@ export default function LoginPage() {
 
           <p className="mt-8 text-center text-xs text-slate-400">
             Need help?{" "}
-            <span className="text-slate-500">Contact your campus IT desk.</span>
+            <Link to="/login/help" className="font-semibold text-campus-brand hover:text-campus-brand-hover">
+              View login process help
+            </Link>
           </p>
         </div>
       </div>

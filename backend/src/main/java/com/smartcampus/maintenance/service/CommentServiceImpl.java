@@ -28,9 +28,15 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public List<CommentDTO> getComments(Long ticketId, Long userId, boolean ticketStaff) {
+        // Verify ticket exists
         var ticket = ticketRepo.findById(ticketId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                "Ticket not found. Cannot retrieve comments for non-existent ticket."));
+        
+        // Verify user has permission to view this ticket's conversation
         assertCanAccessTicketThread(ticket, userId, ticketStaff);
+        
+        // Retrieve all comments for this ticket in chronological order
         return commentRepo.findByTicket_IdOrderByCreatedAtAsc(ticketId)
             .stream().map(this::mapToDTO).toList();
     }
@@ -38,13 +44,20 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public CommentDTO addComment(
             Long ticketId, String content, Long userId, boolean isAdmin, boolean isTechnician) {
+        // Verify ticket exists
         var ticket = ticketRepo.findById(ticketId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                "Ticket not found. Cannot add comments to non-existent ticket."));
+        
+        // Verify user has permission to post on this ticket
         assertCanPostOnTicket(ticket, userId, isAdmin, isTechnician);
 
+        // Fetch the user object for the comment author
         var user = userRepo.findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                "User account not found. Cannot attribute comment to user."));
 
+        // Build and save the new comment
         var comment = Comment.builder()
             .ticket(ticket)
             .author(user)
@@ -53,11 +66,14 @@ public class CommentServiceImpl implements CommentService {
 
         var saved = commentRepo.save(comment);
 
+        // Notify the ticket reporter if a technician or admin added a comment
         Long reporterId = ticket.getReportedBy().getId();
         if (!reporterId.equals(userId)) {
             eventPublisher.publishEvent(
                     new NewCommentEvent(this, ticketId, reporterId, user.getName()));
         }
+        
+        // Notify the assigned technician if the reporter adds a comment
         if (ticket.getAssignedTo() != null
                 && reporterId.equals(userId)
                 && !ticket.getAssignedTo().getId().equals(userId)) {
@@ -71,14 +87,24 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentDTO editComment(Long ticketId, Long commentId, String content, Long userId) {
+        // Retrieve the comment
         var comment = commentRepo.findById(commentId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                "Comment not found. It may have been deleted."));
+        
+        // Verify the comment belongs to the ticket
         if (!comment.getTicket().getId().equals(ticketId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                "Comment not found on this ticket.");
         }
+        
+        // Verify the user is the comment author
         if (!comment.getAuthor().getId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only edit your own comments");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, 
+                "You can only edit your own comments.");
         }
+        
+        // Update comment content and mark as edited
         comment.setContent(content);
         comment.setEdited(true);
         return mapToDTO(commentRepo.save(comment));
@@ -86,52 +112,66 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public void deleteComment(Long ticketId, Long commentId, Long userId, boolean isAdmin) {
+        // Retrieve the comment
         var comment = commentRepo.findById(commentId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                "Comment not found. It may have already been deleted."));
+        
+        // Verify the comment belongs to the ticket
         if (!comment.getTicket().getId().equals(ticketId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                "Comment not found on this ticket.");
         }
 
+        // Only comment author or admin can delete
         boolean isOwner = comment.getAuthor().getId().equals(userId);
 
         if (!isOwner && !isAdmin) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                "You can only delete your own comments");
+                "You can only delete your own comments. Admins can delete any comment.");
         }
 
         commentRepo.delete(comment);
     }
 
-    /** Same visibility as ticket detail: staff see all; others only reporter or assignee threads. */
+    /** 
+     * Validates that a user has permission to access/view comments on a ticket.
+     * Staff (technicians, admins) can always access. Others can only access if they're the reporter or assigned technician.
+     */
     private void assertCanAccessTicketThread(Ticket ticket, Long userId, boolean ticketStaff) {
         if (ticketStaff) {
-            return;
+            return;  // Staff always have access
         }
         if (ticket.getReportedBy().getId().equals(userId)) {
-            return;
+            return;  // Reporter can access their own ticket comments
         }
         if (ticket.getAssignedTo() != null && ticket.getAssignedTo().getId().equals(userId)) {
-            return;
+            return;  // Assigned technician can access ticket comments
         }
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, 
+            "You do not have permission to view comments on this ticket.");
     }
 
-    /** Reporter, assigned technician, or admin may post (conversation between campus user and handler). */
+    /** 
+     * Validates that a user has permission to post a comment on a ticket.
+     * Only the reporter, assigned technician, and admins can post comments.
+     */
     private void assertCanPostOnTicket(
             Ticket ticket, Long userId, boolean isAdmin, boolean isTechnician) {
         if (isAdmin) {
-            return;
+            return;  // Admins can always post
         }
         if (ticket.getReportedBy().getId().equals(userId)) {
-            return;
+            return;  // Reporter can post on their own ticket
         }
         if (isTechnician
                 && ticket.getAssignedTo() != null
                 && ticket.getAssignedTo().getId().equals(userId)) {
-            return;
+            return;  // Assigned technician can post
         }
         throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN, "You cannot add messages on this ticket");
+                HttpStatus.FORBIDDEN, 
+                "You cannot add comments on this ticket. Only the reporter, assigned technician, and administrators may comment.");
     }
 
     private CommentDTO mapToDTO(Comment c) {

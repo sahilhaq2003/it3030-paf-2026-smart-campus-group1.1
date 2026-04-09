@@ -108,7 +108,7 @@ export default function FacilitiesListPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 border-b border-gray-200 pb-6">
           <div>
             <span className="text-indigo-600 font-bold tracking-wider uppercase text-sm mb-2 block animate-pulse">Campus Discovery Hub</span>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">Facilities Directory</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Facilities Directory</h1>
           </div>
           <p className="text-gray-500 mt-4 md:mt-0 font-medium tracking-wide">Showing {facilities.length} available architectural resources</p>
         </div>

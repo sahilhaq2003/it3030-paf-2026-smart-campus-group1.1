@@ -4,14 +4,23 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartcampus.auth.dto.AuthResponseDTO;
 import com.smartcampus.auth.dto.GoogleUserClaims;
+import com.smartcampus.auth.dto.LecturerOtpRequestDTO;
+import com.smartcampus.auth.dto.LecturerRegisterRequestDTO;
+import com.smartcampus.auth.dto.LecturerOtpVerifyRequestDTO;
+import com.smartcampus.auth.dto.LecturerOtpVerifyResponseDTO;
 import com.smartcampus.auth.dto.LoginRequestDTO;
+import com.smartcampus.auth.dto.UpdateProfileDTO;
 import com.smartcampus.auth.dto.UserResponseDTO;
 import com.smartcampus.auth.model.UserPrincipal;
 import com.smartcampus.user.model.Role;
 import com.smartcampus.user.model.User;
 import com.smartcampus.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.MailException;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,6 +45,17 @@ public class AuthService {
     private final ObjectMapper objectMapper;
     private final PasswordEncoder passwordEncoder;
     private final GoogleOAuthTokenVerifier googleOAuthTokenVerifier;
+    private final LecturerOtpService lecturerOtpService;
+    private final JavaMailSender mailSender;
+
+    @Value("${app.mail.enabled:false}")
+    private boolean mailEnabled;
+
+    @Value("${app.mail.from:}")
+    private String from;
+
+    @Value("${spring.mail.username:}")
+    private String mailUsername;
 
     /**
      * Google Sign-In: when {@code app.google.client-id} is set, verifies the credential JWT with
@@ -61,7 +81,7 @@ public class AuthService {
         }
         String trimmed = idToken.trim();
         if ("dummy-google-token".equals(trimmed)) {
-            return new SimulatedGoogleProfile("dev@smartcampus.local", "Dev User", null);
+            return new SimulatedGoogleProfile("IT23603004@my.sliit.lk", "Pasindi", null);
         }
         if (googleOAuthTokenVerifier.isEnabled()) {
             Optional<GoogleUserClaims> verified = googleOAuthTokenVerifier.verify(trimmed);
@@ -108,6 +128,105 @@ public class AuthService {
         return AuthResponseDTO.builder().token(token).user(toUserResponse(user)).build();
     }
 
+    @Transactional
+    public void requestLecturerOtp(LecturerOtpRequestDTO body) {
+        String email = body.getEmail() != null ? body.getEmail().trim().toLowerCase() : "";
+        if (email.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email required");
+        }
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This email is already registered");
+        }
+        if (!mailEnabled) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE, "Email verification is not available right now");
+        }
+        String otp = lecturerOtpService.issueOtp(email);
+        sendLecturerOtpEmail(email, otp);
+    }
+
+    @Transactional
+    public LecturerOtpVerifyResponseDTO verifyLecturerOtp(LecturerOtpVerifyRequestDTO body) {
+        String email = body.getEmail() != null ? body.getEmail().trim().toLowerCase() : "";
+        String otp = body.getOtp() != null ? body.getOtp().trim() : "";
+        if (email.isEmpty() || otp.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email and OTP required");
+        }
+        String verificationToken = lecturerOtpService.verifyOtpAndIssueToken(email, otp);
+        if (verificationToken == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or expired OTP");
+        }
+        return LecturerOtpVerifyResponseDTO.builder().verificationToken(verificationToken).build();
+    }
+
+    @Transactional
+    public AuthResponseDTO registerLecturer(LecturerRegisterRequestDTO body) {
+        String email = body.getEmail() != null ? body.getEmail().trim().toLowerCase() : "";
+        String rawPassword = body.getPassword() != null ? body.getPassword().trim() : "";
+        String name = body.getName() != null ? body.getName().trim() : "";
+        String verificationToken =
+                body.getVerificationToken() != null ? body.getVerificationToken().trim() : "";
+
+        if (email.isEmpty() || rawPassword.isEmpty() || name.isEmpty() || verificationToken.isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Name, email, password and verification token required");
+        }
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This email is already registered");
+        }
+        if (!lecturerOtpService.consumeVerifiedToken(email, verificationToken)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is not OTP-verified");
+        }
+
+        Set<Role> roles = new HashSet<>();
+        roles.add(Role.LECTURER);
+        roles.add(Role.USER);
+
+        User user =
+                User.builder()
+                        .email(email)
+                        .name(name)
+                        .passwordHash(passwordEncoder.encode(rawPassword))
+                        .provider(User.AuthProvider.LOCAL)
+                        .roles(roles)
+                        .enabled(true)
+                        .build();
+
+        User saved = userRepository.save(user);
+        String token = jwtService.generateToken(saved);
+        return AuthResponseDTO.builder().token(token).user(toUserResponse(saved)).build();
+    }
+
+    private void sendLecturerOtpEmail(String toEmail, String otp) {
+        String effectiveFrom = (from != null && !from.isBlank()) ? from : mailUsername;
+        if (effectiveFrom == null || effectiveFrom.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE, "Email verification is not configured");
+        }
+        try {
+            var mime = mailSender.createMimeMessage();
+            var helper = new MimeMessageHelper(mime, "UTF-8");
+            helper.setFrom(effectiveFrom);
+            helper.setTo(toEmail);
+            helper.setSubject("Smart Campus Lecturer Verification Code");
+            helper.setText(
+                    "<html><body style='font-family:Arial,sans-serif;background:#f8fafc;padding:20px;'>"
+                            + "<div style='max-width:540px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;'>"
+                            + "<h2 style='margin-top:0;color:#1e293b;'>Lecturer account verification</h2>"
+                            + "<p style='color:#334155;'>Use this one-time code to verify your email:</p>"
+                            + "<p style='font-size:28px;font-weight:700;letter-spacing:4px;color:#4f46e5;margin:12px 0;'>"
+                            + otp
+                            + "</p>"
+                            + "<p style='color:#64748b;'>This code expires in 5 minutes.</p>"
+                            + "</div></body></html>",
+                    true);
+            mailSender.send(mime);
+        } catch (MailException | jakarta.mail.MessagingException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE, "Unable to send verification email");
+        }
+    }
+
     /** Resolves the current user from the security context (JWT) and returns the persisted profile. */
     @Transactional(readOnly = true)
     public UserResponseDTO getCurrentUserProfile() {
@@ -120,6 +239,23 @@ public class AuthService {
                         .findById(principal.getId())
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         return toUserResponse(user);
+    }
+
+    @Transactional
+    public UserResponseDTO updateCurrentUserProfile(UpdateProfileDTO dto) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+        User user =
+                userRepository
+                        .findByIdWithRoles(principal.getId())
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        user.setName(dto.getName().trim());
+        if (dto.getAvatarUrl() != null && !dto.getAvatarUrl().isBlank()) {
+            user.setAvatarUrl(dto.getAvatarUrl().trim());
+        }
+        return toUserResponse(userRepository.save(user));
     }
 
     private User syncGoogleProfile(User user, SimulatedGoogleProfile profile) {
@@ -157,6 +293,7 @@ public class AuthService {
                 .roles(roleNames)
                 .provider(u.getProvider().name())
                 .enabled(u.isEnabled())
+                .createdAt(u.getCreatedAt())
                 .build();
     }
 
@@ -166,7 +303,7 @@ public class AuthService {
         }
         String trimmed = idToken.trim();
         if ("dummy-google-token".equals(trimmed)) {
-            return new SimulatedGoogleProfile("dev@smartcampus.local", "Dev User", null);
+            return new SimulatedGoogleProfile("IT23603004@my.sliit.lk", "Pasindi", null);
         }
         String jsonPayload = null;
         if (trimmed.startsWith("{")) {

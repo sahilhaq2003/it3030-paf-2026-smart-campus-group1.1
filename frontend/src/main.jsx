@@ -20,7 +20,9 @@ const appTree = (
 
 createRoot(document.getElementById('root')).render(
   GOOGLE_CLIENT_ID ? (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{appTree}</GoogleOAuthProvider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID} locale="en">
+      {appTree}
+    </GoogleOAuthProvider>
   ) : (
     appTree
   ),

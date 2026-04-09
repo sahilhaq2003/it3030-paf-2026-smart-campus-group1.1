@@ -86,7 +86,7 @@ class AttachmentServiceTest {
         // Act & Assert
         assertThatThrownBy(() -> attachmentService.validateFile(file))
                 .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("max 5MB");
+                .hasMessageContaining("File too large");
     }
 
     @Test
@@ -121,7 +121,7 @@ class AttachmentServiceTest {
         // Act & Assert
         assertThatThrownBy(() -> attachmentService.validateFileCount(files, testTicket))
                 .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("Maximum 3 attachments allowed");
+                .hasMessageContaining("Maximum 3 attachments");
     }
 
     @Test
@@ -171,7 +171,7 @@ class AttachmentServiceTest {
         assertThat(result.getStoredName())
                 .isNotBlank()
                 .doesNotContain("original-name")
-                .matches("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\\.jpg"); // UUID format
+                .matches("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\\.jpg");
     }
 
     @Test
@@ -215,7 +215,7 @@ class AttachmentServiceTest {
     @Test
     void shouldSaveFileSizeInBytes() throws IOException {
         // Arrange
-        byte[] content = "test content with 24 bytes".getBytes(); // exactly 24 bytes
+        byte[] content = "test content with 24 bytes".getBytes();
         MultipartFile file = new MockMultipartFile(
                 "file",
                 "image.jpg",

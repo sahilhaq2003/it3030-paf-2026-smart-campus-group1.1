@@ -2,6 +2,8 @@ package com.smartcampus.maintenance.service;
 
 import com.smartcampus.maintenance.dto.*;
 import com.smartcampus.maintenance.event.TicketStatusChangedEvent;
+import com.smartcampus.maintenance.event.TicketSubmittedEvent;
+import com.smartcampus.maintenance.event.TicketTechnicianAssignedEvent;
 import com.smartcampus.maintenance.model.*;
 import com.smartcampus.maintenance.model.enums.*;
 import com.smartcampus.maintenance.policy.SlaPolicy;
@@ -43,9 +45,11 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     public TicketResponseDTO createTicket(TicketRequestDTO dto, List<MultipartFile> files, Long userId) {
+        // Fetch the user creating the ticket; throw NOT_FOUND if user doesn't exist
         var user = userRepo.findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User account not found"));
 
+        // Build ticket with basic information from DTO
         var ticket = Ticket.builder()
             .title(dto.getTitle())
             .description(dto.getDescription())
@@ -57,13 +61,17 @@ public class TicketServiceImpl implements TicketService {
             .reportedBy(user)
             .build();
 
+        // Associate facility if provided
         if (dto.getFacilityId() != null) {
             var facility = facilityRepo.findById(dto.getFacilityId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Facility not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                    "Facility not found. Please select a valid facility."));
             ticket.setFacility(facility);
         }
 
         var saved = ticketRepo.save(ticket);
+        
+        // Calculate and set SLA deadline based on priority
         if (saved.getCreatedAt() != null && saved.getPriority() != null) {
             saved.setSlaDeadline(
                     saved.getCreatedAt().plusHours(SlaPolicy.hoursFor(saved.getPriority())));
@@ -75,6 +83,11 @@ public class TicketServiceImpl implements TicketService {
             var attachments = attachmentService.saveAttachments(files, saved);
             saved.setAttachments(attachments);
         }
+
+        // Notify the ticket owner immediately on submission (for both in-app + email notifications).
+        eventPublisher.publishEvent(
+                new TicketSubmittedEvent(
+                        this, saved.getId(), user.getId(), saved.getTitle()));
 
         return mapToResponse(saved);
     }
@@ -107,36 +120,44 @@ public class TicketServiceImpl implements TicketService {
     @Override
     public TicketResponseDTO updateStatus(
             Long id, TicketStatusUpdateDTO dto, Long currentUserId, boolean isAdmin, boolean isTechnician) {
+        // Retrieve ticket; throw if not found
         var ticket = findTicketOrThrow(id);
 
+        // Validate permissions: technicians can only update assigned tickets
         if (isTechnician && !isAdmin) {
             if (ticket.getAssignedTo() == null
                     || !ticket.getAssignedTo().getId().equals(currentUserId)) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN,
-                        "Only the technician assigned to this ticket can update its status");
+                        "Only the assigned technician can update the ticket status");
             }
+            // Technicians must mark tickets as RESOLVED with notes, not CLOSED (auto-closes after resolution)
             if (dto.getStatus() == TicketStatus.CLOSED) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN,
-                        "Use Resolved with resolution notes to finish this ticket. "
-                                + "It closes automatically — only admins can archive legacy tickets as Closed.");
+                        "Technicians cannot directly close tickets. Mark as RESOLVED with resolution notes instead. " +
+                        "Tickets close automatically after the resolution period.");
             }
         }
 
+        // Validate the status transition is allowed
         validateStatusTransition(ticket.getStatus(), dto.getStatus());
 
+        // Require resolution notes when marking as RESOLVED
         if (dto.getStatus() == TicketStatus.RESOLVED) {
             if (dto.getResolutionNotes() == null || dto.getResolutionNotes().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resolution notes required");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Resolution notes are required when marking a ticket as RESOLVED");
             }
             ticket.setResolutionNotes(dto.getResolutionNotes());
             ticket.setResolvedAt(LocalDateTime.now());
         }
 
+        // Require rejection reason when marking as REJECTED
         if (dto.getStatus() == TicketStatus.REJECTED) {
             if (dto.getRejectionReason() == null || dto.getRejectionReason().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rejection reason required");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Rejection reason is required when rejecting a ticket");
             }
             ticket.setRejectionReason(dto.getRejectionReason());
         }
@@ -160,18 +181,35 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     public TicketResponseDTO assignTechnician(Long id, Long technicianId) {
+        // Verify ticket exists
         var ticket = findTicketOrThrow(id);
+        
+        // Verify technician exists and is valid
         var tech = userRepo.findById(technicianId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Technician not found"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                "Technician not found. Please verify the technician ID."));
 
         ticket.setAssignedTo(tech);
 
-        // Auto-move to IN_PROGRESS when assigned
+        // Auto-move to IN_PROGRESS when assigned to better reflect ticket workflow
         if (ticket.getStatus() == TicketStatus.OPEN) {
             ticket.setStatus(TicketStatus.IN_PROGRESS);
         }
 
-        return mapToResponse(ticketRepo.save(ticket));
+        var saved = ticketRepo.save(ticket);
+
+        // Notify ticket owner (student) that a technician has been assigned.
+        if (saved.getReportedBy() != null && saved.getReportedBy().getId() != null) {
+            eventPublisher.publishEvent(
+                    new TicketTechnicianAssignedEvent(
+                            this,
+                            saved.getId(),
+                            saved.getReportedBy().getId(),
+                            tech.getId(),
+                            tech.getName()));
+        }
+
+        return mapToResponse(saved);
     }
 
     @Override
@@ -180,6 +218,38 @@ public class TicketServiceImpl implements TicketService {
         // Clean up attachment files from disk
         attachmentService.deleteAttachments(ticket.getAttachments());
         ticketRepo.delete(ticket);
+    }
+
+    @Override
+    public TicketResponseDTO closeTicket(Long ticketId, Long currentUserId) {
+        var ticket = findTicketOrThrow(ticketId);
+
+        // Only the reporter may close their own ticket
+        if (!ticket.getReportedBy().getId().equals(currentUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only the ticket reporter can close this ticket.");
+        }
+
+        // Ticket must be in RESOLVED state before a user can close it
+        if (ticket.getStatus() != TicketStatus.RESOLVED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Ticket must be RESOLVED before it can be closed by the reporter.");
+        }
+
+        var previousStatus = ticket.getStatus();
+        ticket.setStatus(TicketStatus.CLOSED);
+        ticket.setClosedAt(LocalDateTime.now());
+        var saved = ticketRepo.save(ticket);
+
+        eventPublisher.publishEvent(
+                new TicketStatusChangedEvent(
+                        this,
+                        saved.getId(),
+                        saved.getReportedBy().getId(),
+                        previousStatus,
+                        TicketStatus.CLOSED));
+
+        return mapToResponse(saved);
     }
 
     @Override
@@ -290,7 +360,8 @@ public class TicketServiceImpl implements TicketService {
 
     private Ticket findTicketOrThrow(Long id) {
         return ticketRepo.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                "Ticket with ID " + id + " not found. It may have been deleted or does not exist."));
     }
 
     private void validateStatusTransition(TicketStatus current, TicketStatus next) {
@@ -302,7 +373,9 @@ public class TicketServiceImpl implements TicketService {
         };
         if (!valid) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "Invalid status transition: " + current + " → " + next);
+                "Cannot transition ticket from " + current + " to " + next + 
+                ". Valid transitions: OPEN→IN_PROGRESS, OPEN→REJECTED, IN_PROGRESS→RESOLVED, " +
+                "IN_PROGRESS→REJECTED, RESOLVED→CLOSED");
         }
     }
 
@@ -341,6 +414,7 @@ public class TicketServiceImpl implements TicketService {
             .createdAt(t.getCreatedAt())
             .updatedAt(t.getUpdatedAt())
             .resolvedAt(t.getResolvedAt())
+            .closedAt(t.getClosedAt())
             .slaDeadline(effectiveSlaDeadline(t))
             .slaViolated(slaViolated)
             .timeElapsed(timeElapsed)

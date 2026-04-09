@@ -2,6 +2,7 @@ package com.smartcampus.user.service;
 
 import com.smartcampus.maintenance.repository.CommentRepository;
 import com.smartcampus.maintenance.repository.TicketRepository;
+import com.smartcampus.notification.repository.NotificationRepository;
 import com.smartcampus.user.dto.CreateTechnicianDTO;
 import com.smartcampus.user.dto.UpdateTechnicianDTO;
 import com.smartcampus.user.dto.UserProfileDTO;
@@ -29,10 +30,17 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final TicketRepository ticketRepository;
     private final CommentRepository commentRepository;
+    private final NotificationRepository notificationRepository;
 
     @Transactional(readOnly = true)
-    public List<UserProfileDTO> getAllUsers() {
-        return userRepository.findAllWithRoles().stream().map(this::toProfileDto).toList();
+    public List<UserProfileDTO> getAllUsers(Role roleFilter) {
+        var stream = userRepository.findAllWithRoles().stream();
+        if (roleFilter != null) {
+            stream =
+                    stream.filter(
+                            u -> u.getRoles() != null && u.getRoles().contains(roleFilter));
+        }
+        return stream.map(this::toProfileDto).toList();
     }
 
     /** Users with TECHNICIAN role (for assignment UIs). */
@@ -109,6 +117,31 @@ public class UserService {
         }
 
         return toProfileDto(userRepository.save(user));
+    }
+
+    @Transactional
+    public void deleteUser(Long id, Long currentUserId) {
+        if (id.equals(currentUserId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot delete your own account");
+        }
+        User user =
+                userRepository
+                        .findByIdWithRoles(id)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        if (user.getRoles() != null
+                && (user.getRoles().contains(Role.ADMIN) || user.getRoles().contains(Role.MANAGER))) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Administrator or manager accounts cannot be removed from this page");
+        }
+        if (ticketRepository.countByReportedById(id) > 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "This user has submitted tickets; resolve or reassign those records before deleting");
+        }
+        notificationRepository.deleteByRecipient_Id(id);
+        ticketRepository.clearAssignmentForUser(id);
+        commentRepository.deleteByAuthor_Id(id);
+        userRepository.delete(user);
     }
 
     @Transactional

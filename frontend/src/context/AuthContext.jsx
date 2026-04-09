@@ -11,23 +11,27 @@ import {
   fetchCurrentUser,
   loginWithGoogle as loginWithGoogleApi,
   loginWithPassword as loginWithPasswordApi,
+  requestLecturerOtp as requestLecturerOtpApi,
+  registerLecturer as registerLecturerApi,
+  verifyLecturerOtp as verifyLecturerOtpApi,
+  updateCurrentUserProfile as updateCurrentUserProfileApi,
 } from "../api/authApi";
-import { AUTH_TOKEN_STORAGE_KEY } from "../constants/authStorage";
+import {
+  clearMemoryToken,
+  getMemoryToken,
+  setMemoryToken,
+} from "../api/authTokenMemory";
 
 const AuthContext = createContext(null);
 
-function getStoredToken() {
-  return sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
-}
-
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => getStoredToken());
+  const [token, setToken] = useState(() => getMemoryToken());
   const [user, setUser] = useState(null);
-  const [bootstrapping, setBootstrapping] = useState(() => Boolean(getStoredToken()));
+  const [bootstrapping, setBootstrapping] = useState(() => Boolean(getMemoryToken()));
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState(null);
 
-  /** Restore session: token in sessionStorage → GET /auth/me */
+  /** Restore session: in-memory token → GET /auth/me */
   useEffect(() => {
     if (!token) {
       setBootstrapping(false);
@@ -45,7 +49,7 @@ export function AuthProvider({ children }) {
         if (!cancelled) setUser(profile);
       } catch {
         if (!cancelled) {
-          sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+          clearMemoryToken();
           setToken(null);
           setUser(null);
         }
@@ -63,7 +67,7 @@ export function AuthProvider({ children }) {
     if (!accessToken || !nextUser) {
       throw new Error("Invalid response from server");
     }
-    sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, accessToken);
+    setMemoryToken(accessToken);
     setToken(accessToken);
     setUser(nextUser);
     return nextUser;
@@ -108,8 +112,59 @@ export function AuthProvider({ children }) {
     [applyAuthResponse],
   );
 
+  const registerLecturer = useCallback(
+    async ({ name, email, password, verificationToken }) => {
+      setLoginError(null);
+      setLoginLoading(true);
+      try {
+        const { token: accessToken, user: nextUser } = await registerLecturerApi({
+          name,
+          email,
+          password,
+          verificationToken,
+        });
+        return applyAuthResponse(accessToken, nextUser);
+      } catch (err) {
+        const message = resolveAuthErrorMessage(err);
+        setLoginError(message);
+        throw err;
+      } finally {
+        setLoginLoading(false);
+      }
+    },
+    [applyAuthResponse],
+  );
+
+  const requestLecturerOtp = useCallback(async (email) => {
+    setLoginError(null);
+    setLoginLoading(true);
+    try {
+      await requestLecturerOtpApi(email);
+    } catch (err) {
+      const message = resolveAuthErrorMessage(err);
+      setLoginError(message);
+      throw err;
+    } finally {
+      setLoginLoading(false);
+    }
+  }, []);
+
+  const verifyLecturerOtp = useCallback(async ({ email, otp }) => {
+    setLoginError(null);
+    setLoginLoading(true);
+    try {
+      return await verifyLecturerOtpApi({ email, otp });
+    } catch (err) {
+      const message = resolveAuthErrorMessage(err);
+      setLoginError(message);
+      throw err;
+    } finally {
+      setLoginLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(() => {
-    sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    clearMemoryToken();
     setToken(null);
     setUser(null);
     setLoginError(null);
@@ -117,29 +172,57 @@ export function AuthProvider({ children }) {
 
   const clearLoginError = useCallback(() => setLoginError(null), []);
 
+  /** Re-fetch profile from the server (e.g. after PATCH /auth/me). */
+  const refreshUser = useCallback(async () => {
+    if (!getMemoryToken()) return null;
+    const profile = await fetchCurrentUser();
+    setUser(profile);
+    return profile;
+  }, []);
+
+  const updateProfile = useCallback(async ({ name, avatarUrl }) => {
+    const body = { name: name.trim() };
+    if (avatarUrl != null && String(avatarUrl).trim() !== "") {
+      body.avatarUrl = String(avatarUrl).trim();
+    }
+    const next = await updateCurrentUserProfileApi(body);
+    setUser(next);
+    return next;
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
       token,
       loginWithGoogle,
       loginWithPassword,
+      requestLecturerOtp,
+      verifyLecturerOtp,
+      registerLecturer,
       logout,
       isAuthenticated: Boolean(user && token),
       isBootstrapping: bootstrapping,
       loginLoading,
       loginError,
       clearLoginError,
+      refreshUser,
+      updateProfile,
     }),
     [
       user,
       token,
       loginWithGoogle,
       loginWithPassword,
+      requestLecturerOtp,
+      verifyLecturerOtp,
+      registerLecturer,
       logout,
       bootstrapping,
       loginLoading,
       loginError,
       clearLoginError,
+      refreshUser,
+      updateProfile,
     ],
   );
 

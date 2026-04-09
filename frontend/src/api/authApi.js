@@ -18,8 +18,35 @@ export async function loginWithPassword({ email, password }) {
   return data;
 }
 
+/**
+ * POST /auth/register/lecturer — creates lecturer account and signs in.
+ * @param {{ name: string, email: string, password: string }} body
+ * @returns {Promise<{ token: string, user: object }>}
+ */
+export async function registerLecturer(body) {
+  const { data } = await axiosInstance.post("/auth/register/lecturer", body);
+  return data;
+}
+
+/** POST /auth/register/lecturer/request-otp — sends lecturer verification OTP via email. */
+export async function requestLecturerOtp(email) {
+  await axiosInstance.post("/auth/register/lecturer/request-otp", { email });
+}
+
+/** POST /auth/register/lecturer/verify-otp — verifies OTP and returns verification token. */
+export async function verifyLecturerOtp({ email, otp }) {
+  const { data } = await axiosInstance.post("/auth/register/lecturer/verify-otp", { email, otp });
+  return data;
+}
+
 /** GET /auth/me — requires Authorization header (set by axios interceptor). */
 export async function fetchCurrentUser() {
   const { data } = await axiosInstance.get("/auth/me");
+  return data;
+}
+
+/** PATCH /auth/me — update display name and optional avatar URL. */
+export async function updateCurrentUserProfile(body) {
+  const { data } = await axiosInstance.patch("/auth/me", body);
   return data;
 }

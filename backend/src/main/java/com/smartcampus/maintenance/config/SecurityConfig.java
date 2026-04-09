@@ -45,14 +45,17 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Vite may use 5173, 5174, etc. Patterns work with allowCredentials (fixed
-        // origins do not wildcard).
+        // Allow local dev ports (Vite can shift ports: 5173/5174/5175...).
         config.setAllowedOriginPatterns(
-                List.of("http://localhost:*", "http://127.0.0.1:*"));
+                List.of(
+                        "http://localhost:*",
+                        "http://127.0.0.1:*",
+                        "http://[::1]:*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
@@ -71,7 +74,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(
                         auth -> auth.requestMatchers(HttpMethod.OPTIONS, "/**")
                                 .permitAll()
-                                .requestMatchers(HttpMethod.POST, "/api/auth/google", "/api/auth/login")
+                                .requestMatchers(
+                                        HttpMethod.POST,
+                                        "/api/auth/google",
+                                        "/api/auth/login",
+                                        "/api/auth/register/lecturer/request-otp",
+                                        "/api/auth/register/lecturer/verify-otp",
+                                        "/api/auth/register/lecturer")
                                 .permitAll()
                                 .requestMatchers(
                                         "/",
@@ -81,6 +90,8 @@ public class SecurityConfig {
                                         "/api-docs/**")
                                 .permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/facilities", "/api/facilities/**")
+                                .permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/notifications/stream")
                                 .permitAll()
                                 .anyRequest()
                                 .authenticated());

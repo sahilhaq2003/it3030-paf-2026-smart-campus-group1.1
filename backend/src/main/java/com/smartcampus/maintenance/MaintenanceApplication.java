@@ -12,8 +12,20 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication(scanBasePackages = "com.smartcampus")
 @EnableScheduling
-@EntityScan(basePackages = {"com.smartcampus.maintenance", "com.smartcampus.user", "com.smartcampus.facilities"})
-@EnableJpaRepositories(basePackages = {"com.smartcampus.maintenance", "com.smartcampus.user", "com.smartcampus.facilities"})
+@EntityScan(
+        basePackages = {
+            "com.smartcampus.maintenance",
+            "com.smartcampus.user",
+            "com.smartcampus.facilities",
+            "com.smartcampus.notification"
+        })
+@EnableJpaRepositories(
+        basePackages = {
+            "com.smartcampus.maintenance",
+            "com.smartcampus.user",
+            "com.smartcampus.facilities",
+            "com.smartcampus.notification"
+        })
 public class MaintenanceApplication {
 
     public static void main(String[] args) {
@@ -117,16 +129,22 @@ public class MaintenanceApplication {
                         : URLDecoder.decode(userInfo.substring(colon + 1), StandardCharsets.UTF_8);
         String host = uri.getHost();
         int port = uri.getPort() > 0 ? uri.getPort() : 5432;
+        // Removed forced switch to 6543 for campus compatibility
+/*
         if (host != null && host.endsWith("pooler.supabase.com") && port == 5432) {
             // Supabase pooler on 5432 is session-mode; force transaction-mode port.
             port = 6543;
         }
+*/
         String path =
                 uri.getPath() != null && !uri.getPath().isEmpty() ? uri.getPath() : "/postgres";
-        String jdbc =
-                String.format(
-                        "jdbc:postgresql://%s:%d%s?sslmode=require&prepareThreshold=0",
-                        host, port, path);
+
+        String query = "sslmode=require&connectTimeout=20&socketTimeout=20";
+        if (host != null && host.contains("pooler.supabase.com")) {
+            query += "&prepareThreshold=0";
+        }
+        String jdbc = String.format("jdbc:postgresql://%s:%d%s?%s", host, port, path, query);
+
         System.setProperty("spring.datasource.url", jdbc);
         System.setProperty("spring.datasource.username", user);
         System.setProperty("spring.datasource.password", pass);
