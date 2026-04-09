@@ -86,7 +86,8 @@ public class AuthService {
                 return new SimulatedGoogleProfile(c.email(), c.name(), c.picture());
             }
             if (looksLikeJwt(trimmed)) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Google credential");
+                String reason = explainInvalidGoogleJwt(trimmed);
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, reason);
             }
         }
         return parseSimulatedGoogleIdToken(trimmed);
@@ -336,6 +337,40 @@ public class AuthService {
     private static String text(JsonNode node, String field) {
         JsonNode v = node.get(field);
         return v != null && !v.isNull() ? v.asText() : null;
+    }
+
+    private String explainInvalidGoogleJwt(String idToken) {
+        String payloadJson = decodeJwtPayloadJson(idToken);
+        if (payloadJson == null) {
+            return "Invalid Google credential";
+        }
+        try {
+            JsonNode root = objectMapper.readTree(payloadJson);
+            JsonNode audNode = root.get("aud");
+            String configuredClientId = googleOAuthTokenVerifier.getConfiguredClientId();
+            if (configuredClientId != null
+                    && !configuredClientId.isBlank()
+                    && audNode != null
+                    && !audNode.isNull()) {
+                boolean audMatched = false;
+                if (audNode.isTextual()) {
+                    audMatched = configuredClientId.equals(audNode.asText());
+                } else if (audNode.isArray()) {
+                    for (JsonNode n : audNode) {
+                        if (n != null && n.isTextual() && configuredClientId.equals(n.asText())) {
+                            audMatched = true;
+                            break;
+                        }
+                    }
+                }
+                if (!audMatched) {
+                    return "Google client ID mismatch. Update GOOGLE_CLIENT_ID and VITE_GOOGLE_CLIENT_ID to the same OAuth Web client ID.";
+                }
+            }
+        } catch (Exception ignored) {
+            // Fall through to generic message.
+        }
+        return "Invalid Google credential";
     }
 
     /** JWT payload segment decoded as UTF-8 JSON (no signature verification — simulation only). */
