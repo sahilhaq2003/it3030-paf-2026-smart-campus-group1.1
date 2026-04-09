@@ -208,6 +208,11 @@ public class BookingServiceImpl implements BookingService {
         dto.setStatus(booking.getStatus());
         dto.setPurpose(booking.getPurpose());
         dto.setRejectionReason(booking.getRejectionReason());
+        dto.setExpectedAttendees(booking.getExpectedAttendees()); 
+        if (booking.getReviewedBy() != null) {                   
+            dto.setReviewedById(booking.getReviewedBy().getId()); 
+            dto.setReviewedByName(booking.getReviewedBy().getName()); 
+        }  
         dto.setCreatedAt(booking.getCreatedAt());
         dto.setUpdatedAt(booking.getUpdatedAt());
         return dto;
