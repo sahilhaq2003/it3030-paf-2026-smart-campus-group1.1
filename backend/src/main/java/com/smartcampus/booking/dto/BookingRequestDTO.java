@@ -26,4 +26,6 @@ public class BookingRequestDTO {
 
     @NotBlank(message = "Purpose is required")
     private String purpose;
+
+    private Integer expectedAttendees;
 }
