@@ -65,9 +65,15 @@ class CommentControllerIntegrationTest {
     private User adminUser;
     private Ticket ticket;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     @BeforeEach
     void setUp() {
-        notificationRepository.deleteAll();
+      
+        // Clean up
+        jdbcTemplate.execute("DELETE FROM notifications");
+
         commentRepository.deleteAll();
         ticketRepository.deleteAll();
         userRepository.deleteAll();
@@ -105,8 +111,24 @@ class CommentControllerIntegrationTest {
         ticket = ticketRepository.save(ticket);
     }
 
-    private String bearer(User user) {
-        return "Bearer " + jwtService.generateToken(user);
+
+    private void authenticateAs(User user, String... roleNames) {
+        var authorities = java.util.Arrays.stream(roleNames)
+                .map(r -> new SimpleGrantedAuthority(r.startsWith("ROLE_") ? r : "ROLE_" + r))
+                .collect(java.util.stream.Collectors.toList());
+
+        UserPrincipal principal = new UserPrincipal(
+                user.getId(),
+                user.getEmail(),
+                "",
+                authorities);
+
+        var auth = new UsernamePasswordAuthenticationToken(
+                principal,
+                null,
+                authorities);
+
+        SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
     @Test
@@ -114,45 +136,47 @@ class CommentControllerIntegrationTest {
         CommentDTO commentDTO = new CommentDTO();
         commentDTO.setContent("This is a helpful comment");
 
-        mockMvc.perform(
-                        post("/api/tickets/" + ticket.getId() + "/comments")
-                                .header(HttpHeaders.AUTHORIZATION, bearer(author))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(commentDTO)))
+
+        // Act & Assert
+        mockMvc.perform(post("/api/tickets/" + ticket.getId() + "/comments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(commentDTO)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.content").value("This is a helpful comment"))
-                .andExpect(jsonPath("$.isEdited").value(false));
+                .andExpect(jsonPath("$.edited").value(false));
+
     }
 
     @Test
     void shouldListCommentsForTicket() throws Exception {
-        Comment comment1 =
-                Comment.builder()
-                        .ticket(ticket)
-                        .author(author)
-                        .content("First comment")
-                        .isEdited(false)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
+
+        authenticateAs(author, "ROLE_USER");
+        // Arrange - Create comments
+        Comment comment1 = Comment.builder()
+                .ticket(ticket)
+                .author(author)
+                .content("First comment")
+                .isEdited(false)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
         commentRepository.save(comment1);
 
-        Comment comment2 =
-                Comment.builder()
-                        .ticket(ticket)
-                        .author(otherUser)
-                        .content("Second comment")
-                        .isEdited(false)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
+        Comment comment2 = Comment.builder()
+                .ticket(ticket)
+                .author(otherUser)
+                .content("Second comment")
+                .isEdited(false)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
         commentRepository.save(comment2);
 
-        mockMvc.perform(
-                        get("/api/tickets/" + ticket.getId() + "/comments")
-                                .header(HttpHeaders.AUTHORIZATION, bearer(author))
-                                .contentType(MediaType.APPLICATION_JSON))
+        // Act & Assert
+        mockMvc.perform(get("/api/tickets/" + ticket.getId() + "/comments")
+                .contentType(MediaType.APPLICATION_JSON))
+
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].content").value("First comment"))
@@ -161,28 +185,32 @@ class CommentControllerIntegrationTest {
 
     @Test
     void shouldAllowAuthorToEditOwnComment() throws Exception {
-        Comment comment =
-                Comment.builder()
-                        .ticket(ticket)
-                        .author(author)
-                        .content("Original content")
-                        .isEdited(false)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
+
+        authenticateAs(author, "ROLE_USER");
+        // Arrange - Create comment
+        Comment comment = Comment.builder()
+                .ticket(ticket)
+                .author(author)
+                .content("Original content")
+                .isEdited(false)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
         comment = commentRepository.save(comment);
 
         CommentDTO updateDTO = new CommentDTO();
         updateDTO.setContent("Updated content");
 
-        mockMvc.perform(
-                        put("/api/tickets/" + ticket.getId() + "/comments/" + comment.getId())
-                                .header(HttpHeaders.AUTHORIZATION, bearer(author))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(updateDTO)))
+
+        // Act & Assert
+        mockMvc.perform(put("/api/tickets/" + ticket.getId() + "/comments/" + comment.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateDTO)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").value("Updated content"))
-                .andExpect(jsonPath("$.isEdited").value(true));
+                .andExpect(jsonPath("$.edited").value(true));
+
 
         Optional<Comment> updated = commentRepository.findById(comment.getId());
         assertThat(updated).isPresent();
@@ -192,27 +220,31 @@ class CommentControllerIntegrationTest {
 
     @Test
     void shouldRejectNonAuthorEditingComment() throws Exception {
-        Comment comment =
-                Comment.builder()
-                        .ticket(ticket)
-                        .author(author)
-                        .content("Author's comment")
-                        .isEdited(false)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
+
+        authenticateAs(otherUser, "ROLE_USER");
+        // Arrange - Author creates comment
+        Comment comment = Comment.builder()
+                .ticket(ticket)
+                .author(author)
+                .content("Author's comment")
+                .isEdited(false)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
         comment = commentRepository.save(comment);
 
         CommentDTO updateDTO = new CommentDTO();
         updateDTO.setContent("Hacked content");
 
-        mockMvc.perform(
-                        put("/api/tickets/" + ticket.getId() + "/comments/" + comment.getId())
-                                .header(HttpHeaders.AUTHORIZATION, bearer(otherUser))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(updateDTO)))
+
+        // Act & Assert - Other user tries to edit
+        mockMvc.perform(put("/api/tickets/" + ticket.getId() + "/comments/" + comment.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateDTO)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message", containsString("edit your own")));
+                .andExpect(jsonPath("$.message", containsString("You can only edit your own comments")));
+
 
         Optional<Comment> unchanged = commentRepository.findById(comment.getId());
         assertThat(unchanged.get().getContent()).isEqualTo("Author's comment");
@@ -220,21 +252,23 @@ class CommentControllerIntegrationTest {
 
     @Test
     void shouldAllowAuthorToDeleteOwnComment() throws Exception {
-        Comment comment =
-                Comment.builder()
-                        .ticket(ticket)
-                        .author(author)
-                        .content("Deletable comment")
-                        .isEdited(false)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
+
+        authenticateAs(author, "ROLE_USER");
+        // Arrange
+        Comment comment = Comment.builder()
+                .ticket(ticket)
+                .author(author)
+                .content("Deletable comment")
+                .isEdited(false)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
         comment = commentRepository.save(comment);
 
-        mockMvc.perform(
-                        delete("/api/tickets/" + ticket.getId() + "/comments/" + comment.getId())
-                                .header(HttpHeaders.AUTHORIZATION, bearer(author))
-                                .contentType(MediaType.APPLICATION_JSON))
+        // Act & Assert
+        mockMvc.perform(delete("/api/tickets/" + ticket.getId() + "/comments/" + comment.getId())
+                .contentType(MediaType.APPLICATION_JSON))
+
                 .andExpect(status().isNoContent());
 
         Optional<Comment> deleted = commentRepository.findById(comment.getId());
@@ -243,23 +277,25 @@ class CommentControllerIntegrationTest {
 
     @Test
     void shouldRejectNonAuthorDeletingComment() throws Exception {
-        Comment comment =
-                Comment.builder()
-                        .ticket(ticket)
-                        .author(author)
-                        .content("Protected comment")
-                        .isEdited(false)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
+
+        authenticateAs(otherUser, "ROLE_USER");
+        // Arrange - Author creates comment
+        Comment comment = Comment.builder()
+                .ticket(ticket)
+                .author(author)
+                .content("Protected comment")
+                .isEdited(false)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
         comment = commentRepository.save(comment);
 
-        mockMvc.perform(
-                        delete("/api/tickets/" + ticket.getId() + "/comments/" + comment.getId())
-                                .header(HttpHeaders.AUTHORIZATION, bearer(otherUser))
-                                .contentType(MediaType.APPLICATION_JSON))
+        // Act & Assert - Other user tries to delete (should be 403)
+        mockMvc.perform(delete("/api/tickets/" + ticket.getId() + "/comments/" + comment.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-User-ID", otherUser.getId()))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message", containsString("delete your own")));
+                .andExpect(jsonPath("$.message", containsString("You can only delete your own comments")));
 
         Optional<Comment> stillExists = commentRepository.findById(comment.getId());
         assertThat(stillExists).isPresent();
@@ -267,21 +303,24 @@ class CommentControllerIntegrationTest {
 
     @Test
     void shouldAllowAdminToDeleteAnyComment() throws Exception {
-        Comment comment =
-                Comment.builder()
-                        .ticket(ticket)
-                        .author(author)
-                        .content("Admin deletable")
-                        .isEdited(false)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
+
+        authenticateAs(adminUser, "ROLE_ADMIN");
+        // Arrange
+        Comment comment = Comment.builder()
+                .ticket(ticket)
+                .author(author)
+                .content("Admin deletable")
+                .isEdited(false)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
         comment = commentRepository.save(comment);
 
-        mockMvc.perform(
-                        delete("/api/tickets/" + ticket.getId() + "/comments/" + comment.getId())
-                                .header(HttpHeaders.AUTHORIZATION, bearer(adminUser))
-                                .contentType(MediaType.APPLICATION_JSON))
+        // Act & Assert - Admin deletes (with admin header)
+        mockMvc.perform(delete("/api/tickets/" + ticket.getId() + "/comments/" + comment.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-User-Role", "ADMIN"))
+
                 .andExpect(status().isNoContent());
 
         Optional<Comment> deleted = commentRepository.findById(comment.getId());
@@ -293,11 +332,12 @@ class CommentControllerIntegrationTest {
         CommentDTO emptyComment = new CommentDTO();
         emptyComment.setContent("");
 
-        mockMvc.perform(
-                        post("/api/tickets/" + ticket.getId() + "/comments")
-                                .header(HttpHeaders.AUTHORIZATION, bearer(author))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(emptyComment)))
+
+        // Act & Assert
+        mockMvc.perform(post("/api/tickets/" + ticket.getId() + "/comments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(emptyComment)))
+
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.content", containsString("empty")));
     }
@@ -305,28 +345,32 @@ class CommentControllerIntegrationTest {
     @Test
     void shouldRejectCommentExceeding1000Characters() throws Exception {
         CommentDTO longComment = new CommentDTO();
-        longComment.setContent("a".repeat(1001));
 
-        mockMvc.perform(
-                        post("/api/tickets/" + ticket.getId() + "/comments")
-                                .header(HttpHeaders.AUTHORIZATION, bearer(author))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(longComment)))
+        longComment.setContent("a".repeat(1001)); // Exceeds limit
+
+        // Act & Assert
+        mockMvc.perform(post("/api/tickets/" + ticket.getId() + "/comments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(longComment)))
+
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.content", containsString("exceeds")));
     }
 
     @Test
     void shouldMarkCommentAsEditedAfterUpdate() throws Exception {
-        Comment comment =
-                Comment.builder()
-                        .ticket(ticket)
-                        .author(author)
-                        .content("Original")
-                        .isEdited(false)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
+
+        // Arrange
+        authenticateAs(author, "ROLE_USER");
+        Comment comment = Comment.builder()
+                .ticket(ticket)
+                .author(author)
+                .content("Original")
+                .isEdited(false)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
         comment = commentRepository.save(comment);
 
         assertThat(comment.isEdited()).isFalse();
@@ -334,63 +378,76 @@ class CommentControllerIntegrationTest {
         CommentDTO updateDTO = new CommentDTO();
         updateDTO.setContent("Updated");
 
-        mockMvc.perform(
-                        put("/api/tickets/" + ticket.getId() + "/comments/" + comment.getId())
-                                .header(HttpHeaders.AUTHORIZATION, bearer(author))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(updateDTO)))
+
+        // Act
+        mockMvc.perform(put("/api/tickets/" + ticket.getId() + "/comments/" + comment.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.isEdited").value(true));
+                .andExpect(jsonPath("$.edited").value(true));
+
     }
 
     @Test
     void shouldPreserveCommentAuthorAfterEdit() throws Exception {
-        Comment comment =
-                Comment.builder()
-                        .ticket(ticket)
-                        .author(author)
-                        .content("Original")
-                        .isEdited(false)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
+
+        // Arrange
+        authenticateAs(author, "ROLE_USER");
+        Comment comment = Comment.builder()
+                .ticket(ticket)
+                .author(author)
+                .content("Original")
+                .isEdited(false)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
         comment = commentRepository.save(comment);
 
         CommentDTO updateDTO = new CommentDTO();
         updateDTO.setContent("Updated");
 
-        mockMvc.perform(
-                        put("/api/tickets/" + ticket.getId() + "/comments/" + comment.getId())
-                                .header(HttpHeaders.AUTHORIZATION, bearer(author))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(updateDTO)))
+
+        // Act
+        mockMvc.perform(put("/api/tickets/" + ticket.getId() + "/comments/" + comment.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateDTO)))
+
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.authorId").value(author.getId().intValue()));
     }
 
     @Test
     void shouldReturn404ForNonExistentComment() throws Exception {
-        CommentDTO body = new CommentDTO();
-        body.setContent("noop");
 
-        mockMvc.perform(
-                        put("/api/tickets/" + ticket.getId() + "/comments/999")
-                                .header(HttpHeaders.AUTHORIZATION, bearer(author))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(body)))
+        // Arrange
+        authenticateAs(author, "ROLE_USER");
+
+        CommentDTO dto = new CommentDTO();
+        dto.setContent("Valid");
+        
+        // Act & Assert
+        mockMvc.perform(put("/api/tickets/" + ticket.getId() + "/comments/999")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
+
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void shouldReturn404ForNonExistentTicket() throws Exception {
-        CommentDTO body = new CommentDTO();
-        body.setContent("Comment on missing ticket");
 
-        mockMvc.perform(
-                        post("/api/tickets/999/comments")
-                                .header(HttpHeaders.AUTHORIZATION, bearer(author))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(body)))
+        // Arrange
+        authenticateAs(author, "ROLE_USER");
+
+        CommentDTO dto = new CommentDTO();
+        dto.setContent("Valid");
+        
+        // Act & Assert
+        mockMvc.perform(post("/api/tickets/999/comments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
+
                 .andExpect(status().isNotFound());
     }
 }

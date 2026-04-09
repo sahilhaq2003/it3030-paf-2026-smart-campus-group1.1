@@ -60,6 +60,9 @@ class TicketControllerIntegrationTest {
     private User testUser;
     private User adminUser;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     @BeforeEach
     void setUp() {
         notificationRepository.deleteAll();
