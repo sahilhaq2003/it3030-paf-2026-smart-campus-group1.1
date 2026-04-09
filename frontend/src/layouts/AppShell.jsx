@@ -272,14 +272,11 @@ export default function AppShell() {
     if (!nextMessage) return;
 
     setFlashMessage(nextMessage);
-    const timer = setTimeout(() => setFlashMessage(""), 3500);
 
     navigate(location.pathname, {
       replace: true,
       state: { ...(location.state || {}), loginSuccess: undefined },
     });
-
-    return () => clearTimeout(timer);
   }, [location.pathname, location.state, navigate]);
 
   return (
