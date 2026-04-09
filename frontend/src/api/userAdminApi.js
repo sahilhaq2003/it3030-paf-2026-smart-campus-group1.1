@@ -50,3 +50,8 @@ export function updateUserRole(id, role) {
 export function toggleUserEnabled(id) {
   return axiosInstance.patch(`/users/${id}/enable`).then((r) => r.data);
 }
+
+/** DELETE /users/:id — ADMIN / MANAGER (removes account; blocked if user has tickets as reporter) */
+export function deleteUser(id) {
+  return axiosInstance.delete(`/users/${id}`);
+}

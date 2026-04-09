@@ -13,8 +13,8 @@ export default function CommentInput({ onSubmit, disabled = false, placeholder =
       return;
     }
 
-    if (content.length > 1000) {
-      alert('Comment cannot exceed 1000 characters');
+    if (content.length > 500) {
+      alert('Comment cannot exceed 500 characters');
       return;
     }
 
@@ -30,7 +30,7 @@ export default function CommentInput({ onSubmit, disabled = false, placeholder =
   };
 
   const charCount = content.length;
-  const maxChars = 1000;
+  const maxChars = 500;
   const isNearLimit = charCount > maxChars * 0.8;
 
   return (
@@ -48,7 +48,7 @@ export default function CommentInput({ onSubmit, disabled = false, placeholder =
             resize-none
           "
           rows="4"
-          maxLength={maxChars}
+          maxLength={500}
         />
       </div>
 

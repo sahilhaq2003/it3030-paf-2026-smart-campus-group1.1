@@ -25,6 +25,10 @@ export default function CommentThread({
       alert('Comment cannot be empty');
       return;
     }
+    if (editContent.length > 500) {
+      alert('Comment cannot exceed 500 characters');
+      return;
+    }
     try {
       await onEditComment(commentId, editContent);
       setEditingId(null);
@@ -135,7 +139,7 @@ export default function CommentThread({
                     onChange={(e) => setEditContent(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows="3"
-                    maxLength={1000}
+                    maxLength={500}
                   />
                   <div className="flex gap-2 justify-end">
                     <button

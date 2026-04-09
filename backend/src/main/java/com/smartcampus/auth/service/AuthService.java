@@ -59,8 +59,7 @@ public class AuthService {
 
     /**
      * Google Sign-In: when {@code app.google.client-id} is set, verifies the credential JWT with
-     * Google. Otherwise accepts {@code dummy-google-token} or a decoded/simulated payload for local
-     * development only.
+     * Google. Otherwise accepts a decoded/simulated payload for local development only.
      */
     @Transactional
     public AuthResponseDTO signInWithGoogle(String idToken) {
@@ -80,9 +79,6 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "idToken is required");
         }
         String trimmed = idToken.trim();
-        if ("dummy-google-token".equals(trimmed)) {
-            return new SimulatedGoogleProfile("IT23603004@my.sliit.lk", "Pasindi", null);
-        }
         if (googleOAuthTokenVerifier.isEnabled()) {
             Optional<GoogleUserClaims> verified = googleOAuthTokenVerifier.verify(trimmed);
             if (verified.isPresent()) {
@@ -303,7 +299,8 @@ public class AuthService {
         }
         String trimmed = idToken.trim();
         if ("dummy-google-token".equals(trimmed)) {
-            return new SimulatedGoogleProfile("IT23603004@my.sliit.lk", "Pasindi", null);
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "dummy-google-token is no longer supported");
         }
         String jsonPayload = null;
         if (trimmed.startsWith("{")) {
