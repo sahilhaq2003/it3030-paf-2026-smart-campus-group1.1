@@ -41,8 +41,8 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 antialiased">
       <main>
-        <section className="relative overflow-hidden px-4 pb-10 pt-4 sm:px-6">
-          <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[28px] shadow-2xl shadow-slate-900/20">
+        <section className="relative overflow-hidden px-3 pb-8 pt-3 sm:px-6 sm:pb-10 sm:pt-4">
+          <div className="relative mx-auto max-w-6xl overflow-hidden rounded-2xl shadow-2xl shadow-slate-900/20 sm:rounded-[28px]">
             {heroSlides.map((slide, index) => (
               <div
                 key={slide}
@@ -55,8 +55,8 @@ export default function LandingPage() {
               />
             ))}
 
-            <header className="relative z-30 px-4 pt-4 sm:px-8 sm:pt-6">
-              <div className="flex items-center justify-between rounded-2xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur-md">
+            <header className="relative z-30 px-3 pt-3 sm:px-8 sm:pt-6">
+              <div className="flex items-center justify-between rounded-2xl border border-white/20 bg-white/10 px-3 py-2.5 backdrop-blur-md sm:px-4 sm:py-3">
                 <div className="flex items-center gap-3 text-white">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-sm font-bold">
                     SC
@@ -73,7 +73,7 @@ export default function LandingPage() {
                   <Link to="/contact" className="transition hover:text-white">
                     Contact
                   </Link>
-                  <Link to="/login/help" className="transition hover:text-white">
+                  <Link to="/support" className="transition hover:text-white">
                     Support
                   </Link>
                   <Link to="/about" className="transition hover:text-white">
@@ -82,26 +82,26 @@ export default function LandingPage() {
                 </nav>
                 <Link
                   to="/login"
-                  className="rounded-full bg-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/30"
+                  className="rounded-full bg-white/20 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/30 sm:px-4 sm:text-sm"
                 >
                   Login
                 </Link>
               </div>
             </header>
 
-            <div className="relative z-20 flex min-h-[560px] items-center px-6 pb-28 pt-12 sm:px-10">
+            <div className="relative z-20 flex min-h-[500px] items-center px-4 pb-24 pt-10 sm:min-h-[560px] sm:px-10 sm:pb-28 sm:pt-12">
               <div className="max-w-2xl text-white">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-200">
                   Smart Campus System
                 </p>
-                <h1 className="mt-4 text-4xl font-extrabold leading-tight sm:text-6xl">
+                <h1 className="mt-4 text-3xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
                   Campus Support Made Simple
                 </h1>
-                <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-200 sm:text-lg">
+                <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-200 sm:mt-5 sm:text-lg">
                   Submit maintenance requests, track progress in real time, and coordinate with
                   technicians and admins from one portal.
                 </p>
-                <div className="mt-8 flex flex-wrap gap-3">
+                <div className="mt-6 flex flex-wrap gap-3 sm:mt-8">
                   <Link
                     to="/login"
                     className="inline-flex items-center gap-2 rounded-full bg-white/20 px-6 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/30"
@@ -110,7 +110,7 @@ export default function LandingPage() {
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <Link
-                    to="/login/help"
+                    to="/support"
                     className="inline-flex items-center rounded-full border border-white/30 bg-transparent px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
                   >
                     Login help
@@ -119,7 +119,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 gap-2">
+            <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 gap-2 sm:bottom-6">
               {heroSlides.map((slide, index) => (
                 <button
                   key={`dot-${slide}`}
@@ -134,8 +134,8 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="relative z-40 mx-auto -mt-8 max-w-4xl px-2 sm:-mt-12">
-            <div className="grid gap-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl shadow-slate-900/10 sm:grid-cols-[1fr_1fr_1fr_auto] sm:p-4">
+          <div className="relative z-40 mx-auto -mt-6 max-w-4xl px-2 sm:-mt-12">
+            <div className="grid gap-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl shadow-slate-900/10 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] sm:p-4">
               {[
                 { label: "Area", value: "Main campus", icon: MapPin },
                 { label: "Issue Type", value: "Electrical / IT / Facility", icon: ClipboardList },
@@ -151,7 +151,7 @@ export default function LandingPage() {
               ))}
               <Link
                 to="/tickets/create"
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 sm:col-span-2 lg:col-span-1"
               >
                 <Search className="h-4 w-4" />
                 Create Ticket
@@ -160,9 +160,9 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-6 py-14">
+        <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-14">
           <div className="text-center">
-            <h2 className="text-4xl font-bold tracking-tight text-slate-900">Most Used Features</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Most Used Features</h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-slate-500">
               Quickly access core modules used by students, staff, technicians, and administrators.
             </p>
@@ -210,7 +210,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-6 pb-16">
+        <section className="mx-auto max-w-6xl px-4 pb-12 sm:px-6 sm:pb-16">
           <div className="grid gap-4 rounded-3xl bg-white p-4 shadow-sm sm:grid-cols-4 sm:p-6">
             {[
               { icon: ClipboardList, stat: "24/7", label: "Ticket access" },
@@ -230,7 +230,7 @@ export default function LandingPage() {
         </section>
 
         <footer className="border-t border-slate-200 bg-white">
-          <div className="mx-auto grid max-w-6xl gap-10 px-6 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
+          <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 sm:py-12 md:grid-cols-[1.4fr_1fr_1fr]">
             <div>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-campus-brand text-sm font-bold text-white">
@@ -256,7 +256,7 @@ export default function LandingPage() {
                 <Link to="/contact" className="block text-slate-600 transition hover:text-campus-brand">
                   Contact
                 </Link>
-                <Link to="/login/help" className="block text-slate-600 transition hover:text-campus-brand">
+                <Link to="/support" className="block text-slate-600 transition hover:text-campus-brand">
                   Support
                 </Link>
               </div>
@@ -272,7 +272,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-slate-200">
-            <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-4 text-xs text-slate-500 sm:flex-row">
+            <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-4 text-center text-xs text-slate-500 sm:flex-row sm:px-6 sm:text-left">
               <p>© {new Date().getFullYear()} Smart Campus Hub. All rights reserved.</p>
               <p>For internal campus operational use</p>
             </div>
