@@ -27,6 +27,10 @@ public class GoogleOAuthTokenVerifier {
         return !clientId.isEmpty();
     }
 
+    public String getConfiguredClientId() {
+        return clientId;
+    }
+
     /**
      * Verifies the JWT credential from Google Sign-In and returns claims.
      *

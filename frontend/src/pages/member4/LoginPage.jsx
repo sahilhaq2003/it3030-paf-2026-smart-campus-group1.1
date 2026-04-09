@@ -23,6 +23,7 @@ export default function LoginPage() {
     loginLoading,
     loginError,
     clearLoginError,
+    reportLoginError,
   } =
     useAuth();
   const navigate = useNavigate();
@@ -92,6 +93,7 @@ export default function LoginPage() {
       /* loginError set in AuthContext */
     }
   };
+
 
   const handleLecturerRegister = async (e) => {
     e.preventDefault();
@@ -384,6 +386,14 @@ export default function LoginPage() {
                     Students must continue with Google account
                   </p>
                 </div>
+                {loginError ? (
+                  <div
+                    role="alert"
+                    className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                  >
+                    {loginError}
+                  </div>
+                ) : null}
 
                 {!GOOGLE_CLIENT_ID ? (
                   <button
@@ -674,7 +684,21 @@ export default function LoginPage() {
                       className: "login-google-inner flex w-full max-w-full items-center justify-center p-0",
                     }}
                     onSuccess={onGoogleCredential}
-                    onError={clearLoginError}
+                    use_fedcm_for_button
+                    promptMomentNotification={(notification) => {
+                      if (notification.isNotDisplayed()) {
+                        const reason = notification.getNotDisplayedReason();
+                        reportLoginError(`Google sign-in unavailable: ${reason}.`);
+                      } else if (notification.isSkippedMoment()) {
+                        const reason = notification.getSkippedReason();
+                        reportLoginError(`Google sign-in skipped: ${reason}.`);
+                      }
+                    }}
+                    onError={() =>
+                      reportLoginError(
+                        "Google sign-in failed before credential was returned. Check Google OAuth client origins for this frontend URL.",
+                      )
+                    }
                   />
                   {loginLoading ? (
                     <div
