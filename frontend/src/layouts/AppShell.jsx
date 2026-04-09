@@ -28,7 +28,12 @@ import {
 
 function routeTitle(pathname) {
   if (pathname === "/home") return "Home";
-  if (pathname === "/UserDashboard" || pathname === "/AdminDashboard" || pathname === "/TechnicianDashboard")
+  if (
+    pathname === "/UserDashboard" ||
+    pathname === "/LecturerDashboard" ||
+    pathname === "/AdminDashboard" ||
+    pathname === "/TechnicianDashboard"
+  )
     return "Dashboard";
   if (pathname.startsWith("/tickets/create")) return "New ticket";
   if (pathname.startsWith("/tickets/") && pathname !== "/tickets") return "Ticket details";
@@ -159,6 +164,12 @@ function Sidebar() {
             label: "Technician dashboard",
             active: (p) => p.startsWith("/TechnicianDashboard"),
           }
+        : primaryDash === DASHBOARD_PATHS.LECTURER
+          ? {
+              to: DASHBOARD_PATHS.LECTURER,
+              label: "Lecturer dashboard",
+              active: (p) => p.startsWith("/LecturerDashboard"),
+            }
         : {
             to: DASHBOARD_PATHS.USER,
             label: "User dashboard",
@@ -261,14 +272,11 @@ export default function AppShell() {
     if (!nextMessage) return;
 
     setFlashMessage(nextMessage);
-    const timer = setTimeout(() => setFlashMessage(""), 3500);
 
     navigate(location.pathname, {
       replace: true,
       state: { ...(location.state || {}), loginSuccess: undefined },
     });
-
-    return () => clearTimeout(timer);
   }, [location.pathname, location.state, navigate]);
 
   return (

@@ -45,15 +45,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Explicit origins: "http://localhost:*" patterns did not match Vite's Origin → preflight 403 / no CORS header.
-        config.setAllowedOrigins(
+        // Allow local dev ports (Vite can shift ports: 5173/5174/5175...).
+        config.setAllowedOriginPatterns(
                 List.of(
-                        "http://localhost:5173",
-                        "http://localhost:5174",
-                        "http://127.0.0.1:5173",
-                        "http://127.0.0.1:5174",
-                        "http://[::1]:5173",
-                        "http://[::1]:5174"));
+                        "http://localhost:*",
+                        "http://127.0.0.1:*",
+                        "http://[::1]:*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
@@ -77,7 +74,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(
                         auth -> auth.requestMatchers(HttpMethod.OPTIONS, "/**")
                                 .permitAll()
-                                .requestMatchers(HttpMethod.POST, "/api/auth/google", "/api/auth/login")
+                                .requestMatchers(
+                                        HttpMethod.POST,
+                                        "/api/auth/google",
+                                        "/api/auth/login",
+                                        "/api/auth/register/lecturer/request-otp",
+                                        "/api/auth/register/lecturer/verify-otp",
+                                        "/api/auth/register/lecturer")
                                 .permitAll()
                                 .requestMatchers(
                                         "/",
