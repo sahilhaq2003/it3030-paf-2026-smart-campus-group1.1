@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { facilityApi } from '../../api/facilityApi';
 import { MapPin, Users, MonitorPlay, CalendarDays, Loader2, ArrowLeft } from 'lucide-react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+
 
 export default function FacilityDetailPage() {
   const { id } = useParams();
