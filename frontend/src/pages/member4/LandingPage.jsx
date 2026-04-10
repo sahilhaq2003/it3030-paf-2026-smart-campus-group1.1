@@ -14,9 +14,11 @@ import { useAuth } from "../../context/AuthContext";
 import { getDashboardRoute } from "../../utils/getDashboardRoute";
 
 const heroSlides = [
-  "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1600&q=80",
-  "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1600&q=80",
-  "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80",
+  "/images/sliit-malabe.png",
+  "/images/sliit-convocation.png",
+  "/images/sliit-kandy.png",
+  "/images/sliit-students-1.png",
+  "/images/sliit-students-2.png",
 ];
 
 export default function LandingPage() {
