@@ -514,7 +514,7 @@ export default function AdminTicketsPage() {
                   <TicketCard ticket={ticket} />
                 </div>
                 {isAdmin && (
-                  ticket.status === 'CLOSED' ? (
+                  ticket.status === 'CLOSED' || ticket.status === 'RESOLVED' ? (
                     <div className="shrink-0 flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
                       <span>✓</span>
                       <span>Completed</span>
