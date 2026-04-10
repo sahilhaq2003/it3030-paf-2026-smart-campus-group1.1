@@ -221,7 +221,7 @@ function Sidebar() {
       to: "/admin/bookings",
       label: "Manage Bookings",
       icon: ClipboardList,
-      ctive: (p) => p.startsWith("/admin/bookings"),
+      active: (p) => p.startsWith("/admin/bookings"),
     });
     items.push({
       to: "/admin/users",
