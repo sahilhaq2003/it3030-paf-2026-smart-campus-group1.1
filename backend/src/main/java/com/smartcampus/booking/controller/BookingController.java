@@ -33,7 +33,7 @@ public class BookingController {
 
     // GET /api/bookings/my — STUDENT, LECTURER
     @GetMapping("/my")
-    @PreAuthorize("hasAnyRole('STUDENT', 'LECTURER')")
+    @PreAuthorize("hasAnyRole('USER', 'LECTURER')")
     public ResponseEntity<List<BookingResponseDTO>> getMyBookings(
             @AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(bookingService.getMyBookings(principal.getId()));
@@ -41,7 +41,7 @@ public class BookingController {
 
     // GET /api/bookings/{id} — STUDENT, LECTURER, ADMIN
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('STUDENT', 'LECTURER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'LECTURER', 'ADMIN')")
     public ResponseEntity<BookingResponseDTO> getBookingById(
             @PathVariable Long id) {
         return ResponseEntity.ok(bookingService.getBookingById(id));
@@ -49,7 +49,7 @@ public class BookingController {
 
     // GET /api/bookings/availability — STUDENT, LECTURER
     @GetMapping("/availability")
-    @PreAuthorize("hasAnyRole('STUDENT', 'LECTURER')")
+    @PreAuthorize("hasAnyRole('USER', 'LECTURER')")
     public ResponseEntity<Boolean> checkAvailability(
             @RequestParam Long facilityId,
             @RequestParam LocalDate date,
@@ -61,7 +61,7 @@ public class BookingController {
 
     // POST /api/bookings — STUDENT, LECTURER
     @PostMapping
-    @PreAuthorize("hasAnyRole('STUDENT', 'LECTURER')")
+    @PreAuthorize("hasAnyRole('USER', 'LECTURER')")
     public ResponseEntity<BookingResponseDTO> createBooking(
             @Valid @RequestBody BookingRequestDTO request,
             @AuthenticationPrincipal UserPrincipal principal) {
@@ -90,7 +90,7 @@ public class BookingController {
 
     // PATCH /api/bookings/{id}/cancel — STUDENT, LECTURER, ADMIN
     @PatchMapping("/{id}/cancel")
-    @PreAuthorize("hasAnyRole('STUDENT', 'LECTURER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'LECTURER', 'ADMIN')")
     public ResponseEntity<BookingResponseDTO> cancelBooking(
             @PathVariable Long id,
             @AuthenticationPrincipal UserPrincipal principal) {
