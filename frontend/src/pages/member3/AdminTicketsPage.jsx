@@ -70,11 +70,47 @@ export default function AdminTicketsPage() {
   const assignMutation = useMutation({
     mutationFn: ({ ticketId, technicianId }) =>
       ticketApi.assignTechnician(ticketId, technicianId).then((r) => r.data),
+    onMutate: async ({ ticketId, technicianId }) => {
+      // Cancel ongoing queries to prevent conflicts
+      await queryClient.cancelQueries({ queryKey: ["admin", "tickets", "list"] });
+      
+      // Get the selected technician for the update
+      const selectedTech = technicians.find(t => t.id === technicianId);
+      
+      // Snapshot previous data
+      const previousTickets = queryClient.getQueryData(["admin", "tickets", "list"]);
+      
+      // Optimistically update the cache
+      queryClient.setQueryData(["admin", "tickets", "list"], (old) => {
+        if (!old?.content) return old;
+        return {
+          ...old,
+          content: old.content.map((ticket) =>
+            ticket.id === ticketId
+              ? {
+                  ...ticket,
+                  assignedToId: technicianId,
+                  assignedToName: selectedTech?.name || "Unknown",
+                  status: "IN_PROGRESS",
+                }
+              : ticket
+          ),
+        };
+      });
+      
+      return { previousTickets };
+    },
     onSuccess: () => {
+      toast.success("Ticket assigned successfully");
+      // Refetch to ensure data consistency
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard", "assignedTickets"] });
     },
-    onError: (err) => {
+    onError: (err, variables, context) => {
+      // Revert the optimistic update on error
+      if (context?.previousTickets) {
+        queryClient.setQueryData(["admin", "tickets", "list"], context.previousTickets);
+      }
       const msg =
         err?.response?.data?.message ||
         (typeof err?.response?.data === "string" ? err.response.data : null) ||
