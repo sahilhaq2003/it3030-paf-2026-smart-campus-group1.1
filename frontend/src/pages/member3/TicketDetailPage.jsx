@@ -124,6 +124,25 @@ export default function TicketDetailPage() {
 
   const startWorkMutation = useMutation({
     mutationFn: () => ticketApi.updateStatus(id, { status: "IN_PROGRESS" }),
+    onMutate: async () => {
+      // Cancel ongoing queries
+      await qc.cancelQueries({ queryKey: ["ticket", id] });
+      
+      // Snapshot the previous value
+      const previousTicket = qc.getQueryData(["ticket", id]);
+      
+      // Optimistically update the cache
+      qc.setQueryData(["ticket", id], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          status: "IN_PROGRESS",
+          updatedAt: new Date().toISOString(),
+        };
+      });
+      
+      return { previousTicket };
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ticket", id] });
       qc.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
@@ -131,7 +150,11 @@ export default function TicketDetailPage() {
       qc.invalidateQueries({ queryKey: ["tickets", "my"] });
       toast.success("Work started — ticket is now in progress");
     },
-    onError: (err) => {
+    onError: (err, variables, context) => {
+      // Revert to previous value on error
+      if (context?.previousTicket) {
+        qc.setQueryData(["ticket", id], context.previousTicket);
+      }
       const msg =
         err?.response?.data?.message ||
         (typeof err?.response?.data === "string" ? err.response.data : null) ||
@@ -143,15 +166,40 @@ export default function TicketDetailPage() {
   const resolveTicketMutation = useMutation({
     mutationFn: (notes) =>
       ticketApi.updateStatus(id, { status: "RESOLVED", resolutionNotes: notes.trim() }),
+    onMutate: async (notes) => {
+      // Cancel ongoing queries
+      await qc.cancelQueries({ queryKey: ["ticket", id] });
+      
+      // Snapshot the previous value
+      const previousTicket = qc.getQueryData(["ticket", id]);
+      
+      // Optimistically update the cache
+      qc.setQueryData(["ticket", id], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          status: "RESOLVED",
+          resolutionNotes: notes.trim(),
+          updatedAt: new Date().toISOString(),
+        };
+      });
+      
+      return { previousTicket };
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ticket", id] });
       qc.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
       qc.invalidateQueries({ queryKey: ["dashboard", "assignedTickets"] });
       qc.invalidateQueries({ queryKey: ["tickets", "my"] });
+      qc.invalidateQueries({ queryKey: ["admin", "technician", "performance"] });
       setResolutionNotes("");
       toast.success("Ticket marked resolved");
     },
-    onError: (err) => {
+    onError: (err, variables, context) => {
+      // Revert to previous value on error
+      if (context?.previousTicket) {
+        qc.setQueryData(["ticket", id], context.previousTicket);
+      }
       const msg =
         err?.response?.data?.message ||
         (typeof err?.response?.data === "string" ? err.response.data : null) ||
@@ -162,12 +210,36 @@ export default function TicketDetailPage() {
 
   const closeTicketMutation = useMutation({
     mutationFn: () => ticketApi.closeTicket(id),
+    onMutate: async () => {
+      // Cancel ongoing queries
+      await qc.cancelQueries({ queryKey: ["ticket", id] });
+      
+      // Snapshot the previous value
+      const previousTicket = qc.getQueryData(["ticket", id]);
+      
+      // Optimistically update the cache
+      qc.setQueryData(["ticket", id], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          status: "CLOSED",
+          updatedAt: new Date().toISOString(),
+        };
+      });
+      
+      return { previousTicket };
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ticket", id] });
       qc.invalidateQueries({ queryKey: ["tickets", "my"] });
+      qc.invalidateQueries({ queryKey: ["admin", "technician", "performance"] });
       toast.success("Ticket successfully closed");
     },
-    onError: (err) => {
+    onError: (err, variables, context) => {
+      // Revert to previous value on error
+      if (context?.previousTicket) {
+        qc.setQueryData(["ticket", id], context.previousTicket);
+      }
       const msg =
         err?.response?.data?.message ||
         (typeof err?.response?.data === "string" ? err.response.data : null) ||
