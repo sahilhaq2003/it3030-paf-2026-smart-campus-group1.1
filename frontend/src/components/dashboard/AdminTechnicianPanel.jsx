@@ -18,7 +18,7 @@ import {
 import { DashboardInlineMessage } from "./DashboardCards";
 import { TECHNICIAN_CATEGORIES, technicianCategoryLabel } from "../../constants/technicianCategories";
 
-const inputClass = `mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm ${campusInputFocus}`;
+const inputClass = `mt-1.5 w-full rounded-xl border border-white/60 bg-white/70 px-3 py-2.5 text-sm text-slate-900 shadow-sm backdrop-blur-md ${campusInputFocus}`;
 const selectClass = `${inputClass} appearance-none bg-[length:1rem_1rem] bg-[right_0.75rem_center] bg-no-repeat pr-10`;
 
 export default function AdminTechnicianPanel() {
@@ -271,7 +271,7 @@ export default function AdminTechnicianPanel() {
               {techs.map((t) => (
                 <li
                   key={t.id}
-                  className="flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 rounded-xl border border-white/55 bg-white/45 px-4 py-3 text-sm backdrop-blur-md sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-slate-900">{t.name}</p>

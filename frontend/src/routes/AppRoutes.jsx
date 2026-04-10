@@ -8,6 +8,9 @@ import AdminTechnicianPage from "../pages/member3/AdminTechnicianPage";
 import LoginPage from "../pages/member4/LoginPage";
 import LoginHelpPage from "../pages/member4/LoginHelpPage";
 import LandingPage from "../pages/member4/LandingPage";
+import AboutPage from "../pages/member4/AboutPage";
+import ContactPage from "../pages/member4/ContactPage";
+import SupportPage from "../pages/member4/SupportPage";
 import HomePage from "../pages/member4/HomePage";
 import ProfilePage from "../pages/member4/ProfilePage";
 import AdminUsersPage from "../pages/member4/AdminUsersPage";
@@ -38,6 +41,9 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/about" element={<AboutPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+      <Route path="/support" element={<SupportPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/login/help" element={<LoginHelpPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />

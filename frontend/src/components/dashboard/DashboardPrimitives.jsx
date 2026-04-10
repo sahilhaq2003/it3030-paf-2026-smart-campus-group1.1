@@ -16,17 +16,17 @@ export const campusAccentFill = "bg-campus-brand";
 export const campusTextLink =
   "font-semibold text-campus-brand-hover transition hover:text-campus-brand-pressed";
 
-/** Secondary actions on dashboard pages */
+/** Secondary actions on dashboard pages — frosted glass */
 export const dashboardBtnSecondary =
-  "inline-flex items-center justify-center rounded-xl border border-slate-200/90 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm shadow-slate-900/[0.03] transition hover:border-slate-300 hover:bg-slate-50/90 hover:shadow-md";
+  "inline-flex items-center justify-center rounded-xl border border-white/50 bg-white/55 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm shadow-slate-900/[0.06] backdrop-blur-md transition hover:-translate-y-0.5 hover:border-white/70 hover:bg-white/75 hover:shadow-md";
 
-/** Shared card shell */
+/** Shared card shell — glassmorphism */
 export const dashboardCardShell =
-  "relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.04] ring-1 ring-slate-900/[0.03] transition duration-200 hover:shadow-md hover:ring-slate-900/[0.05]";
+  "relative overflow-hidden rounded-2xl border border-white/60 bg-white/65 shadow-lg shadow-slate-900/[0.08] ring-1 ring-white/40 backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:border-white/80 hover:bg-white/75 hover:shadow-xl hover:ring-campus-brand/20";
 
 export function DashboardPageLayout({ eyebrow = "Dashboard", title, subtitle, children }) {
   return (
-    <div className="relative min-h-full bg-zinc-100">
+    <div className="relative min-h-full bg-slate-100">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.35]"
         aria-hidden
@@ -36,9 +36,12 @@ export function DashboardPageLayout({ eyebrow = "Dashboard", title, subtitle, ch
         }}
       />
       <div className="relative">
-        <header className="border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
-          <div className="relative mx-auto max-w-6xl px-6 py-6 sm:py-7">
-            <div className="absolute bottom-0 left-6 right-6 h-px max-w-2xl bg-gradient-to-r from-campus-brand/20 via-slate-200/70 to-transparent sm:left-6" />
+        <header className="mx-auto max-w-6xl px-4 pt-4 sm:px-6 sm:pt-6">
+          <div className="relative overflow-hidden rounded-3xl border border-white/50 bg-white/55 px-6 py-6 shadow-xl shadow-slate-900/[0.08] ring-1 ring-white/30 backdrop-blur-2xl sm:px-8 sm:py-7">
+            <div
+              className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-campus-brand/10 blur-2xl"
+              aria-hidden
+            />
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
               {eyebrow}
             </p>
@@ -50,7 +53,7 @@ export function DashboardPageLayout({ eyebrow = "Dashboard", title, subtitle, ch
             ) : null}
           </div>
         </header>
-        <div className="mx-auto max-w-6xl px-6 py-8 sm:py-10">{children}</div>
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">{children}</div>
       </div>
     </div>
   );
@@ -60,7 +63,7 @@ export function DashboardStatCard({ label, value, hint }) {
   return (
     <div className={`${dashboardCardShell} p-5 sm:p-6`}>
       <div
-        className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-campus-brand/10"
+        className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-campus-brand/12 blur-[1px]"
         aria-hidden
       />
       <p className="relative text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -88,7 +91,7 @@ export function DashboardSection({ title, description, children }) {
 
 export function PlaceholderBlock({ children }) {
   return (
-    <div className="rounded-xl border border-dashed border-zinc-300/80 bg-zinc-50/80 px-4 py-10 text-center text-sm text-zinc-500">
+    <div className="rounded-xl border border-dashed border-white/50 bg-white/40 px-4 py-10 text-center text-sm text-zinc-600 backdrop-blur-md">
       {children}
     </div>
   );
