@@ -41,6 +41,10 @@ function routeTitle(pathname) {
   if (pathname.startsWith("/admin/tickets")) return "Admin tickets";
   if (pathname === "/facilities") return "Facility Directory";
   if (pathname.startsWith("/admin/facilities")) return "Facility Management";
+  if (pathname.startsWith("/bookings/request")) return "New Booking";
+  if (pathname.startsWith("/bookings/my")) return "My Bookings";
+  if (pathname.startsWith("/bookings/")) return "Booking Details";
+  if (pathname.startsWith("/admin/bookings")) return "Manage Bookings";
   if (pathname.startsWith("/admin/users")) return "User management";
   if (pathname === "/profile") return "Profile";
   return "Workspace";
@@ -186,6 +190,7 @@ function Sidebar() {
     },
     { to: dash.to, label: dash.label, icon: LayoutDashboard, active: dash.active },
     { to: "/facilities", label: "Campus Facilities", icon: Building, active: (p) => p.startsWith("/facilities") },
+    { to: "/bookings/my", label: "My Bookings", icon: ClipboardList, active: (p) => p.startsWith("/bookings") },
   ];
 
   if (canCreateTickets(roles)) {
@@ -211,8 +216,13 @@ function Sidebar() {
       active: (p) => p.startsWith("/admin/tickets"),
     });
   }
-
   if (isOpsAdmin) {
+    items.push({
+      to: "/admin/bookings",
+      label: "Manage Bookings",
+      icon: ClipboardList,
+      ctive: (p) => p.startsWith("/admin/bookings"),
+    });
     items.push({
       to: "/admin/users",
       label: "Users",
