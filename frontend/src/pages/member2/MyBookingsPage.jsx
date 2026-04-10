@@ -3,15 +3,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { getMyBookings, cancelBooking } from "../../api/bookingApi";
+import StatusBadge from "../../components/StatusBadge";
 
 const STATUS_TABS = ["ALL", "PENDING", "APPROVED", "REJECTED", "CANCELLED"];
 
-const STATUS_COLORS = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  APPROVED: "bg-green-100 text-green-800",
-  REJECTED: "bg-red-100 text-red-800",
-  CANCELLED: "bg-gray-100 text-gray-800",
-};
+
 
 export default function MyBookingsPage() {
   const navigate = useNavigate();
@@ -114,9 +110,7 @@ export default function MyBookingsPage() {
                   )}
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[booking.status]}`}>
-                    {booking.status}
-                  </span>
+                 <StatusBadge status={booking.status} />
                   <div className="flex gap-2">
                     <button
                       onClick={() => navigate(`/bookings/${booking.id}`)}
