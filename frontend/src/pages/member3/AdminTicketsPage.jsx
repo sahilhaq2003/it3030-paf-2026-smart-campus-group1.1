@@ -514,21 +514,28 @@ export default function AdminTicketsPage() {
                   <TicketCard ticket={ticket} />
                 </div>
                 {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedTicketForAssign(ticket.id);
-                      setIsReassignMode(!!ticket.assignedToId);
-                      setAssignModalOpen(true);
-                    }}
-                    className={`shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white transition disabled:opacity-50 ${
-                      ticket.assignedToId
-                        ? 'bg-campus-brand hover:bg-campus-brand-hover'
-                        : 'bg-slate-800 hover:bg-slate-900'
-                    }`}
-                  >
-                    {ticket.assignedToId ? 'Reassign' : 'Assign'}
-                  </button>
+                  ticket.status === 'CLOSED' ? (
+                    <div className="shrink-0 flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+                      <span>✓</span>
+                      <span>Completed</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTicketForAssign(ticket.id);
+                        setIsReassignMode(!!ticket.assignedToId);
+                        setAssignModalOpen(true);
+                      }}
+                      className={`shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white transition disabled:opacity-50 ${
+                        ticket.assignedToId
+                          ? 'bg-campus-brand hover:bg-campus-brand-hover'
+                          : 'bg-slate-800 hover:bg-slate-900'
+                      }`}
+                    >
+                      {ticket.assignedToId ? 'Reassign' : 'Assign'}
+                    </button>
+                  )
                 )}
               </div>
             ))}
