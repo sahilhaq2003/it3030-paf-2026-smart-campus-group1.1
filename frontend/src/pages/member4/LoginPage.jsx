@@ -267,7 +267,7 @@ export default function LoginPage() {
               ← Back to home
             </Link>
             <div className="mt-6 flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-campus-brand text-sm font-bold text-white shadow-md shadow-campus-brand/25">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-campus-brand/20 bg-campus-brand/10 text-sm font-bold text-campus-brand">
                 SC
               </div>
               <div>
@@ -279,7 +279,7 @@ export default function LoginPage() {
 
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-lg shadow-slate-300/30 sm:rounded-3xl sm:p-7 lg:p-8">
             <div className="hidden text-center lg:block">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-campus-brand text-base font-bold text-white shadow-lg shadow-campus-brand/30">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl border border-campus-brand/20 bg-campus-brand/10 text-sm font-bold text-campus-brand">
                 SC
               </div>
               <h2 className="mt-5 text-2xl font-bold tracking-tight text-slate-900">
