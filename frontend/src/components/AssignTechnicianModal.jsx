@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, User } from 'lucide-react';
 import { fetchTechnicians } from '../api/userAdminApi';
 
-export default function AssignTechnicianModal({ isOpen, onClose, onAssign, currentTechnicianName }) {
+export default function AssignTechnicianModal({ isOpen, onClose, onAssign, currentTechnicianName, isReassignment = false }) {
   const [technicians, setTechnicians] = useState([]);
   const [selectedTechId, setSelectedTechId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -55,7 +55,7 @@ export default function AssignTechnicianModal({ isOpen, onClose, onAssign, curre
       <div className="bg-white rounded-xl shadow-lg max-w-md w-full max-h-96 flex flex-col border border-[#E2E8F0]">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#E2E8F0]">
-          <h2 className="text-lg font-semibold text-gray-900">Assign Technician</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{isReassignment ? 'Reassign Technician' : 'Assign Technician'}</h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 transition-colors p-1 hover:bg-gray-100 rounded-lg"
@@ -144,7 +144,7 @@ export default function AssignTechnicianModal({ isOpen, onClose, onAssign, curre
             disabled={isSubmitting || !selectedTechId || loading}
             className="flex-1 px-4 py-2 bg-campus-brand text-white rounded-lg hover:bg-campus-brand-hover font-medium transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Assigning...' : 'Assign'}
+            {isSubmitting ? (isReassignment ? 'Reassigning...' : 'Assigning...') : (isReassignment ? 'Reassign' : 'Assign')}
           </button>
         </div>
       </div>
