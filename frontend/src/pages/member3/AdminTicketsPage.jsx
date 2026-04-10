@@ -10,6 +10,7 @@ import {
 import StatusBadge from "../../components/StatusBadge";
 import TicketCard from "../../components/TicketCard";
 import AssignTechnicianModal from "../../components/AssignTechnicianModal";
+import ConfirmModal from "../../components/ConfirmModal";
 import { Search, ChevronRight } from "lucide-react";
 import { ticketApi } from "../../api/ticketApi";
 import { fetchTechnicians } from "../../api/userAdminApi";
@@ -44,6 +45,9 @@ export default function AdminTicketsPage() {
   const [rowTechPick, setRowTechPick] = useState({});
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [selectedTicketForAssign, setSelectedTicketForAssign] = useState(null);
+  const [isReassignMode, setIsReassignMode] = useState(false);
+  const [reassignConfirmOpen, setReassignConfirmOpen] = useState(false);
+  const [pendingReassignData, setPendingReassignData] = useState(null);
 
   const ticketsQuery = useQuery({
     queryKey: ["admin", "tickets", "list"],
@@ -101,8 +105,7 @@ export default function AdminTicketsPage() {
       return { previousTickets };
     },
     onSuccess: () => {
-      toast.success("Ticket assigned successfully");
-      // Refetch to ensure data consistency
+      // Refetch to ensure data consistency (without showing default toast)
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard", "assignedTickets"] });
     },
@@ -283,13 +286,45 @@ export default function AdminTicketsPage() {
 
   const handleAssignModalSubmit = async (technicianId) => {
     if (!selectedTicketForAssign) return;
+    
+    const techId = Number(technicianId);
+    if (!techId) {
+      toast.error("Invalid technician selected");
+      return;
+    }
+    
+    // If it's a reassignment, show confirmation dialog
+    if (isReassignMode) {
+      setPendingReassignData({ ticketId: selectedTicketForAssign, technicianId: techId });
+      setReassignConfirmOpen(true);
+    } else {
+      // For new assignments, execute directly
+      assignMutation.mutate(
+        { ticketId: selectedTicketForAssign, technicianId: techId },
+        {
+          onSuccess: () => {
+            toast.success("Ticket assigned successfully");
+            setAssignModalOpen(false);
+            setSelectedTicketForAssign(null);
+          },
+        },
+      );
+    }
+  };
+
+  const handleReassignConfirm = () => {
+    if (!pendingReassignData) return;
+    
+    const techId = Number(pendingReassignData.technicianId);
     assignMutation.mutate(
-      { ticketId: selectedTicketForAssign, technicianId },
+      { ticketId: pendingReassignData.ticketId, technicianId: techId },
       {
         onSuccess: () => {
-          toast.success("Ticket assigned");
+          toast.success("Technician reassigned successfully");
           setAssignModalOpen(false);
           setSelectedTicketForAssign(null);
+          setReassignConfirmOpen(false);
+          setPendingReassignData(null);
         },
       },
     );
@@ -483,11 +518,16 @@ export default function AdminTicketsPage() {
                     type="button"
                     onClick={() => {
                       setSelectedTicketForAssign(ticket.id);
+                      setIsReassignMode(!!ticket.assignedToId);
                       setAssignModalOpen(true);
                     }}
-                    className="shrink-0 rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-900 disabled:opacity-50"
+                    className={`shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white transition disabled:opacity-50 ${
+                      ticket.assignedToId
+                        ? 'bg-campus-brand hover:bg-campus-brand-hover'
+                        : 'bg-slate-800 hover:bg-slate-900'
+                    }`}
                   >
-                    Assign
+                    {ticket.assignedToId ? 'Reassign' : 'Assign'}
                   </button>
                 )}
               </div>
@@ -568,11 +608,23 @@ export default function AdminTicketsPage() {
         onClose={() => {
           setAssignModalOpen(false);
           setSelectedTicketForAssign(null);
+          setIsReassignMode(false);
         }}
         onAssign={handleAssignModalSubmit}
         currentTechnicianName={
           selectedTicketForAssign ? tickets.find(t => t.id === selectedTicketForAssign)?.assignedToName : null
         }
+        isReassignment={isReassignMode}
+      />
+
+      <ConfirmModal
+        open={reassignConfirmOpen}
+        message={`Are you sure you want to reassign this ticket to a different technician? The previous assignment will be replaced.`}
+        onConfirm={handleReassignConfirm}
+        onCancel={() => {
+          setReassignConfirmOpen(false);
+          setPendingReassignData(null);
+        }}
       />
     </DashboardPageLayout>
   );

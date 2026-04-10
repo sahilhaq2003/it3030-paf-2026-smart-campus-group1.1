@@ -47,7 +47,7 @@ export default function AdminTechnicianPanel() {
       createTechnician({
         email: email.trim(),
         name: name.trim(),
-        password,
+        password: password.trim(),
         technicianCategory: category,
       }),
     onSuccess: () => {
@@ -119,7 +119,7 @@ export default function AdminTechnicianPanel() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!email.trim() || !name.trim() || !category || password.length < 8) {
+    if (!email.trim() || !name.trim() || !category || !password.trim() || password.trim().length < 8) {
       toast.error("Fill all fields including category; password at least 8 characters");
       return;
     }
