@@ -8,6 +8,7 @@ export default function FacilitiesListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Read current filters from URL to persist state
+  const nameQ = searchParams.get('name') || '';
   const locationQ = searchParams.get('location') || '';
   const typeQ = searchParams.get('type') || '';
   const capacityQ = searchParams.get('capacity') || '';
@@ -45,8 +46,9 @@ export default function FacilitiesListPage() {
 
   // Fetch data dynamically bridging to our new search API
   const { data, isLoading, error } = useQuery({
-    queryKey: ['facilities', locationQ, typeQ, capacityQ, statusQ],
+    queryKey: ['facilities', nameQ, locationQ, typeQ, capacityQ, statusQ],
     queryFn: () => facilityApi.searchFacilities({ 
+      name: nameQ || undefined,
       location: locationQ || undefined,
       type: typeQ || undefined,
       capacity: capacityQ ? parseInt(capacityQ) : undefined,
@@ -120,10 +122,21 @@ export default function FacilitiesListPage() {
             <span className="tracking-wide text-lg">REFINE SYSTEM SEARCH</span>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Location Filter */}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {/* Name Filter */}
             <div className="relative">
               <Search className="w-5 h-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input 
+                type="text" 
+                placeholder="Search facility name..." 
+                value={nameQ}
+                onChange={(e) => handleFilterChange('name', e.target.value)}
+                className="w-full bg-gray-50 hover:bg-white border border-gray-200 rounded-2xl py-3.5 pl-12 pr-4 font-medium text-gray-700 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none"
+              />
+            </div>
+            {/* Location Filter */}
+            <div className="relative">
+              <MapPin className="w-5 h-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input 
                 type="text" 
                 placeholder="Search precise location..." 

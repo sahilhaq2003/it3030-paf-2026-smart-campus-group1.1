@@ -112,9 +112,14 @@ public class FacilityServiceImpl implements FacilityService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<FacilityDto> searchFacilities(ResourceType type, Integer capacity, String location, Status status,
+    public Page<FacilityDto> searchFacilities(String name, ResourceType type, Integer capacity, String location, Status status,
             Pageable pageable) {
         Specification<Facility> spec = Specification.where(null);
+
+        if (StringUtils.hasText(name)) {
+            spec = spec.and(
+                    (root, query, cb) -> cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
+        }
 
         if (type != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("resourceType"), type));
