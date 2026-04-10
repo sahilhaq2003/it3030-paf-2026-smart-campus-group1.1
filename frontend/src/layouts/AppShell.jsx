@@ -211,6 +211,15 @@ function Sidebar() {
     });
   }
 
+  if (normalizeRoles(roles).has("LECTURER")) {
+    items.push({
+      to: "/facilities",
+      label: "Campus Facilities",
+      icon: Building,
+      active: (p) => p.startsWith("/facilities"),
+    });
+  }
+
   if (isOpsAdmin) {
     items.push({
       to: "/admin/users",
