@@ -1,16 +1,16 @@
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 
 export default function PublicPageShell({ title, subtitle, children }) {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 antialiased">
       <main>
-        <section className="relative overflow-hidden px-3 pb-8 pt-3 sm:px-6 sm:pb-10 sm:pt-4">
-          <div className="relative mx-auto max-w-6xl overflow-hidden rounded-2xl shadow-2xl shadow-slate-900/20 sm:rounded-[28px]">
+        <section className="relative overflow-hidden px-1 pb-8 pt-3 sm:px-3 lg:px-4 sm:pb-10 sm:pt-4">
+          <div className="relative mx-auto max-w-[1380px] overflow-hidden rounded-2xl shadow-2xl shadow-slate-900/20 sm:rounded-[28px]">
             <div
               className="absolute inset-0 z-0 bg-cover bg-center"
               style={{
                 backgroundImage:
-                  "linear-gradient(115deg, rgba(2,6,23,0.83) 0%, rgba(15,23,42,0.65) 42%, rgba(15,23,42,0.2) 100%), url('https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1600&q=80')",
+                  "linear-gradient(115deg, rgba(2,6,23,0.83) 0%, rgba(15,23,42,0.65) 42%, rgba(15,23,42,0.2) 100%), url('/images/sliit-malabe.png')",
               }}
             />
 
@@ -25,19 +25,48 @@ export default function PublicPageShell({ title, subtitle, children }) {
                     <p className="text-xs text-white/80">Maintenance portal</p>
                   </div>
                 </div>
-                <nav className="hidden items-center gap-7 text-sm font-medium text-white/90 md:flex">
-                  <Link to="/" className="transition hover:text-white">
+                <nav className="hidden items-center gap-2 text-sm font-medium text-white/90 md:flex">
+                  <NavLink
+                    to="/"
+                    end
+                    className={({ isActive }) =>
+                      `rounded-full px-3 py-1.5 transition ${
+                        isActive ? "bg-white/25 text-white" : "hover:bg-white/10 hover:text-white"
+                      }`
+                    }
+                  >
                     Home
-                  </Link>
-                  <Link to="/contact" className="transition hover:text-white">
+                  </NavLink>
+                  <NavLink
+                    to="/contact"
+                    className={({ isActive }) =>
+                      `rounded-full px-3 py-1.5 transition ${
+                        isActive ? "bg-white/25 text-white" : "hover:bg-white/10 hover:text-white"
+                      }`
+                    }
+                  >
                     Contact
-                  </Link>
-                  <Link to="/support" className="transition hover:text-white">
+                  </NavLink>
+                  <NavLink
+                    to="/support"
+                    className={({ isActive }) =>
+                      `rounded-full px-3 py-1.5 transition ${
+                        isActive ? "bg-white/25 text-white" : "hover:bg-white/10 hover:text-white"
+                      }`
+                    }
+                  >
                     Support
-                  </Link>
-                  <Link to="/about" className="transition hover:text-white">
+                  </NavLink>
+                  <NavLink
+                    to="/about"
+                    className={({ isActive }) =>
+                      `rounded-full px-3 py-1.5 transition ${
+                        isActive ? "bg-white/25 text-white" : "hover:bg-white/10 hover:text-white"
+                      }`
+                    }
+                  >
                     About
-                  </Link>
+                  </NavLink>
                 </nav>
                 <Link
                   to="/login"
@@ -60,10 +89,10 @@ export default function PublicPageShell({ title, subtitle, children }) {
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-4 pb-12 sm:px-6 sm:pb-16">{children}</section>
+        <section className="mx-auto max-w-[1380px] px-3 pb-12 sm:px-4 lg:px-5 sm:pb-16">{children}</section>
 
         <footer className="border-t border-slate-200 bg-white">
-          <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 sm:py-12 md:grid-cols-[1.4fr_1fr_1fr]">
+          <div className="mx-auto grid max-w-[1380px] gap-8 px-3 py-10 sm:px-4 lg:px-5 sm:py-12 md:grid-cols-[1.4fr_1fr_1fr]">
             <div>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-campus-brand text-sm font-bold text-white">
@@ -105,7 +134,7 @@ export default function PublicPageShell({ title, subtitle, children }) {
             </div>
           </div>
           <div className="border-t border-slate-200">
-            <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-4 text-center text-xs text-slate-500 sm:flex-row sm:px-6 sm:text-left">
+            <div className="mx-auto flex max-w-[1380px] flex-col items-center justify-between gap-2 px-3 py-4 text-center text-xs text-slate-500 sm:flex-row sm:px-4 lg:px-5 sm:text-left">
               <p>© {new Date().getFullYear()} Smart Campus Hub. All rights reserved.</p>
               <p>For internal campus operational use</p>
             </div>

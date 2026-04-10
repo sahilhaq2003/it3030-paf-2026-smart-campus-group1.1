@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Building2,
@@ -43,8 +43,8 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 antialiased">
       <main>
-        <section className="relative overflow-hidden px-3 pb-8 pt-3 sm:px-6 sm:pb-10 sm:pt-4">
-          <div className="relative mx-auto max-w-6xl overflow-hidden rounded-2xl shadow-2xl shadow-slate-900/20 sm:rounded-[28px]">
+        <section className="relative overflow-hidden px-1 pb-8 pt-3 sm:px-3 lg:px-4 sm:pb-10 sm:pt-4">
+          <div className="relative mx-auto max-w-[1380px] overflow-hidden rounded-2xl shadow-2xl shadow-slate-900/20 sm:rounded-[28px]">
             {heroSlides.map((slide, index) => (
               <div
                 key={slide}
@@ -68,19 +68,48 @@ export default function LandingPage() {
                     <p className="text-xs text-white/80">Maintenance portal</p>
                   </div>
                 </div>
-                <nav className="hidden items-center gap-7 text-sm font-medium text-white/90 md:flex">
-                  <Link to="/" className="transition hover:text-white">
+                <nav className="hidden items-center gap-2 text-sm font-medium text-white/90 md:flex">
+                  <NavLink
+                    to="/"
+                    end
+                    className={({ isActive }) =>
+                      `rounded-full px-3 py-1.5 transition ${
+                        isActive ? "bg-white/25 text-white" : "hover:bg-white/10 hover:text-white"
+                      }`
+                    }
+                  >
                     Home
-                  </Link>
-                  <Link to="/contact" className="transition hover:text-white">
+                  </NavLink>
+                  <NavLink
+                    to="/contact"
+                    className={({ isActive }) =>
+                      `rounded-full px-3 py-1.5 transition ${
+                        isActive ? "bg-white/25 text-white" : "hover:bg-white/10 hover:text-white"
+                      }`
+                    }
+                  >
                     Contact
-                  </Link>
-                  <Link to="/support" className="transition hover:text-white">
+                  </NavLink>
+                  <NavLink
+                    to="/support"
+                    className={({ isActive }) =>
+                      `rounded-full px-3 py-1.5 transition ${
+                        isActive ? "bg-white/25 text-white" : "hover:bg-white/10 hover:text-white"
+                      }`
+                    }
+                  >
                     Support
-                  </Link>
-                  <Link to="/about" className="transition hover:text-white">
+                  </NavLink>
+                  <NavLink
+                    to="/about"
+                    className={({ isActive }) =>
+                      `rounded-full px-3 py-1.5 transition ${
+                        isActive ? "bg-white/25 text-white" : "hover:bg-white/10 hover:text-white"
+                      }`
+                    }
+                  >
                     About
-                  </Link>
+                  </NavLink>
                 </nav>
                 <Link
                   to="/login"
@@ -136,7 +165,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="relative z-40 mx-auto -mt-6 max-w-4xl px-2 sm:-mt-12">
+          <div className="relative z-40 mx-auto -mt-6 max-w-6xl px-2 sm:-mt-12">
             <div className="grid gap-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl shadow-slate-900/10 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] sm:p-4">
               {[
                 { label: "Area", value: "Main campus", icon: MapPin },
@@ -162,7 +191,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-14">
+        <section className="mx-auto max-w-[1380px] px-3 py-12 sm:px-4 lg:px-5 sm:py-14">
           <div className="text-center">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Most Used Features</h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-slate-500">
@@ -201,7 +230,7 @@ export default function LandingPage() {
                 <img
                   src={item.image}
                   alt={item.title}
-                  className="h-44 w-full rounded-2xl object-cover transition duration-300 group-hover:scale-[1.02]"
+                  className="aspect-[16/8] w-full rounded-2xl object-cover transition duration-300 group-hover:scale-[1.02] lg:aspect-[16/7]"
                 />
                 <div className="px-2 pb-2 pt-4 text-left">
                   <p className="text-lg font-semibold text-slate-900">{item.title}</p>
@@ -212,7 +241,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-4 pb-12 sm:px-6 sm:pb-16">
+        <section className="mx-auto max-w-[1380px] px-3 pb-12 sm:px-4 lg:px-5 sm:pb-16">
           <div className="grid gap-4 rounded-3xl bg-white p-4 shadow-sm sm:grid-cols-4 sm:p-6">
             {[
               { icon: ClipboardList, stat: "24/7", label: "Ticket access" },
@@ -232,7 +261,7 @@ export default function LandingPage() {
         </section>
 
         <footer className="border-t border-slate-200 bg-white">
-          <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 sm:py-12 md:grid-cols-[1.4fr_1fr_1fr]">
+          <div className="mx-auto grid max-w-[1380px] gap-8 px-3 py-10 sm:px-4 lg:px-5 sm:py-12 md:grid-cols-[1.4fr_1fr_1fr]">
             <div>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-campus-brand text-sm font-bold text-white">
@@ -274,7 +303,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-slate-200">
-            <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-4 text-center text-xs text-slate-500 sm:flex-row sm:px-6 sm:text-left">
+            <div className="mx-auto flex max-w-[1380px] flex-col items-center justify-between gap-2 px-3 py-4 text-center text-xs text-slate-500 sm:flex-row sm:px-4 lg:px-5 sm:text-left">
               <p>© {new Date().getFullYear()} Smart Campus Hub. All rights reserved.</p>
               <p>For internal campus operational use</p>
             </div>
