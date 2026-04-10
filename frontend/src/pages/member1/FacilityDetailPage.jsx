@@ -3,9 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { facilityApi } from '../../api/facilityApi';
 import { MapPin, Users, MonitorPlay, CalendarDays, Loader2, ArrowLeft } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 
 export default function FacilityDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   
   // React Query Fetch Detail dynamically
   const { data: facility, isLoading, error } = useQuery({
@@ -115,7 +117,7 @@ export default function FacilityDetailPage() {
             {/* Action Area */}
             <div className="flex justify-center border-t-2 border-dashed border-gray-200 pt-10 mt-8">
               <button 
-                onClick={() => alert("Coming soon: Secure booking module popup!")}
+                onClick={() => navigate(`/bookings/request?facilityId=${facility.id}`)}
                 disabled={facility.status !== 'ACTIVE'}
                 className={`w-full sm:w-auto px-14 py-5 rounded-2xl text-xl font-bold shadow-xl transition-all duration-300 transform 
                   ${facility.status === 'ACTIVE' 
