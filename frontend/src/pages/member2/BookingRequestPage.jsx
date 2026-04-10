@@ -22,13 +22,12 @@ export default function BookingRequestPage() {
   const [isAvailable, setIsAvailable] = useState(null);
   const [checking, setChecking] = useState(false);
 
-  // Fetch facilities for dropdown
-  const { data: facilitiesData } = useQuery({
-    queryKey: ["facilities"],
-    queryFn: () => axiosInstance.get("/facilities").then((r) => r.data),
+  // Fetch facility details
+  const { data: facility } = useQuery({
+    queryKey: ["facility", facilityIdFromUrl],
+    queryFn: () => axiosInstance.get(`/facilities/${facilityIdFromUrl}`).then((r) => r.data),
+    enabled: !!facilityIdFromUrl,
   });
-
-  const facilities = facilitiesData?.content || facilitiesData || [];
 
   // Check availability when date/time changes
   useEffect(() => {
@@ -71,77 +70,37 @@ export default function BookingRequestPage() {
     mutation.mutate(payload);
   };
 
-  const selectedFacility = facilities.find(
-    (f) => String(f.id) === String(formData.facilityId)
-  );
-
   return (
     <div className="max-w-2xl mx-auto p-6">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">New Booking Request</h1>
-        <p className="text-gray-500 mt-1">Fill in the details to request a facility booking</p>
+        <p className="text-gray-500 mt-1">
+          {facility ? `Booking for: ${facility.name}` : "Fill in the details to request a facility booking"}
+        </p>
       </div>
 
       {/* Step Indicator */}
       <div className="flex items-center mb-8">
-        {[1, 2, 3].map((s) => (
+        {[1, 2].map((s) => (
           <div key={s} className="flex items-center">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
               ${step >= s ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-500"}`}>
               {s}
             </div>
-            {s < 3 && (
+            {s < 2 && (
               <div className={`h-1 w-16 mx-2 ${step > s ? "bg-blue-600" : "bg-gray-200"}`} />
             )}
           </div>
         ))}
         <div className="ml-4 text-sm text-gray-500">
-          {step === 1 && "Select Facility"}
-          {step === 2 && "Pick Date & Time"}
-          {step === 3 && "Confirm Details"}
+          {step === 1 && "Pick Date & Time"}
+          {step === 2 && "Confirm Details"}
         </div>
       </div>
 
-      {/* Step 1 — Select Facility */}
+      {/* Step 1 — Date & Time */}
       {step === 1 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Select a Facility</h2>
-          <select
-            name="facilityId"
-            value={formData.facilityId}
-            onChange={handleChange}
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">-- Choose a facility --</option>
-            {facilities.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name} — {f.location} (Capacity: {f.capacity})
-              </option>
-            ))}
-          </select>
-
-          {selectedFacility && (
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>Available:</strong> {selectedFacility.availabilityStart} — {selectedFacility.availabilityEnd}
-              </p>
-            </div>
-          )}
-
-          <button
-            onClick={() => setStep(2)}
-            disabled={!formData.facilityId}
-            className="mt-6 w-full bg-blue-600 text-white py-2 rounded-lg font-medium
-              disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
-          >
-            Next
-          </button>
-        </div>
-      )}
-
-      {/* Step 2 — Date & Time */}
-      {step === 2 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-semibold mb-4">Pick Date & Time</h2>
 
@@ -199,34 +158,26 @@ export default function BookingRequestPage() {
             )}
           </div>
 
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={() => setStep(1)}
-              className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-50"
-            >
-              Back
-            </button>
-            <button
-              onClick={() => setStep(3)}
-              disabled={!formData.bookingDate || !formData.startTime || !formData.endTime || isAvailable === false}
-              className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium
-                disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
-            >
-              Next
-            </button>
-          </div>
+          <button
+            onClick={() => setStep(2)}
+            disabled={!formData.bookingDate || !formData.startTime || !formData.endTime || isAvailable === false}
+            className="mt-6 w-full bg-blue-600 text-white py-2 rounded-lg font-medium
+              disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+          >
+            Next
+          </button>
         </div>
       )}
 
-      {/* Step 3 — Purpose & Confirm */}
-      {step === 3 && (
+      {/* Step 2 — Purpose & Confirm */}
+      {step === 2 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-semibold mb-4">Confirm Details</h2>
 
           <div className="space-y-4">
             {/* Summary */}
             <div className="p-4 bg-gray-50 rounded-lg space-y-2 text-sm">
-              <p><span className="font-medium">Facility:</span> {selectedFacility?.name}</p>
+              <p><span className="font-medium">Facility:</span> {facility?.name}</p>
               <p><span className="font-medium">Date:</span> {formData.bookingDate}</p>
               <p><span className="font-medium">Time:</span> {formData.startTime} — {formData.endTime}</p>
             </div>
@@ -261,7 +212,7 @@ export default function BookingRequestPage() {
 
           <div className="flex gap-3 mt-6">
             <button
-              onClick={() => setStep(2)}
+              onClick={() => setStep(1)}
               className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-50"
             >
               Back
