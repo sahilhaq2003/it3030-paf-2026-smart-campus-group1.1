@@ -356,15 +356,18 @@ export default function AdminTicketsPage() {
     if (!pendingReassignData) return;
     
     const techId = Number(pendingReassignData.technicianId);
+    
+    // Close modals immediately (optimistic update already updated cache)
+    setAssignModalOpen(false);
+    setSelectedTicketForAssign(null);
+    setReassignConfirmOpen(false);
+    setPendingReassignData(null);
+    
     assignMutation.mutate(
       { ticketId: pendingReassignData.ticketId, technicianId: techId },
       {
         onSuccess: () => {
           toast.success("Technician reassigned successfully");
-          setAssignModalOpen(false);
-          setSelectedTicketForAssign(null);
-          setReassignConfirmOpen(false);
-          setPendingReassignData(null);
         },
       },
     );

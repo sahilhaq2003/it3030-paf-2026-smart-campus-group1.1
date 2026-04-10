@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, User } from 'lucide-react';
 import { fetchTechnicians } from '../api/userAdminApi';
 
@@ -9,25 +9,31 @@ export default function AssignTechnicianModal({ isOpen, onClose, onAssign, curre
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchTechniciansData();
-    }
-  }, [isOpen]);
-
-  const fetchTechniciansData = async () => {
+  const fetchTechniciansData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const technicianList = await fetchTechnicians();
-      setTechnicians(technicianList);
+      if (Array.isArray(technicianList)) {
+        setTechnicians(technicianList);
+      } else {
+        setTechnicians([]);
+      }
     } catch (err) {
       console.error('Error fetching technicians:', err);
       setError('Failed to load technicians');
+      setTechnicians([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedTechId(null); // Reset selection when modal opens
+      fetchTechniciansData();
+    }
+  }, [isOpen]);
 
   const handleSubmit = async () => {
     if (!selectedTechId) {
@@ -79,7 +85,15 @@ export default function AssignTechnicianModal({ isOpen, onClose, onAssign, curre
           {/* Error State */}
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-sm text-red-700 mb-2">{error}</p>
+              <button
+                type="button"
+                onClick={fetchTechniciansData}
+                disabled={loading}
+                className="text-xs text-red-600 hover:text-red-700 underline font-medium"
+              >
+                {loading ? 'Retrying...' : 'Retry'}
+              </button>
             </div>
           )}
 

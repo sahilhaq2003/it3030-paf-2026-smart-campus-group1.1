@@ -127,11 +127,13 @@ export default function TicketDetailPage() {
     onMutate: async () => {
       // Cancel ongoing queries
       await qc.cancelQueries({ queryKey: ["ticket", id] });
+      await qc.cancelQueries({ queryKey: ["admin", "tickets", "list"] });
       
-      // Snapshot the previous value
+      // Snapshot the previous values
       const previousTicket = qc.getQueryData(["ticket", id]);
+      const previousAdminTickets = qc.getQueryData(["admin", "tickets", "list"]);
       
-      // Optimistically update the cache
+      // Optimistically update the ticket detail cache
       qc.setQueryData(["ticket", id], (old) => {
         if (!old) return old;
         return {
@@ -141,7 +143,24 @@ export default function TicketDetailPage() {
         };
       });
       
-      return { previousTicket };
+      // Optimistically update the admin tickets list cache
+      qc.setQueryData(["admin", "tickets", "list"], (old) => {
+        if (!old?.content) return old;
+        return {
+          ...old,
+          content: old.content.map((ticket) =>
+            ticket.id == id
+              ? {
+                  ...ticket,
+                  status: "IN_PROGRESS",
+                  updatedAt: new Date().toISOString(),
+                }
+              : ticket
+          ),
+        };
+      });
+      
+      return { previousTicket, previousAdminTickets };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ticket", id] });
@@ -151,9 +170,12 @@ export default function TicketDetailPage() {
       toast.success("Work started — ticket is now in progress");
     },
     onError: (err, variables, context) => {
-      // Revert to previous value on error
+      // Revert to previous values on error
       if (context?.previousTicket) {
         qc.setQueryData(["ticket", id], context.previousTicket);
+      }
+      if (context?.previousAdminTickets) {
+        qc.setQueryData(["admin", "tickets", "list"], context.previousAdminTickets);
       }
       const msg =
         err?.response?.data?.message ||
@@ -169,11 +191,13 @@ export default function TicketDetailPage() {
     onMutate: async (notes) => {
       // Cancel ongoing queries
       await qc.cancelQueries({ queryKey: ["ticket", id] });
+      await qc.cancelQueries({ queryKey: ["admin", "tickets", "list"] });
       
-      // Snapshot the previous value
+      // Snapshot the previous values
       const previousTicket = qc.getQueryData(["ticket", id]);
+      const previousAdminTickets = qc.getQueryData(["admin", "tickets", "list"]);
       
-      // Optimistically update the cache
+      // Optimistically update the ticket detail cache
       qc.setQueryData(["ticket", id], (old) => {
         if (!old) return old;
         return {
@@ -184,7 +208,25 @@ export default function TicketDetailPage() {
         };
       });
       
-      return { previousTicket };
+      // Optimistically update the admin tickets list cache
+      qc.setQueryData(["admin", "tickets", "list"], (old) => {
+        if (!old?.content) return old;
+        return {
+          ...old,
+          content: old.content.map((ticket) =>
+            ticket.id == id
+              ? {
+                  ...ticket,
+                  status: "RESOLVED",
+                  resolutionNotes: notes.trim(),
+                  updatedAt: new Date().toISOString(),
+                }
+              : ticket
+          ),
+        };
+      });
+      
+      return { previousTicket, previousAdminTickets };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ticket", id] });
@@ -196,9 +238,12 @@ export default function TicketDetailPage() {
       toast.success("Ticket marked resolved");
     },
     onError: (err, variables, context) => {
-      // Revert to previous value on error
+      // Revert to previous values on error
       if (context?.previousTicket) {
         qc.setQueryData(["ticket", id], context.previousTicket);
+      }
+      if (context?.previousAdminTickets) {
+        qc.setQueryData(["admin", "tickets", "list"], context.previousAdminTickets);
       }
       const msg =
         err?.response?.data?.message ||
@@ -213,11 +258,13 @@ export default function TicketDetailPage() {
     onMutate: async () => {
       // Cancel ongoing queries
       await qc.cancelQueries({ queryKey: ["ticket", id] });
+      await qc.cancelQueries({ queryKey: ["admin", "tickets", "list"] });
       
-      // Snapshot the previous value
+      // Snapshot the previous values
       const previousTicket = qc.getQueryData(["ticket", id]);
+      const previousAdminTickets = qc.getQueryData(["admin", "tickets", "list"]);
       
-      // Optimistically update the cache
+      // Optimistically update the ticket detail cache
       qc.setQueryData(["ticket", id], (old) => {
         if (!old) return old;
         return {
@@ -227,18 +274,39 @@ export default function TicketDetailPage() {
         };
       });
       
-      return { previousTicket };
+      // Optimistically update the admin tickets list cache
+      qc.setQueryData(["admin", "tickets", "list"], (old) => {
+        if (!old?.content) return old;
+        return {
+          ...old,
+          content: old.content.map((ticket) =>
+            ticket.id == id
+              ? {
+                  ...ticket,
+                  status: "CLOSED",
+                  updatedAt: new Date().toISOString(),
+                }
+              : ticket
+          ),
+        };
+      });
+      
+      return { previousTicket, previousAdminTickets };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ticket", id] });
       qc.invalidateQueries({ queryKey: ["tickets", "my"] });
       qc.invalidateQueries({ queryKey: ["admin", "technician", "performance"] });
+      qc.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
       toast.success("Ticket successfully closed");
     },
     onError: (err, variables, context) => {
-      // Revert to previous value on error
+      // Revert to previous values on error
       if (context?.previousTicket) {
         qc.setQueryData(["ticket", id], context.previousTicket);
+      }
+      if (context?.previousAdminTickets) {
+        qc.setQueryData(["admin", "tickets", "list"], context.previousAdminTickets);
       }
       const msg =
         err?.response?.data?.message ||
