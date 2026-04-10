@@ -50,7 +50,7 @@ export default function MyBookingsPage() {
           <p className="text-gray-500 mt-1">View and manage your booking requests</p>
         </div>
         <button
-          onClick={() => navigate("/bookings/request")}
+          onClick={() => navigate("/facilities")}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700"
         >
           + New Booking
