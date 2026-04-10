@@ -1,8 +1,12 @@
 package com.smartcampus.maintenance.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.smartcampus.auth.model.UserPrincipal;
 import com.smartcampus.auth.service.JwtService;
 import com.smartcampus.maintenance.MaintenanceApplication;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.smartcampus.maintenance.dto.CommentDTO;
 import com.smartcampus.maintenance.model.Comment;
 import com.smartcampus.maintenance.model.Ticket;

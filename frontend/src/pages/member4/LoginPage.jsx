@@ -684,19 +684,9 @@ export default function LoginPage() {
                       className: "login-google-inner flex w-full max-w-full items-center justify-center p-0",
                     }}
                     onSuccess={onGoogleCredential}
-                    use_fedcm_for_button
-                    promptMomentNotification={(notification) => {
-                      if (notification.isNotDisplayed()) {
-                        const reason = notification.getNotDisplayedReason();
-                        reportLoginError(`Google sign-in unavailable: ${reason}.`);
-                      } else if (notification.isSkippedMoment()) {
-                        const reason = notification.getSkippedReason();
-                        reportLoginError(`Google sign-in skipped: ${reason}.`);
-                      }
-                    }}
                     onError={() =>
                       reportLoginError(
-                        "Google sign-in failed before credential was returned. Check Google OAuth client origins for this frontend URL.",
+                        "Google sign-in failed. Please try again or use a different browser.",
                       )
                     }
                   />
