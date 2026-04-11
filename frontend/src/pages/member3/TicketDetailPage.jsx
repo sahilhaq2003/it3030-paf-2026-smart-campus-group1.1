@@ -30,6 +30,7 @@ import SlaTimer from "../../components/SlaTimer";
 import ImageLightbox from "../../components/ImageLightbox";
 import { normalizeRoles } from "../../utils/getDashboardRoute";
 import { isResolvedLikeTicket, ticketStatusLabel } from "../../utils/ticketStatusDisplay";
+import { technicianCategoryLabel } from "../../constants/technicianCategories";
 
 const STATUS_STEPS = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
 const STEP_HEADINGS = ["Submitted", "In progress", "Resolved", "Closed"];
@@ -445,8 +446,16 @@ export default function TicketDetailPage() {
               <Clock size={14} /> {formatDate(ticket.createdAt)}
             </span>
             {ticket.assignedToName ? (
-              <span className="flex items-center gap-1.5 text-slate-900">
-                <Tag size={14} /> Assigned: {ticket.assignedToName}
+              <span className="flex items-center gap-2 text-slate-900">
+                <Tag size={14} /> 
+                <div className="flex flex-col gap-0.5">
+                  <span>Assigned: {ticket.assignedToName}</span>
+                  {ticket.assignedToCategory && (
+                    <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 w-fit">
+                      {technicianCategoryLabel(ticket.assignedToCategory)}
+                    </span>
+                  )}
+                </div>
               </span>
             ) : (
               <span className="flex items-center gap-1.5 text-amber-800">
@@ -477,10 +486,17 @@ export default function TicketDetailPage() {
                 <p className="text-sm font-semibold text-slate-900">Assignment</p>
                 <p className="text-xs text-slate-600">
                   {ticket.assignedToName ? (
-                    <>
-                      Technician <span className="font-medium text-slate-800">{ticket.assignedToName}</span> is
-                      handling this ticket.
-                    </>
+                    <div className="flex flex-col gap-1">
+                      <span>
+                        Technician <span className="font-medium text-slate-800">{ticket.assignedToName}</span> is
+                        handling this ticket.
+                      </span>
+                      {ticket.assignedToCategory && (
+                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 w-fit">
+                          {technicianCategoryLabel(ticket.assignedToCategory)}
+                        </span>
+                      )}
+                    </div>
                   ) : (
                     "An admin will assign a technician. You’ll see their name here."
                   )}
