@@ -17,6 +17,7 @@ import { fetchTechnicians } from "../../api/userAdminApi";
 import { useAuth } from "../../context/AuthContext";
 import { normalizeRoles } from "../../utils/getDashboardRoute";
 import { isResolvedLikeTicket } from "../../utils/ticketStatusDisplay";
+import { technicianCategoryLabel } from "../../constants/technicianCategories";
 
 const PRIORITY_ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
 
@@ -26,7 +27,7 @@ function formatDate(iso) {
     return new Date(iso).toLocaleDateString();
   } catch {
     return String(iso);
-  }
+  } 
 }
 
 export default function AdminTicketsPage() {
@@ -653,32 +654,42 @@ export default function AdminTicketsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedPerformanceData.map((perf, idx) => (
-                    <tr
-                      key={perf.technicianId}
-                      className={`border-b border-slate-100 last:border-b-0 ${
-                        idx % 2 === 0 ? "bg-white" : "bg-slate-50"
-                      } hover:bg-slate-50`}
-                    >
-                      <td className="px-4 py-3 font-medium text-slate-900">
-                        {perf.technicianName}
-                      </td>
-                      <td className="px-4 py-3 text-right text-slate-600">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
-                          {perf.ticketsResolved}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right text-slate-600">
-                        {perf.avgResolutionHours != null ? (
-                          <span className="font-medium">
-                            {perf.avgResolutionHours.toFixed(1)} hours
+                  {sortedPerformanceData.map((perf, idx) => {
+                    const tech = technicians.find(t => t.id === perf.technicianId);
+                    return (
+                      <tr
+                        key={perf.technicianId}
+                        className={`border-b border-slate-100 last:border-b-0 ${
+                          idx % 2 === 0 ? "bg-white" : "bg-slate-50"
+                        } hover:bg-slate-50`}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col gap-1">
+                            <p className="font-medium text-slate-900">{perf.technicianName}</p>
+                            {tech?.technicianCategory && (
+                              <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 w-fit">
+                                {technicianCategoryLabel(tech.technicianCategory)}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right text-slate-600">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
+                            {perf.ticketsResolved}
                           </span>
-                        ) : (
-                          <span className="text-slate-400">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-4 py-3 text-right text-slate-600">
+                          {perf.avgResolutionHours != null ? (
+                            <span className="font-medium">
+                              {perf.avgResolutionHours.toFixed(1)} hours
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

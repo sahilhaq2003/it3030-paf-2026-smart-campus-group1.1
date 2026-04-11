@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, User } from 'lucide-react';
 import { fetchTechnicians } from '../api/userAdminApi';
+import { technicianCategoryLabel } from '../constants/technicianCategories';
 
 export default function AssignTechnicianModal({ isOpen, onClose, onAssign, currentTechnicianName, isReassignment = false }) {
   const [technicians, setTechnicians] = useState([]);
@@ -131,11 +132,18 @@ export default function AssignTechnicianModal({ isOpen, onClose, onAssign, curre
                         <p className="font-medium text-gray-900 truncate">{tech.name}</p>
                       </div>
                       <p className="text-xs text-gray-600 mt-1 truncate">{tech.email}</p>
-                      {tech.role && (
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {tech.role}
-                        </p>
-                      )}
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        {tech.technicianCategory && (
+                          <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                            {technicianCategoryLabel(tech.technicianCategory)}
+                          </span>
+                        )}
+                        {tech.role && (
+                          <p className="text-xs text-gray-500">
+                            {tech.role}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </label>
                 ))
