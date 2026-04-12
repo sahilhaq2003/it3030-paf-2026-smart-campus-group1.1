@@ -190,7 +190,7 @@ function Sidebar() {
     },
     { to: dash.to, label: dash.label, icon: LayoutDashboard, active: dash.active },
     { to: "/facilities", label: "Campus Facilities", icon: Building, active: (p) => p.startsWith("/facilities") },
-    { to: "/bookings/my", label: "My Bookings", icon: ClipboardList, active: (p) => p.startsWith("/bookings") },
+    { to: isOpsAdmin ? "/admin/bookings" : "/bookings/my", label: isOpsAdmin ? "Manage Bookings" : "My Bookings", icon: ClipboardList, active: (p) => p.startsWith("/bookings") || p.startsWith("/admin/bookings") },
   ];
 
   if (canCreateTickets(roles)) {
@@ -217,12 +217,6 @@ function Sidebar() {
     });
   }
   if (isOpsAdmin) {
-    items.push({
-      to: "/admin/bookings",
-      label: "Manage Bookings",
-      icon: ClipboardList,
-      active: (p) => p.startsWith("/admin/bookings"),
-    });
     items.push({
       to: "/admin/users",
       label: "Users",
