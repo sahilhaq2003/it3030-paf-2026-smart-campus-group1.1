@@ -154,23 +154,7 @@ export default function AdminDashboard() {
         </DashboardSection>
       </div>
 
-      {/* Facility Navigation Widgets */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:gap-8">
-        <DashboardSection
-          title="Campus Directory"
-          description="Public-facing map of all active resources and classrooms."
-        >
-          <DashboardInlineMessage>
-            View the live architectural map available to standard users and students.
-          </DashboardInlineMessage>
-          <Link to="/facilities" className={`mt-5 inline-flex items-center gap-1 text-sm ${campusTextLink}`}>
-            Open campus map
-            <span aria-hidden className="text-base leading-none">
-              →
-            </span>
-          </Link>
-        </DashboardSection>
-
+      <div className="mt-6">
         <DashboardSection
           title="Facility Registry"
           description="Total physical resources configured in the backend server."

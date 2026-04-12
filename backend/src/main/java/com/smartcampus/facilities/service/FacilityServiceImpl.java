@@ -30,11 +30,13 @@ public class FacilityServiceImpl implements FacilityService {
             throw new IllegalArgumentException("Physical location cannot be empty.");
         }
 
-        // Enforce Physical Location String Uniqueness 
-        if (facilityDto.getLocation() != null && facilityRepository.existsByLocationIgnoreCase(facilityDto.getLocation().trim())) {
-            throw new IllegalArgumentException("A facility with this exact physical location already exists in the registry.");
+        // Enforce Physical Location String Uniqueness
+        if (facilityDto.getLocation() != null
+                && facilityRepository.existsByLocationIgnoreCase(facilityDto.getLocation().trim())) {
+            throw new IllegalArgumentException(
+                    "A facility with this exact physical location already exists in the registry.");
         }
-        
+
         Facility facility = mapToEntity(facilityDto);
         Facility savedFacility = facilityRepository.save(facility);
         return mapToDto(savedFacility);
@@ -66,11 +68,14 @@ public class FacilityServiceImpl implements FacilityService {
         Facility facility = facilityRepository.findById(id)
                 .orElseThrow(() -> new FacilityNotFoundException("Facility not found with id: " + id));
 
-        // Ensure update operation doesn't conflict with another facility's exact location
-        if (facilityDto.getLocation() != null && 
-            (facility.getLocation() == null || !facilityDto.getLocation().trim().equalsIgnoreCase(facility.getLocation().trim()))) {
+        // Ensure update operation doesn't conflict with another facility's exact
+        // location
+        if (facilityDto.getLocation() != null &&
+                (facility.getLocation() == null
+                        || !facilityDto.getLocation().trim().equalsIgnoreCase(facility.getLocation().trim()))) {
             if (facilityRepository.existsByLocationIgnoreCase(facilityDto.getLocation().trim())) {
-                throw new IllegalArgumentException("A facility with this exact physical location already exists in the registry.");
+                throw new IllegalArgumentException(
+                        "A facility with this exact physical location already exists in the registry.");
             }
         }
 
@@ -112,9 +117,17 @@ public class FacilityServiceImpl implements FacilityService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<FacilityDto> searchFacilities(ResourceType type, Integer capacity, String location, Status status,
+    public Page<FacilityDto> searchFacilities(String name, ResourceType type, Integer capacity, String location,
+            Status status,
             Pageable pageable) {
         Specification<Facility> spec = Specification.where(null);
+
+        if (StringUtils.hasText(name)) {
+            String normalizedName = name.trim().replaceAll("\\s+", " ").toLowerCase();
+            for (String term : normalizedName.split(" ")) {
+                spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("name")), "%" + term + "%"));
+            }
+        }
 
         if (type != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("resourceType"), type));

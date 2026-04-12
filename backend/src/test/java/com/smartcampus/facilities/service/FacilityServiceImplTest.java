@@ -73,20 +73,21 @@ public class FacilityServiceImplTest {
     void createFacility_DuplicateLocation_ThrowsException() {
         when(facilityRepository.existsByLocationIgnoreCase("Building A")).thenReturn(true);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, 
-            () -> facilityService.createFacility(facilityDto));
-        
-        assertEquals("A facility with this exact physical location already exists in the registry.", exception.getMessage());
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> facilityService.createFacility(facilityDto));
+
+        assertEquals("A facility with this exact physical location already exists in the registry.",
+                exception.getMessage());
         verify(facilityRepository, never()).save(any(Facility.class));
     }
 
     @Test
     void createFacility_EmptyLocation_ThrowsException() {
         facilityDto.setLocation("   "); // Blank location should trigger the first validation block
-        
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, 
-            () -> facilityService.createFacility(facilityDto));
-            
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> facilityService.createFacility(facilityDto));
+
         assertEquals("Physical location cannot be empty.", exception.getMessage());
     }
 
@@ -111,7 +112,7 @@ public class FacilityServiceImplTest {
     void updateFacility_Success() {
         when(facilityRepository.findById(1L)).thenReturn(Optional.of(facility));
         facilityDto.setCapacity(150); // Set an updated capacity dynamically
-        
+
         when(facilityRepository.save(any(Facility.class))).thenReturn(facility);
 
         FacilityDto result = facilityService.updateFacility(1L, facilityDto);
@@ -121,12 +122,12 @@ public class FacilityServiceImplTest {
     }
 
     @Test
-    void searchFacilities_Success() {
+    void searchFacilities_WithNameAndLocation_Success() {
         Page<Facility> page = new PageImpl<>(List.of(facility));
         when(facilityRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(page);
 
         Page<FacilityDto> result = facilityService.searchFacilities(
-                ResourceType.LECTURE_HALL, null, "Building A", Status.ACTIVE, PageRequest.of(0, 10));
+                "Main Hall", ResourceType.LECTURE_HALL, null, "Building A", Status.ACTIVE, PageRequest.of(0, 10));
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());

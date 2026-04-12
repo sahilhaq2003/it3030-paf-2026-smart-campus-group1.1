@@ -216,6 +216,9 @@ function Sidebar() {
       active: (p) => p.startsWith("/admin/tickets"),
     });
   }
+
+  
+
   if (isOpsAdmin) {
     items.push({
       to: "/admin/users",
