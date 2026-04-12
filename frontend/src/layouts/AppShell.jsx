@@ -185,7 +185,6 @@ function Sidebar() {
       active: (p) => p === "/profile",
     },
     { to: dash.to, label: dash.label, icon: LayoutDashboard, active: dash.active },
-    { to: "/facilities", label: "Campus Facilities", icon: Building, active: (p) => p.startsWith("/facilities") },
   ];
 
   if (canCreateTickets(roles)) {
@@ -209,6 +208,15 @@ function Sidebar() {
       label: "Admin tickets",
       icon: ClipboardList,
       active: (p) => p.startsWith("/admin/tickets"),
+    });
+  }
+
+  if (normalizeRoles(roles).has("LECTURER")) {
+    items.push({
+      to: "/facilities",
+      label: "Campus Facilities",
+      icon: Building,
+      active: (p) => p.startsWith("/facilities"),
     });
   }
 

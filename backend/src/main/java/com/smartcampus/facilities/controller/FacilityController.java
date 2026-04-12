@@ -40,12 +40,13 @@ public class FacilityController {
 
     @GetMapping("/search")
     public ResponseEntity<Page<FacilityDto>> searchFacilities(
+            @RequestParam(required = false) String name,
             @RequestParam(required = false) ResourceType type,
             @RequestParam(required = false) Integer capacity,
             @RequestParam(required = false) String location,
             @RequestParam(required = false) Status status,
             Pageable pageable) {
-        return ResponseEntity.ok(facilityService.searchFacilities(type, capacity, location, status, pageable));
+        return ResponseEntity.ok(facilityService.searchFacilities(name, type, capacity, location, status, pageable));
     }
 
     @GetMapping("/types")

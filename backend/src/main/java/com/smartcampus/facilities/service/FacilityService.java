@@ -13,5 +13,5 @@ public interface FacilityService {
     FacilityDto updateFacility(Long id, FacilityDto facilityDto);
     FacilityDto updateFacilityStatus(Long id, Status status);
     void deleteFacility(Long id);
-    Page<FacilityDto> searchFacilities(ResourceType type, Integer capacity, String location, Status status, Pageable pageable);
+    Page<FacilityDto> searchFacilities(String name, ResourceType type, Integer capacity, String location, Status status, Pageable pageable);
 }
