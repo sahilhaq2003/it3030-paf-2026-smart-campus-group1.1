@@ -189,11 +189,12 @@ function Sidebar() {
       active: (p) => p === "/profile",
     },
     { to: dash.to, label: dash.label, icon: LayoutDashboard, active: dash.active },
-    // Removed Campus Facilities and Facility Manager links
+    // Only show Campus Facilities for non-admins below
+    { to: isOpsAdmin ? null : "/facilities", label: isOpsAdmin ? null : "Campus Facilities", icon: isOpsAdmin ? null : Building, active: (p) => !isOpsAdmin && p.startsWith("/facilities") },
     { to: isOpsAdmin ? "/admin/bookings" : "/bookings/my", label: isOpsAdmin ? "Manage Bookings" : "My Bookings", icon: ClipboardList, active: (p) => p.startsWith("/bookings") || p.startsWith("/admin/bookings") },
-  ];
+  ].filter(item => item.to);
 
-  // Removed Campus Facilities for non-admin users
+  // Campus Facilities for non-admins handled above
 
   if (canCreateTickets(roles)) {
     items.push({
@@ -228,7 +229,12 @@ function Sidebar() {
       icon: Users,
       active: (p) => p.startsWith("/admin/users"),
     });
-    // Removed Facility Manager for admin users
+    items.push({
+      to: "/admin/facilities",
+      label: "Facility Manager",
+      icon: Settings,
+      active: (p) => p.startsWith("/admin/facilities"),
+    });
   }
 
   return (
