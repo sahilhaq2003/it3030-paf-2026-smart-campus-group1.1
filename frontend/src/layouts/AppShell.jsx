@@ -74,7 +74,7 @@ function AppHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-[3.25rem] shrink-0 items-center justify-between gap-4 border-b border-slate-200/90 bg-white px-5 shadow-[0_1px_0_0_rgba(15,23,42,0.06)] sm:px-6">
+      <header className="sticky top-0 z-30 flex h-[3.25rem] shrink-0 items-center justify-between gap-4 border-b border-white/40 bg-white/60 px-5 shadow-[0_1px_0_0_rgba(15,23,42,0.04)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/50 sm:px-6">
         <div className="min-w-0 flex flex-col justify-center">
           <span className="truncate text-sm font-semibold tracking-tight text-slate-900">Smart Campus Hub</span>
           <span className="truncate text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">
@@ -90,7 +90,7 @@ function AppHeader() {
           <button
             type="button"
             onClick={() => setPanelOpen(true)}
-            className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand"
+            className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/55 bg-white/55 text-slate-600 shadow-sm backdrop-blur-md transition hover:border-white/75 hover:bg-white/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand"
             aria-label={
               unreadCount > 0
                 ? `Notifications (${unreadCount} unread)`
@@ -104,7 +104,7 @@ function AppHeader() {
               </span>
             ) : null}
           </button>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/55 bg-white/40 backdrop-blur-md">
             <img
               src={avatarSrc}
               alt={user?.name ? `${user.name} avatar` : "Profile avatar"}
@@ -121,7 +121,7 @@ function AppHeader() {
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/55 bg-white/55 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm backdrop-blur-md transition hover:border-white/75 hover:bg-white/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand"
           >
             <LogOut className="h-4 w-4 text-slate-500" strokeWidth={2} />
             <span className="hidden sm:inline">Log out</span>

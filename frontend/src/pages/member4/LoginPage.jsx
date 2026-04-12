@@ -40,6 +40,29 @@ export default function LoginPage() {
   const [lecturerMode, setLecturerMode] = useState("signin");
   const [fieldErrors, setFieldErrors] = useState({});
   const [loginMode, setLoginMode] = useState("student");
+  const roleVisual = {
+    student: {
+      title: "Student sign in workspace",
+      description:
+        "Use Google to securely access your tickets, status updates, and campus service requests.",
+      image:
+        "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80",
+    },
+    staff: {
+      title: "Admin and technician workspace",
+      description:
+        "Manage assignments, prioritize incidents, and resolve maintenance requests with full visibility.",
+      image:
+        "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1600&q=80",
+    },
+    lecturer: {
+      title: "Lecturer account access",
+      description:
+        "Sign in or create your lecturer account with OTP verification and role-based access controls.",
+      image:
+        "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1600&q=80",
+    },
+  }[loginMode];
 
   /** Stable callback so @react-oauth/google effect deps do not churn (avoids duplicate GSI initialize). */
   const onGoogleCredential = useCallback(
@@ -191,10 +214,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen antialiased lg:flex">
+    <div className="min-h-screen bg-slate-100 p-2 antialiased sm:p-4">
+      <div className="mx-auto flex w-full max-w-[1080px] overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-xl shadow-slate-900/10 sm:min-h-[calc(100vh-2rem)] sm:rounded-[24px]">
       {/* Brand column — large screens */}
-      <aside className="relative hidden w-[44%] shrink-0 flex-col justify-between overflow-hidden bg-campus-shell p-12 text-white lg:flex xl:p-14">
+      <aside className="relative hidden w-[44%] shrink-0 flex-col justify-between overflow-hidden p-10 text-white xl:flex">
         <div className="pointer-events-none absolute inset-0">
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage:
+                `linear-gradient(120deg, rgba(2,6,23,0.88) 5%, rgba(15,23,42,0.68) 50%, rgba(15,23,42,0.32) 100%), url('${roleVisual.image}')`,
+            }}
+          />
           <div className="absolute -right-20 -top-28 h-[28rem] w-[28rem] rounded-full bg-campus-brand/20 blur-3xl" />
           <div className="absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-violet-500/10 blur-3xl" />
           <div
@@ -212,12 +243,11 @@ export default function LoginPage() {
           >
             <span aria-hidden>←</span> Back to home
           </Link>
-          <h1 className="mt-20 text-4xl font-bold leading-[1.15] tracking-tight xl:text-[2.75rem]">
-            Sign in to your campus workspace
+          <h1 className="mt-14 text-3xl font-bold leading-[1.15] tracking-tight 2xl:text-[2.5rem]">
+            {roleVisual.title}
           </h1>
           <p className="mt-6 max-w-md text-[15px] leading-relaxed text-zinc-400">
-            Access maintenance tickets, admin dashboards, and technician tools in one secure
-            place—aligned with your institution&apos;s roles and policies.
+            {roleVisual.description}
           </p>
         </div>
 
@@ -227,29 +257,29 @@ export default function LoginPage() {
       </aside>
 
       {/* Auth column */}
-      <div className="flex flex-1 flex-col justify-center bg-slate-50 px-5 py-14 sm:px-10">
+      <div className="flex flex-1 flex-col justify-center bg-slate-50 px-4 py-6 sm:px-7 sm:py-8 lg:px-8">
         <div className="mx-auto w-full max-w-[420px]">
-          <div className="mb-10 lg:hidden">
+          <div className="mb-8 lg:hidden">
             <Link
               to="/"
               className="text-sm font-semibold text-campus-brand transition hover:text-campus-brand-hover"
             >
               ← Back to home
             </Link>
-            <div className="mt-8 flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-campus-brand text-sm font-bold text-white shadow-md shadow-campus-brand/25">
+            <div className="mt-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-campus-brand/20 bg-campus-brand/10 text-sm font-bold text-campus-brand">
                 SC
               </div>
               <div>
                 <p className="font-semibold text-slate-900">Smart Campus Hub</p>
-                <p className="text-xs text-slate-500">Campus sign-in</p>
+                <p className="text-xs text-slate-500">{loginMode} login</p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-8 shadow-lg shadow-slate-200/50 sm:p-10">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-lg shadow-slate-300/30 sm:rounded-3xl sm:p-7 lg:p-8">
             <div className="hidden text-center lg:block">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-campus-brand text-base font-bold text-white shadow-md shadow-campus-brand/25">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl border border-campus-brand/20 bg-campus-brand/10 text-sm font-bold text-campus-brand">
                 SC
               </div>
               <h2 className="mt-5 text-2xl font-bold tracking-tight text-slate-900">
@@ -262,13 +292,13 @@ export default function LoginPage() {
             </div>
 
             <div className="mt-2 lg:mt-8">
-              <div className="mx-auto mb-5 grid w-full grid-cols-3 rounded-xl border border-slate-200 bg-slate-50 p-1">
+              <div className="mx-auto mb-5 grid w-full grid-cols-1 gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1.5 sm:grid-cols-3 sm:gap-0">
                 <button
                   type="button"
                   onClick={() => switchLoginMode("student")}
-                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition sm:text-[13px] ${
                     loginMode === "student"
-                      ? "bg-white text-campus-brand shadow-sm"
+                      ? "bg-white text-campus-brand shadow-md"
                       : "text-slate-600 hover:text-slate-800"
                   }`}
                 >
@@ -277,9 +307,9 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => switchLoginMode("staff")}
-                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition sm:text-[13px] ${
                     loginMode === "staff"
-                      ? "bg-white text-campus-brand shadow-sm"
+                      ? "bg-white text-campus-brand shadow-md"
                       : "text-slate-600 hover:text-slate-800"
                   }`}
                 >
@@ -288,9 +318,9 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => switchLoginMode("lecturer")}
-                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition sm:text-[13px] ${
                     loginMode === "lecturer"
-                      ? "bg-white text-campus-brand shadow-sm"
+                      ? "bg-white text-campus-brand shadow-md"
                       : "text-slate-600 hover:text-slate-800"
                   }`}
                 >
@@ -300,7 +330,7 @@ export default function LoginPage() {
             </div>
 
             {loginMode === "staff" ? (
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
               <div className="mb-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-campus-brand">
                   Staff Login
@@ -377,7 +407,7 @@ export default function LoginPage() {
               </form>
               </div>
             ) : loginMode === "student" ? (
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
                 <div className="mb-4 text-center">
                   <p className="text-xs font-semibold uppercase tracking-wide text-campus-brand">
                     Student Login
@@ -412,7 +442,7 @@ export default function LoginPage() {
                 ) : null}
               </div>
             ) : (
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
                 <div className="mb-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-campus-brand">
                     Lecturer Account
@@ -684,19 +714,9 @@ export default function LoginPage() {
                       className: "login-google-inner flex w-full max-w-full items-center justify-center p-0",
                     }}
                     onSuccess={onGoogleCredential}
-                    use_fedcm_for_button
-                    promptMomentNotification={(notification) => {
-                      if (notification.isNotDisplayed()) {
-                        const reason = notification.getNotDisplayedReason();
-                        reportLoginError(`Google sign-in unavailable: ${reason}.`);
-                      } else if (notification.isSkippedMoment()) {
-                        const reason = notification.getSkippedReason();
-                        reportLoginError(`Google sign-in skipped: ${reason}.`);
-                      }
-                    }}
                     onError={() =>
                       reportLoginError(
-                        "Google sign-in failed before credential was returned. Check Google OAuth client origins for this frontend URL.",
+                        "Google sign-in failed. Please try again or use a different browser.",
                       )
                     }
                   />
@@ -713,19 +733,20 @@ export default function LoginPage() {
               </div>
             ) : null}
 
-            <p className="mt-3 text-center text-xs text-slate-500">
+            <p className="mt-3 text-center text-xs leading-relaxed text-slate-500">
               Switch role to choose the correct sign-in method.
             </p>
 
           </div>
 
-          <p className="mt-8 text-center text-xs text-slate-400">
+          <p className="mt-6 text-center text-xs text-slate-400 sm:mt-8">
             Need help?{" "}
-            <Link to="/login/help" className="font-semibold text-campus-brand hover:text-campus-brand-hover">
+            <Link to="/support" className="font-semibold text-campus-brand hover:text-campus-brand-hover">
               View login process help
             </Link>
           </p>
         </div>
+      </div>
       </div>
     </div>
   );
