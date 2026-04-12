@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Calendar, Ticket } from "lucide-react";
+import { Calendar, Ticket, Building, MapPin, Users, Loader2 } from "lucide-react";
 import { ticketApi } from "../../api/ticketApi";
+import { facilityApi } from "../../api/facilityApi";
 import {
   DashboardPageLayout,
   campusTextLink,
@@ -40,10 +41,19 @@ export default function UserDashboard() {
         .then((r) => r.data),
   });
 
+  const { data: facilitiesData, isLoading: facilitiesLoading } = useQuery({
+    queryKey: ["dashboard", "featuredFacilities"],
+    queryFn: () =>
+      facilityApi
+        .searchFacilities({ status: "ACTIVE", page: 0, size: 4 })
+        .then((r) => r.data),
+  });
+
   const content = data?.content;
   const totalFromApi = data?.totalElements;
   const { list, open, inProgress, resolved } = summarizeMyTickets(content);
   const total = typeof totalFromApi === "number" ? totalFromApi : list.length;
+  const facilities = facilitiesData?.content || [];
 
   return (
     <DashboardPageLayout
@@ -121,12 +131,83 @@ export default function UserDashboard() {
         </DashboardSummaryCard>
       </div>
 
+      <div className="mt-10">
+        <DashboardSummaryCard
+          title="Campus facilities"
+          description="Explore and browse available facilities on campus."
+          icon={Building}
+          headerAction={
+            <Link to="/facilities" className={`text-sm ${campusTextLink}`}>
+              View all →
+            </Link>
+          }
+        >
+          {facilitiesLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+              <span className="ml-2 text-sm text-slate-400">Loading facilities...</span>
+            </div>
+          ) : facilities.length > 0 ? (
+            <div className="space-y-3">
+              {facilities.map((facility) => (
+                <Link
+                  key={facility.id}
+                  to={`/facilities/${facility.id}`}
+                  className="block rounded-lg border border-slate-200 bg-white p-4 hover:border-blue-300 hover:shadow-md transition-all"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-slate-900 text-sm hover:text-blue-600">
+                        {facility.name}
+                      </h4>
+                      <p className="mt-1 text-xs text-slate-500 capitalize">
+                        {facility.resourceType?.replace(/_/g, " ")}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-600">
+                        {facility.location && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {facility.location}
+                          </div>
+                        )}
+                        {facility.capacity && (
+                          <div className="flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            {facility.capacity} capacity
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <span className="ml-3 text-xs font-medium text-green-700 bg-green-50 px-2 py-1 rounded">
+                      {facility.status}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400 py-4">
+              No facilities available at the moment.
+            </p>
+          )}
+          <Link
+            to="/facilities"
+            className="mt-4 block text-center text-sm font-medium text-blue-600 hover:text-blue-700"
+          >
+            Browse all facilities →
+          </Link>
+        </DashboardSummaryCard>
+      </div>
+
       <div className="mt-10 flex flex-wrap gap-3">
         <Link to="/tickets" className={dashboardBtnSecondary}>
           Open ticket list
         </Link>
         <Link to="/tickets/create" className={dashboardBtnSecondary}>
           Report an issue
+        </Link>
+        <Link to="/facilities" className={dashboardBtnSecondary}>
+          Browse facilities
         </Link>
       </div>
     </DashboardPageLayout>
