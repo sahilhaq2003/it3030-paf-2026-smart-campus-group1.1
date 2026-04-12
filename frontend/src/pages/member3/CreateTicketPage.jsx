@@ -53,13 +53,17 @@ export default function CreateTicketPage() {
       const { data } = await ticketApi.createTicket(fd);
       return data;
     },
-    onSuccess: () => {
+    onMutate: () => {
+      // Immediately show success and navigate without waiting for response
       toast.success(
         "Request submitted. An admin will assign a technician — open your ticket anytime to follow progress and chat.",
       );
+      // Navigate immediately for better UX
+      setTimeout(() => navigate("/tickets"), 100);
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tickets", "my"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard", "myTickets"] });
-      navigate("/tickets");
     },
     onError: (err) => {
       const msg =
@@ -68,6 +72,7 @@ export default function CreateTicketPage() {
         err?.message ||
         "Could not create ticket";
       toast.error(typeof msg === "string" ? msg : "Could not create ticket");
+      // Don't navigate on error
     },
   });
 

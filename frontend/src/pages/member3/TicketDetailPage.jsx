@@ -30,6 +30,7 @@ import SlaTimer from "../../components/SlaTimer";
 import ImageLightbox from "../../components/ImageLightbox";
 import { normalizeRoles } from "../../utils/getDashboardRoute";
 import { isResolvedLikeTicket, ticketStatusLabel } from "../../utils/ticketStatusDisplay";
+import { technicianCategoryLabel } from "../../constants/technicianCategories";
 
 const STATUS_STEPS = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
 const STEP_HEADINGS = ["Submitted", "In progress", "Resolved", "Closed"];
@@ -124,6 +125,44 @@ export default function TicketDetailPage() {
 
   const startWorkMutation = useMutation({
     mutationFn: () => ticketApi.updateStatus(id, { status: "IN_PROGRESS" }),
+    onMutate: async () => {
+      // Cancel ongoing queries
+      await qc.cancelQueries({ queryKey: ["ticket", id] });
+      await qc.cancelQueries({ queryKey: ["admin", "tickets", "list"] });
+      
+      // Snapshot the previous values
+      const previousTicket = qc.getQueryData(["ticket", id]);
+      const previousAdminTickets = qc.getQueryData(["admin", "tickets", "list"]);
+      
+      // Optimistically update the ticket detail cache
+      qc.setQueryData(["ticket", id], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          status: "IN_PROGRESS",
+          updatedAt: new Date().toISOString(),
+        };
+      });
+      
+      // Optimistically update the admin tickets list cache
+      qc.setQueryData(["admin", "tickets", "list"], (old) => {
+        if (!old?.content) return old;
+        return {
+          ...old,
+          content: old.content.map((ticket) =>
+            ticket.id == id
+              ? {
+                  ...ticket,
+                  status: "IN_PROGRESS",
+                  updatedAt: new Date().toISOString(),
+                }
+              : ticket
+          ),
+        };
+      });
+      
+      return { previousTicket, previousAdminTickets };
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ticket", id] });
       qc.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
@@ -131,7 +170,14 @@ export default function TicketDetailPage() {
       qc.invalidateQueries({ queryKey: ["tickets", "my"] });
       toast.success("Work started — ticket is now in progress");
     },
-    onError: (err) => {
+    onError: (err, variables, context) => {
+      // Revert to previous values on error
+      if (context?.previousTicket) {
+        qc.setQueryData(["ticket", id], context.previousTicket);
+      }
+      if (context?.previousAdminTickets) {
+        qc.setQueryData(["admin", "tickets", "list"], context.previousAdminTickets);
+      }
       const msg =
         err?.response?.data?.message ||
         (typeof err?.response?.data === "string" ? err.response.data : null) ||
@@ -143,15 +189,63 @@ export default function TicketDetailPage() {
   const resolveTicketMutation = useMutation({
     mutationFn: (notes) =>
       ticketApi.updateStatus(id, { status: "RESOLVED", resolutionNotes: notes.trim() }),
+    onMutate: async (notes) => {
+      // Cancel ongoing queries
+      await qc.cancelQueries({ queryKey: ["ticket", id] });
+      await qc.cancelQueries({ queryKey: ["admin", "tickets", "list"] });
+      
+      // Snapshot the previous values
+      const previousTicket = qc.getQueryData(["ticket", id]);
+      const previousAdminTickets = qc.getQueryData(["admin", "tickets", "list"]);
+      
+      // Optimistically update the ticket detail cache
+      qc.setQueryData(["ticket", id], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          status: "RESOLVED",
+          resolutionNotes: notes.trim(),
+          updatedAt: new Date().toISOString(),
+        };
+      });
+      
+      // Optimistically update the admin tickets list cache
+      qc.setQueryData(["admin", "tickets", "list"], (old) => {
+        if (!old?.content) return old;
+        return {
+          ...old,
+          content: old.content.map((ticket) =>
+            ticket.id == id
+              ? {
+                  ...ticket,
+                  status: "RESOLVED",
+                  resolutionNotes: notes.trim(),
+                  updatedAt: new Date().toISOString(),
+                }
+              : ticket
+          ),
+        };
+      });
+      
+      return { previousTicket, previousAdminTickets };
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ticket", id] });
       qc.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
       qc.invalidateQueries({ queryKey: ["dashboard", "assignedTickets"] });
       qc.invalidateQueries({ queryKey: ["tickets", "my"] });
+      qc.invalidateQueries({ queryKey: ["admin", "technician", "performance"] });
       setResolutionNotes("");
       toast.success("Ticket marked resolved");
     },
-    onError: (err) => {
+    onError: (err, variables, context) => {
+      // Revert to previous values on error
+      if (context?.previousTicket) {
+        qc.setQueryData(["ticket", id], context.previousTicket);
+      }
+      if (context?.previousAdminTickets) {
+        qc.setQueryData(["admin", "tickets", "list"], context.previousAdminTickets);
+      }
       const msg =
         err?.response?.data?.message ||
         (typeof err?.response?.data === "string" ? err.response.data : null) ||
@@ -162,12 +256,59 @@ export default function TicketDetailPage() {
 
   const closeTicketMutation = useMutation({
     mutationFn: () => ticketApi.closeTicket(id),
+    onMutate: async () => {
+      // Cancel ongoing queries
+      await qc.cancelQueries({ queryKey: ["ticket", id] });
+      await qc.cancelQueries({ queryKey: ["admin", "tickets", "list"] });
+      
+      // Snapshot the previous values
+      const previousTicket = qc.getQueryData(["ticket", id]);
+      const previousAdminTickets = qc.getQueryData(["admin", "tickets", "list"]);
+      
+      // Optimistically update the ticket detail cache
+      qc.setQueryData(["ticket", id], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          status: "CLOSED",
+          updatedAt: new Date().toISOString(),
+        };
+      });
+      
+      // Optimistically update the admin tickets list cache
+      qc.setQueryData(["admin", "tickets", "list"], (old) => {
+        if (!old?.content) return old;
+        return {
+          ...old,
+          content: old.content.map((ticket) =>
+            ticket.id == id
+              ? {
+                  ...ticket,
+                  status: "CLOSED",
+                  updatedAt: new Date().toISOString(),
+                }
+              : ticket
+          ),
+        };
+      });
+      
+      return { previousTicket, previousAdminTickets };
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ticket", id] });
       qc.invalidateQueries({ queryKey: ["tickets", "my"] });
+      qc.invalidateQueries({ queryKey: ["admin", "technician", "performance"] });
+      qc.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
       toast.success("Ticket successfully closed");
     },
-    onError: (err) => {
+    onError: (err, variables, context) => {
+      // Revert to previous values on error
+      if (context?.previousTicket) {
+        qc.setQueryData(["ticket", id], context.previousTicket);
+      }
+      if (context?.previousAdminTickets) {
+        qc.setQueryData(["admin", "tickets", "list"], context.previousAdminTickets);
+      }
       const msg =
         err?.response?.data?.message ||
         (typeof err?.response?.data === "string" ? err.response.data : null) ||
@@ -305,8 +446,16 @@ export default function TicketDetailPage() {
               <Clock size={14} /> {formatDate(ticket.createdAt)}
             </span>
             {ticket.assignedToName ? (
-              <span className="flex items-center gap-1.5 text-slate-900">
-                <Tag size={14} /> Assigned: {ticket.assignedToName}
+              <span className="flex items-center gap-2 text-slate-900">
+                <Tag size={14} /> 
+                <div className="flex flex-col gap-0.5">
+                  <span>Assigned: {ticket.assignedToName}</span>
+                  {ticket.assignedToCategory && (
+                    <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 w-fit">
+                      {technicianCategoryLabel(ticket.assignedToCategory)}
+                    </span>
+                  )}
+                </div>
               </span>
             ) : (
               <span className="flex items-center gap-1.5 text-amber-800">
@@ -337,10 +486,17 @@ export default function TicketDetailPage() {
                 <p className="text-sm font-semibold text-slate-900">Assignment</p>
                 <p className="text-xs text-slate-600">
                   {ticket.assignedToName ? (
-                    <>
-                      Technician <span className="font-medium text-slate-800">{ticket.assignedToName}</span> is
-                      handling this ticket.
-                    </>
+                    <div className="flex flex-col gap-1">
+                      <span>
+                        Technician <span className="font-medium text-slate-800">{ticket.assignedToName}</span> is
+                        handling this ticket.
+                      </span>
+                      {ticket.assignedToCategory && (
+                        <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 w-fit">
+                          {technicianCategoryLabel(ticket.assignedToCategory)}
+                        </span>
+                      )}
+                    </div>
                   ) : (
                     "An admin will assign a technician. You’ll see their name here."
                   )}

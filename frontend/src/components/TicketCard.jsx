@@ -3,6 +3,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { AlertCircle, Clock, MapPin } from 'lucide-react';
 import PriorityBadge from './PriorityBadge';
 import StatusBadge from './StatusBadge';
+import { technicianCategoryLabel } from '../constants/technicianCategories';
 
 const categoryConfig = {
   PLUMBING: '🔧',
@@ -89,28 +90,35 @@ export default function TicketCard({ ticket, onSelect }) {
           <PriorityBadge priority={ticket.priority} />
         </div>
         {ticket.assignedToName && (
-          <div className="flex max-w-[min(100%,11rem)] items-center gap-2">
-            {ticket.assignedToAvatarUrl ? (
-              <img
-                src={ticket.assignedToAvatarUrl}
-                alt=""
-                className="h-8 w-8 shrink-0 rounded-full border border-blue-100 object-cover"
-                title={ticket.assignedToName}
-              />
-            ) : (
-              <div
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-800"
-                title={ticket.assignedToName}
-              >
-                {ticket.assignedToName
-                  .split(/\s+/)
-                  .map((p) => p[0])
-                  .join('')
-                  .slice(0, 2)
-                  .toUpperCase()}
-              </div>
+          <div className="flex flex-col max-w-[min(100%,11rem)] gap-1">
+            <div className="flex items-center gap-2">
+              {ticket.assignedToAvatarUrl ? (
+                <img
+                  src={ticket.assignedToAvatarUrl}
+                  alt=""
+                  className="h-8 w-8 shrink-0 rounded-full border border-blue-100 object-cover"
+                  title={ticket.assignedToName}
+                />
+              ) : (
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-800"
+                  title={ticket.assignedToName}
+                >
+                  {ticket.assignedToName
+                    .split(/\s+/)
+                    .map((p) => p[0])
+                    .join('')
+                    .slice(0, 2)
+                    .toUpperCase()}
+                </div>
+              )}
+              <span className="truncate text-xs font-medium text-blue-800">{ticket.assignedToName}</span>
+            </div>
+            {ticket.assignedToCategory && (
+              <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 truncate">
+                {technicianCategoryLabel(ticket.assignedToCategory)}
+              </span>
             )}
-            <span className="truncate text-xs font-medium text-blue-800">{ticket.assignedToName}</span>
           </div>
         )}
       </div>
