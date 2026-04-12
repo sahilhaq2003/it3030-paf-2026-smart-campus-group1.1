@@ -154,23 +154,23 @@ function Sidebar() {
   const dash =
     primaryDash === DASHBOARD_PATHS.ADMIN
       ? {
-          to: DASHBOARD_PATHS.ADMIN,
-          label: "Admin dashboard",
-          active: (p) => p.startsWith("/AdminDashboard"),
-        }
+        to: DASHBOARD_PATHS.ADMIN,
+        label: "Admin dashboard",
+        active: (p) => p.startsWith("/AdminDashboard"),
+      }
       : primaryDash === DASHBOARD_PATHS.TECHNICIAN
         ? {
-            to: DASHBOARD_PATHS.TECHNICIAN,
-            label: "Technician dashboard",
-            active: (p) => p.startsWith("/TechnicianDashboard"),
-          }
+          to: DASHBOARD_PATHS.TECHNICIAN,
+          label: "Technician dashboard",
+          active: (p) => p.startsWith("/TechnicianDashboard"),
+        }
         : primaryDash === DASHBOARD_PATHS.LECTURER
           ? {
-              to: DASHBOARD_PATHS.LECTURER,
-              label: "Lecturer dashboard",
-              active: (p) => p.startsWith("/LecturerDashboard"),
-            }
-        : {
+            to: DASHBOARD_PATHS.LECTURER,
+            label: "Lecturer dashboard",
+            active: (p) => p.startsWith("/LecturerDashboard"),
+          }
+          : {
             to: DASHBOARD_PATHS.USER,
             label: "User dashboard",
             active: (p) => p === "/UserDashboard",
@@ -185,13 +185,16 @@ function Sidebar() {
       active: (p) => p === "/profile",
     },
     { to: dash.to, label: dash.label, icon: LayoutDashboard, active: dash.active },
-    {
+  ];
+
+  if (!isOpsAdmin) {
+    items.push({
       to: "/facilities",
       label: "Campus Facilities",
       icon: Building,
       active: (p) => p.startsWith("/facilities"),
-    },
-  ];
+    });
+  }
 
   if (canCreateTickets(roles)) {
     items.push({
@@ -245,11 +248,10 @@ function Sidebar() {
             <Link
               key={to}
               to={to}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                on
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${on
                   ? "bg-white/12 text-white shadow-sm ring-1 ring-white/10"
                   : "text-zinc-300 hover:bg-white/8 hover:text-white"
-              }`}
+                }`}
             >
               <Icon className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2} />
               {label}
