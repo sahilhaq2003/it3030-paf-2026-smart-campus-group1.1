@@ -94,6 +94,45 @@ public class BookingServiceImpl implements BookingService {
                                 LocalTime startTime, LocalTime endTime) {
         return !bookingRepository.existsConflict(facilityId, date, startTime, endTime);
     }
+        @Override
+    @Transactional
+    public BookingResponseDTO updateBooking(Long bookingId, BookingRequestDTO request, Long userId) {
+        Booking booking = findOrThrow(bookingId);
+
+        // Security check: Only the person who created the booking can edit it
+        if (!booking.getUser().getId().equals(userId)) {
+            throw new IllegalStateException("You do not have permission to update this booking.");
+        }
+
+        // Only check for a schedule conflict if the user actually changed the date or time limits
+        if (!booking.getBookingDate().equals(request.getBookingDate()) ||
+            !booking.getStartTime().equals(request.getStartTime()) ||
+            !booking.getEndTime().equals(request.getEndTime())) {
+            
+            boolean conflict = bookingRepository.existsConflict(
+                    request.getFacilityId(),
+                    request.getBookingDate(),
+                    request.getStartTime(),
+                    request.getEndTime()
+            );
+            
+            if (conflict) {
+                throw new IllegalStateException("This facility is already booked for the selected date and time.");
+            }
+        }
+
+        // Apply all the new edits to the database entity
+        booking.setBookingDate(request.getBookingDate());
+        booking.setStartTime(request.getStartTime());
+        booking.setEndTime(request.getEndTime());
+        booking.setPurpose(request.getPurpose());
+        booking.setExpectedAttendees(request.getExpectedAttendees());
+
+        // Save it to the database
+        Booking saved = bookingRepository.save(booking);
+        return mapToResponse(saved);
+    }
+
 
     // ─── Admin Actions ────────────────────────────────────────────────────────
 

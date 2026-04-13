@@ -68,6 +68,17 @@ public class BookingController {
         BookingResponseDTO response = bookingService.createBooking(request, principal.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+        // PUT /api/bookings/{id} — Allow Students and Lecturers to update their booking
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'LECTURER')")
+    public ResponseEntity<BookingResponseDTO> updateBooking(
+            @PathVariable Long id,
+            @Valid @RequestBody BookingRequestDTO request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        BookingResponseDTO response = bookingService.updateBooking(id, request, principal.getId());
+        return ResponseEntity.ok(response);
+    }
+
 
     // PATCH /api/bookings/{id}/approve — ADMIN only
     @PatchMapping("/{id}/approve")

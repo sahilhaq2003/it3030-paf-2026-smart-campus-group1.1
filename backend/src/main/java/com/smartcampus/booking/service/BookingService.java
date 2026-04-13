@@ -12,6 +12,9 @@ public interface BookingService {
 
     // Create a new booking
     BookingResponseDTO createBooking(BookingRequestDTO request, Long userId);
+    
+    // Update an existing booking
+    BookingResponseDTO updateBooking(Long bookingId, BookingRequestDTO request, Long userId);
 
     // Get all bookings — ADMIN only
     List<BookingResponseDTO> getAllBookings();
