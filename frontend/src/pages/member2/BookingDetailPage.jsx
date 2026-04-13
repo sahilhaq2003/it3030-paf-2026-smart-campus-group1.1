@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { getBookingById, cancelBooking } from "../../api/bookingApi";
 import StatusBadge from "../../components/StatusBadge";
+import { Pencil } from "lucide-react";
+
 
 export default function BookingDetailPage() {
   const { id } = useParams();
@@ -43,76 +45,51 @@ export default function BookingDetailPage() {
         ← Back
       </button>
 
-      {/* Header */}
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Booking Details</h1>
-          <p className="text-gray-500 mt-1">Booking #{booking.id}</p>
-        </div>
-        <StatusBadge status={booking.status} />
+            {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">{booking.facilityName}</h1>
+        <p className="text-gray-500 text-sm mt-1 uppercase tracking-wide">Booking Details</p>
       </div>
 
-      {/* Status Timeline */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4">
-        <h2 className="font-semibold text-gray-700 mb-4">Status Timeline</h2>
-        <div className="flex items-center gap-2">
-          {["Submitted", "Under Review", "Decision Made"].map((label, index) => {
-            const isActive = index === 0 ||
-              (index === 1 && ["APPROVED", "REJECTED", "CANCELLED"].includes(booking.status)) ||
-              (index === 2 && ["APPROVED", "REJECTED"].includes(booking.status));
-            return (
-              <div key={index} className="flex items-center">
-                <div className="flex flex-col items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold
-                    ${isActive ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-500"}`}>
-                    {index + 1}
-                  </div>
-                  <span className="text-xs text-gray-500 mt-1 whitespace-nowrap">{label}</span>
-                </div>
-                {index < 2 && (
-                  <div className={`h-1 w-12 mx-1 mb-4 ${isActive ? "bg-blue-600" : "bg-gray-200"}`} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+
+      
 
       {/* Booking Info */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4">
         <h2 className="font-semibold text-gray-700 mb-4">Booking Information</h2>
-        <div className="space-y-3">
-          <div className="flex justify-between">
+                <div className="flex flex-col">
+          <div className="flex justify-between py-4 border-b border-gray-100">
             <span className="text-sm text-gray-500">Facility</span>
             <span className="text-sm font-medium text-gray-900">{booking.facilityName}</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between py-4 border-b border-gray-100">
             <span className="text-sm text-gray-500">Date</span>
             <span className="text-sm font-medium text-gray-900">{booking.bookingDate}</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between py-4 border-b border-gray-100">
             <span className="text-sm text-gray-500">Time</span>
             <span className="text-sm font-medium text-gray-900">
               {booking.startTime} — {booking.endTime}
             </span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between py-4 border-b border-gray-100">
             <span className="text-sm text-gray-500">Purpose</span>
             <span className="text-sm font-medium text-gray-900">{booking.purpose}</span>
           </div>
           {booking.expectedAttendees && (
-            <div className="flex justify-between">
+            <div className="flex justify-between py-4 border-b border-gray-100">
               <span className="text-sm text-gray-500">Expected Attendees</span>
               <span className="text-sm font-medium text-gray-900">{booking.expectedAttendees}</span>
             </div>
           )}
-          <div className="flex justify-between">
+          <div className="flex justify-between py-4">
             <span className="text-sm text-gray-500">Submitted</span>
             <span className="text-sm font-medium text-gray-900">
               {new Date(booking.createdAt).toLocaleDateString()}
             </span>
           </div>
         </div>
+
       </div>
 
       {/* Rejection Reason */}
@@ -124,16 +101,25 @@ export default function BookingDetailPage() {
       )}
 
       {/* Cancel Button */}
-      {booking.status === "APPROVED" && (
+            {/* Action Buttons */}
+      <div className="flex gap-4 mb-8">
+        <button
+          onClick={() => navigate(`/bookings/edit/${booking.id}`)}
+          className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition"
+        >
+          <Pencil className="w-5 h-5" />
+          Edit Booking
+        </button>
+        
         <button
           onClick={() => cancelMutation.mutate()}
           disabled={cancelMutation.isPending}
-          className="w-full border border-red-300 text-red-600 py-2 rounded-lg font-medium
-            hover:bg-red-50 disabled:opacity-50"
+          className="bg-red-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-red-700 transition disabled:opacity-50"
         >
           {cancelMutation.isPending ? "Cancelling..." : "Cancel Booking"}
         </button>
-      )}
+      </div>
+
     </div>
   );
 }
