@@ -105,13 +105,7 @@ export default function MyBookingsPage() {
                     View
                   </button>
 
-                  <button
-                    onClick={() => cancelMutation.mutate(booking.id)}
-                    className="text-red-500 hover:text-red-700 transition-colors p-1"
-                    title="Cancel Booking"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                  
                 </div>
 
               </div>
