@@ -28,7 +28,9 @@ export const approveBooking = (id) =>
 
 // Reject booking (admin)
 export const rejectBooking = (id, rejectionReason) =>
-  axiosInstance.patch(`/bookings/${id}/reject`, { rejectionReason });
+  axiosInstance.patch(`/bookings/${id}/reject`, { bookingId: id, rejectionReason });
+
+
 
 // Cancel booking
 export const cancelBooking = (id) =>
