@@ -37,3 +37,7 @@ export const cancelBooking = (id) =>
 // Delete booking (admin)
 export const deleteBooking = (id) =>
   axiosInstance.delete(`/bookings/${id}`);
+
+// Update booking details
+export const updateBooking = (id, bookingData) =>
+  axiosInstance.put(`/bookings/${id}`, bookingData);

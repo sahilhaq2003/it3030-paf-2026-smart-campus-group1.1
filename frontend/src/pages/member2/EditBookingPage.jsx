@@ -5,7 +5,7 @@ import { Calendar, Clock, FileText, Users } from "lucide-react";
 import toast from "react-hot-toast";
 
 // Imports from your API
-import { getBookingById, checkAvailability } from "../../api/bookingApi"; 
+import { getBookingById, checkAvailability, updateBooking } from "../../api/bookingApi"; 
 import axiosInstance from "../../api/axiosInstance";
 
 // --- Time Helper Functions ---
@@ -202,11 +202,8 @@ export default function EditBookingPage() {
 
 
   // 5. Build mock updater (replace with your real edit API when ready)
-  const updateMutation = useMutation({
-    mutationFn: (data) => {
-      // NOTE: Use your update function here like: return updateBooking(id, data);
-      return new Promise((resolve) => setTimeout(resolve, 500)); 
-    },
+    const updateMutation = useMutation({
+    mutationFn: (data) => updateBooking(id, data), // <-- This actually calls your Spring Boot Server now!
     onSuccess: () => {
       toast.success("Booking updated!");
       queryClient.invalidateQueries({ queryKey: ["booking", id] });
@@ -215,6 +212,7 @@ export default function EditBookingPage() {
     },
     onError: () => toast.error("Failed to update booking")
   });
+
 
   const handleSubmit = () => {
     updateMutation.mutate({
