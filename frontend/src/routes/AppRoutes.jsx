@@ -34,6 +34,7 @@ import BookingRequestPage from "../pages/member2/BookingRequestPage";
 import MyBookingsPage from "../pages/member2/MyBookingsPage";
 import BookingDetailPage from "../pages/member2/BookingDetailPage";
 import AdminBookingsPage from "../pages/member2/AdminBookingsPage";
+import EditBookingPage from "../pages/member2/EditBookingPage"; 
 /**
  * Router setup:
  * - / → public landing
@@ -62,8 +63,11 @@ export default function AppRoutes() {
         {/* Member 2 - Booking Routes */}
         <Route path="/bookings/request" element={<BookingRequestPage />} />
         <Route path="/bookings/my" element={<MyBookingsPage />} />
+        <Route path="/bookings/edit/:id" element={<EditBookingPage />} />
         <Route path="/bookings/:id" element={<BookingDetailPage />} />
         <Route path="/admin/bookings" element={<AdminBookingsPage />} />
+
+        
         <Route path="/home" element={<HomePage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route
