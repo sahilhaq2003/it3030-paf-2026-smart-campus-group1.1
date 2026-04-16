@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { facilityApi } from "../../api/facilityApi";
 import { ticketApi } from "../../api/ticketApi";
-import { fetchUsers } from "../../api/userAdminApi";
+import { fetchUsers, fetchTechnicians } from "../../api/userAdminApi";
 import AdminTechnicianPanel from "../../components/dashboard/AdminTechnicianPanel";
 import {
   DashboardPageLayout,
@@ -46,6 +46,11 @@ export default function AdminDashboard() {
   const facilitiesQuery = useQuery({
     queryKey: ["admin", "facilities", "count"],
     queryFn: () => facilityApi.getAllFacilities({ page: 0, size: 1 })
+  });
+
+  const techniciansQuery = useQuery({
+    queryKey: ["admin", "technicians"],
+    queryFn: fetchTechnicians,
   });
 
   const openTickets =
@@ -149,23 +154,7 @@ export default function AdminDashboard() {
         </DashboardSection>
       </div>
 
-      {/* Facility Navigation Widgets */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:gap-8">
-        <DashboardSection
-          title="Campus Directory"
-          description="Public-facing map of all active resources and classrooms."
-        >
-          <DashboardInlineMessage>
-            View the live architectural map available to standard users and students.
-          </DashboardInlineMessage>
-          <Link to="/facilities" className={`mt-5 inline-flex items-center gap-1 text-sm ${campusTextLink}`}>
-            Open campus map
-            <span aria-hidden className="text-base leading-none">
-              →
-            </span>
-          </Link>
-        </DashboardSection>
-
+      <div className="mt-6">
         <DashboardSection
           title="Facility Registry"
           description="Total physical resources configured in the backend server."
@@ -182,6 +171,28 @@ export default function AdminDashboard() {
           </DashboardInlineMessage>
           <Link to="/admin/facilities" className={`mt-5 inline-flex items-center gap-1 text-sm ${campusTextLink}`}>
             Launch Facility Manager
+            <span aria-hidden className="text-base leading-none">
+              →
+            </span>
+          </Link>
+        </DashboardSection>
+
+        <DashboardSection
+          title="Technician Registry"
+          description="Manage all registered technicians and their specializations."
+        >
+          {techniciansQuery.isLoading ? (
+            <div className="h-10 animate-pulse rounded-lg bg-slate-100" />
+          ) : (
+            <p className="text-3xl font-bold tabular-nums text-slate-900">
+              {techniciansQuery.data?.length ?? "—"} <span className="text-lg text-gray-500 font-medium tracking-tight">Technicians</span>
+            </p>
+          )}
+          <DashboardInlineMessage>
+            Add, edit, and remove technician profiles. Assign technicians to maintenance tickets.
+          </DashboardInlineMessage>
+          <Link to="/admin/technicians" className={`mt-5 inline-flex items-center gap-1 text-sm ${campusTextLink}`}>
+            Manage Technicians
             <span aria-hidden className="text-base leading-none">
               →
             </span>

@@ -4,6 +4,7 @@ import MyTicketsPage from "../pages/member3/MyTicketsPage";
 import CreateTicketPage from "../pages/member3/CreateTicketPage";
 import TicketDetailPage from "../pages/member3/TicketDetailPage";
 import AdminTicketsPage from "../pages/member3/AdminTicketsPage";
+import AdminTechnicianPage from "../pages/member3/AdminTechnicianPage";
 import LoginPage from "../pages/member4/LoginPage";
 import LoginHelpPage from "../pages/member4/LoginHelpPage";
 import LandingPage from "../pages/member4/LandingPage";
@@ -29,6 +30,12 @@ import FacilitiesListPage from "../pages/member1/FacilitiesListPage";
 import FacilityDetailPage from "../pages/member1/FacilityDetailPage";
 import AdminFacilityRoute from "./AdminFacilityRoute";
 import AdminFacilitiesPage from "../pages/member1/AdminFacilitiesPage";
+import BookingRequestPage from "../pages/member2/BookingRequestPage";
+import MyBookingsPage from "../pages/member2/MyBookingsPage";
+import BookingDetailPage from "../pages/member2/BookingDetailPage";
+import AdminBookingsPage from "../pages/member2/AdminBookingsPage";
+import EditBookingPage from "../pages/member2/EditBookingPage"; 
+import AdminReviewBookingPage from "../pages/member2/AdminReviewBookingPage";
 
 /**
  * Router setup:
@@ -55,6 +62,15 @@ export default function AppRoutes() {
       >
         <Route path="/facilities" element={<FacilitiesListPage />} />
         <Route path="/facilities/:id" element={<FacilityDetailPage />} />
+        {/* Member 2 - Booking Routes */}
+        <Route path="/bookings/request" element={<BookingRequestPage />} />
+        <Route path="/bookings/my" element={<MyBookingsPage />} />
+        <Route path="/bookings/edit/:id" element={<EditBookingPage />} />
+        <Route path="/bookings/:id" element={<BookingDetailPage />} />
+        <Route path="/admin/bookings" element={<AdminBookingsPage />} />
+        <Route path="/admin/bookings/:id" element={<AdminReviewBookingPage />} />
+
+        
         <Route path="/home" element={<HomePage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route
@@ -136,6 +152,14 @@ export default function AppRoutes() {
             <StaffTicketsRoute>
               <AdminTicketsPage />
             </StaffTicketsRoute>
+          }
+        />
+        <Route
+          path="/admin/technicians"
+          element={
+            <AdminFacilityRoute>
+              <AdminTechnicianPage />
+            </AdminFacilityRoute>
           }
         />
         

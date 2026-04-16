@@ -46,31 +46,29 @@ class AttachmentServiceTest {
     void shouldAcceptValidImageFile() throws IOException {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
-            "file",
-            "ticket.jpg",
-            "image/jpeg",
-            "image content".getBytes()
-        );
+                "file",
+                "ticket.jpg",
+                "image/jpeg",
+                "image content".getBytes());
 
         // Act & Assert
         assertThatCode(() -> attachmentService.validateFile(file))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
     void shouldRejectNonImageMimeType() throws IOException {
         // Arrange - PDF file instead of image
         MockMultipartFile file = new MockMultipartFile(
-            "file",
-            "document.pdf",
-            "application/pdf",
-            "pdf content".getBytes()
-        );
+                "file",
+                "document.pdf",
+                "application/pdf",
+                "pdf content".getBytes());
 
         // Act & Assert
         assertThatThrownBy(() -> attachmentService.validateFile(file))
-            .isInstanceOf(ResponseStatusException.class)
-            .hasMessageContaining("Invalid file type");
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Invalid file type");
     }
 
     @Test
@@ -80,16 +78,15 @@ class AttachmentServiceTest {
         Arrays.fill(largeContent, (byte) 1);
 
         MockMultipartFile file = new MockMultipartFile(
-            "file",
-            "large.jpg",
-            "image/jpeg",
-            largeContent
-        );
+                "file",
+                "large.jpg",
+                "image/jpeg",
+                largeContent);
 
         // Act & Assert
         assertThatThrownBy(() -> attachmentService.validateFile(file))
-            .isInstanceOf(ResponseStatusException.class)
-            .hasMessageContaining("File too large");
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("File too large");
     }
 
     @Test
@@ -98,16 +95,15 @@ class AttachmentServiceTest {
         List<MultipartFile> files = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             files.add(new MockMultipartFile(
-                "file" + i,
-                "image" + i + ".jpg",
-                "image/jpeg",
-                "content".getBytes()
-            ));
+                    "file" + i,
+                    "image" + i + ".jpg",
+                    "image/jpeg",
+                    "content".getBytes()));
         }
 
         // Act & Assert
         assertThatCode(() -> attachmentService.validateFileCount(files, testTicket))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -116,58 +112,54 @@ class AttachmentServiceTest {
         List<MultipartFile> files = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
             files.add(new MockMultipartFile(
-                "file" + i,
-                "image" + i + ".jpg",
-                "image/jpeg",
-                "content".getBytes()
-            ));
+                    "file" + i,
+                    "image" + i + ".jpg",
+                    "image/jpeg",
+                    "content".getBytes()));
         }
 
         // Act & Assert
         assertThatThrownBy(() -> attachmentService.validateFileCount(files, testTicket))
-            .isInstanceOf(ResponseStatusException.class)
-            .hasMessageContaining("Maximum 3 attachments");
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Maximum 3 attachments");
     }
 
     @Test
     void shouldRejectImageTypeWebP() throws IOException {
         // Arrange - WebP is allowed
         MockMultipartFile file = new MockMultipartFile(
-            "file",
-            "image.webp",
-            "image/webp",
-            "webp content".getBytes()
-        );
+                "file",
+                "image.webp",
+                "image/webp",
+                "webp content".getBytes());
 
         // Act & Assert - Should NOT throw
         assertThatCode(() -> attachmentService.validateFile(file))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
     void shouldRejectImageTypePNG() throws IOException {
         // Arrange
         MockMultipartFile file = new MockMultipartFile(
-            "file",
-            "image.png",
-            "image/png",
-            "png content".getBytes()
-        );
+                "file",
+                "image.png",
+                "image/png",
+                "png content".getBytes());
 
         // Act & Assert
         assertThatCode(() -> attachmentService.validateFile(file))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
     void shouldGenerateUUIDForStoredFileName() throws IOException {
         // Arrange
         MultipartFile file = new MockMultipartFile(
-            "file",
-            "original-name.jpg",
-            "image/jpeg",
-            "content".getBytes()
-        );
+                "file",
+                "original-name.jpg",
+                "image/jpeg",
+                "content".getBytes());
 
         when(supabaseStorageService.uploadFile(any(), any())).thenReturn("https://url.com/file");
         when(attachmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -177,20 +169,19 @@ class AttachmentServiceTest {
 
         // Assert
         assertThat(result.getStoredName())
-            .isNotBlank()
-            .doesNotContain("original-name")
-            .matches("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\\.jpg"); // UUID format
+                .isNotBlank()
+                .doesNotContain("original-name")
+                .matches("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\\.jpg");
     }
 
     @Test
     void shouldPreserveOriginalFileNameInMetadata() throws IOException {
         // Arrange
         MultipartFile file = new MockMultipartFile(
-            "file",
-            "user-screenshot.jpg",
-            "image/jpeg",
-            "content".getBytes()
-        );
+                "file",
+                "user-screenshot.jpg",
+                "image/jpeg",
+                "content".getBytes());
 
         when(supabaseStorageService.uploadFile(any(), any())).thenReturn("https://url.com/file");
         when(attachmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -206,11 +197,10 @@ class AttachmentServiceTest {
     void shouldValidateMimeTypeOfSavedAttachment() throws IOException {
         // Arrange
         MultipartFile file = new MockMultipartFile(
-            "file",
-            "image.jpg",
-            "image/jpeg",
-            "content".getBytes()
-        );
+                "file",
+                "image.jpg",
+                "image/jpeg",
+                "content".getBytes());
 
         when(supabaseStorageService.uploadFile(any(), any())).thenReturn("https://url.com/file");
         when(attachmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -225,13 +215,12 @@ class AttachmentServiceTest {
     @Test
     void shouldSaveFileSizeInBytes() throws IOException {
         // Arrange
-        byte[] content = "test content with 24 bytes".getBytes(); // exactly 24 bytes
+        byte[] content = "test content with 24 bytes".getBytes();
         MultipartFile file = new MockMultipartFile(
-            "file",
-            "image.jpg",
-            "image/jpeg",
-            content
-        );
+                "file",
+                "image.jpg",
+                "image/jpeg",
+                content);
 
         when(supabaseStorageService.uploadFile(any(), any())).thenReturn("https://url.com/file");
         when(attachmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -247,11 +236,10 @@ class AttachmentServiceTest {
     void shouldAssociateAttachmentWithTicket() throws IOException {
         // Arrange
         MultipartFile file = new MockMultipartFile(
-            "file",
-            "image.jpg",
-            "image/jpeg",
-            "content".getBytes()
-        );
+                "file",
+                "image.jpg",
+                "image/jpeg",
+                "content".getBytes());
 
         when(supabaseStorageService.uploadFile(any(), any())).thenReturn("https://url.com/file");
         when(attachmentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
