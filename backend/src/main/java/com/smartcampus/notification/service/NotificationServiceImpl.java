@@ -40,7 +40,7 @@ public class NotificationServiceImpl implements NotificationService {
         boolean emailEnabled = prefs.emailEnabled();
         User recipient =
                 userRepository
-                        .findById(recipientUserId)
+                        .findByIdWithRoles(recipientUserId)
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         Notification notification =
                 Notification.builder()

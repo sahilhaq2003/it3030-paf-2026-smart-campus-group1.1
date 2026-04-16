@@ -43,8 +43,10 @@ function sectionLabel(date) {
 
 function notificationIcon(type) {
   switch (type) {
-    case "BOOKING_APPROVED": return CalendarCheck;
-    case "BOOKING_REJECTED": return CalendarX;
+    case "BOOKING_CREATED":   return CalendarCheck;
+    case "BOOKING_APPROVED":  return CalendarCheck;
+    case "BOOKING_REJECTED":  return CalendarX;
+    case "BOOKING_CANCELLED": return CalendarX;
     case "TICKET_STATUS_CHANGED": return Ticket;
     case "NEW_COMMENT": return MessageSquare;
     default: return Bell;
@@ -54,7 +56,7 @@ function notificationIcon(type) {
 function navigateForNotification(n, navigate) {
   if (n.referenceId == null) return;
   if (n.referenceType === "TICKET") { navigate(`/tickets/${n.referenceId}`); return; }
-  if (n.referenceType === "BOOKING") { navigate("/facilities"); }
+  if (n.referenceType === "BOOKING") { navigate(`/bookings/my?highlight=${n.referenceId}`); }
 }
 
 /* ─── CommentReplyCard ───────────────────────────────────────────────────────
@@ -243,23 +245,50 @@ function NotificationActions({ n, roles, onMarkRead, onClose, navigate }) {
 
   const actions = [];
 
+  if (n.type === "BOOKING_CREATED") {
+    actions.push({
+      key: "view-booking",
+      label: "View booking",
+      icon: CalendarCheck,
+      className: "text-blue-700 border-blue-200 bg-blue-50 hover:bg-blue-100",
+      onClick: () => goTo(`/bookings/my?highlight=${n.referenceId}`),
+    });
+  }
+
   if (n.type === "BOOKING_APPROVED") {
     actions.push({
       key: "view-booking",
       label: "View booking",
       icon: CalendarCheck,
       className: "text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100",
-      onClick: () => goTo("/facilities"),
+      onClick: () => goTo(`/bookings/my?highlight=${n.referenceId}`),
     });
   }
 
   if (n.type === "BOOKING_REJECTED") {
     actions.push({
+      key: "view-booking",
+      label: "View booking",
+      icon: CalendarX,
+      className: "text-slate-700 border-slate-200 bg-slate-50 hover:bg-slate-100",
+      onClick: () => goTo(`/bookings/my?highlight=${n.referenceId}`),
+    });
+    actions.push({
       key: "rebook",
-      label: "Rebook →",
+      label: "Rebook",
       icon: RotateCcw,
       className: "text-red-700 border-red-200 bg-red-50 hover:bg-red-100",
       onClick: () => goTo("/facilities"),
+    });
+  }
+
+  if (n.type === "BOOKING_CANCELLED") {
+    actions.push({
+      key: "view-booking",
+      label: "View booking",
+      icon: CalendarX,
+      className: "text-slate-700 border-slate-200 bg-slate-50 hover:bg-slate-100",
+      onClick: () => goTo(`/bookings/my?highlight=${n.referenceId}`),
     });
   }
 
