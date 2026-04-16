@@ -11,11 +11,16 @@ import {
   campusTextLink,
 } from "../../components/dashboard/DashboardPrimitives";
 import { DashboardInlineMessage } from "../../components/dashboard/DashboardCards";
+import { getBookingAnalytics } from "../../api/bookingApi";
 
-/** Placeholder until a bookings admin aggregate exists */
-const TOTAL_BOOKINGS_SAMPLE = 14;
+
 
 export default function AdminDashboard() {
+  const bookingsQuery = useQuery({
+  queryKey: ["admin", "bookings", "analytics"],
+  queryFn: () => getBookingAnalytics().then((r) => r.data),
+});
+
   const totalTicketsQuery = useQuery({
     queryKey: ["admin", "tickets", "countAll"],
     queryFn: () =>
@@ -72,11 +77,18 @@ export default function AdminDashboard() {
       subtitle="Cross-campus metrics. Ticket and user figures require an admin account; bookings total is sample data for now."
     >
       <div className="grid gap-4 sm:grid-cols-3 lg:gap-6">
-        <DashboardStatCard
-          label="Total bookings"
-          value={TOTAL_BOOKINGS_SAMPLE}
-          hint="Sample aggregate — wire bookings API when ready"
-        />
+      <Link to="/admin/analytics" className="block">
+  <DashboardStatCard
+    label="Total Bookings"
+    value={bookingsQuery.isLoading ? "…" : bookingsQuery.data?.totalBookings ?? bookingsQuery.data?.total ?? "—"}
+    hint={
+      <span className={`inline-flex items-center gap-1 text-sm ${campusTextLink}`}>
+        View Booking Analytics
+        <span aria-hidden className="text-base leading-none">→</span>
+      </span>
+    }
+  />
+</Link>
         <DashboardStatCard
           label="Open tickets"
           value={

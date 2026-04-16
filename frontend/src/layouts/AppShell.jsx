@@ -12,7 +12,7 @@ import {
   UserRound,
   Users,
   Building,
-  Settings,
+  Settings, 
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../hooks/useNotifications";
@@ -25,6 +25,7 @@ import {
   getDashboardRoute,
   normalizeRoles
 } from "../utils/getDashboardRoute";
+
 
 function routeTitle(pathname) {
   if (pathname === "/home") return "Home";
@@ -224,6 +225,7 @@ function Sidebar() {
   
 
   if (isOpsAdmin) {
+    
     items.push({
       to: "/admin/users",
       label: "Users",

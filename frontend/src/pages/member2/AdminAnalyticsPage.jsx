@@ -21,23 +21,46 @@ export default function AdminAnalyticsPage() {
     <div className="p-6 text-center text-red-500">Failed to load analytics.</div>
   );
 
-  // Prepare data for charts
-  const statusData = [
-    { name: "Approved", value: Number(data.approved), color: "#16a34a" },
-    { name: "Pending", value: Number(data.pending), color: "#f59e0b" },
-    { name: "Rejected", value: Number(data.rejected), color: "#dc2626" },
-    { name: "Cancelled", value: Number(data.cancelled), color: "#6b7280" },
-  ];
+  
 
   const facilityData = Object.entries(data.facilityCount || {})
     .map(([name, count]) => ({ name, count: Number(count) }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
-  const dailyData = Object.entries(data.bookingsPerDay || {})
-    .map(([date, count]) => ({ date, count: Number(count) }))
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .slice(-7);
+    // Generate exactly the last 7 calendar days (including today)
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
+
+  // Map our generated last 7 days to the backend data (or 0 if no bookings that day)
+  const dailyData = last7Days.map(date => ({
+    date, 
+    count: Number((data.bookingsPerDay && data.bookingsPerDay[date]) || 0)
+  }));
+
+
+     const peakHoursData = Object.entries(data.peakHours || {})
+    // Sort by 24h time first so the bars are in chronological order
+    .sort(([hourA], [hourB]) => hourA.localeCompare(hourB))
+    .map(([hour, count]) => {
+      // Convert "08:00" to "8:00 AM"
+      const hourInt = parseInt(hour.split(':')[0], 10);
+      const ampm = hourInt >= 12 ? 'PM' : 'AM';
+      const formattedTime = `${hourInt % 12 || 12}:00 ${ampm}`;
+      
+      return { 
+        Time: formattedTime, 
+        Bookings: Number(count) 
+      };
+    });
+
+  
 
   return (
     <div className="max-w-6xl mx-auto p-6 font-sans">
@@ -47,15 +70,11 @@ export default function AdminAnalyticsPage() {
         <p className="text-gray-500 mt-1">Overview of booking activity and trends</p>
       </div>
 
-      {/* Summary Cards */}
+            {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white border border-gray-200 rounded-xl p-5">
           <p className="text-sm text-gray-500">Total Bookings</p>
           <p className="text-3xl font-bold text-gray-900 mt-1">{data.total}</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <p className="text-sm text-gray-500">Approval Rate</p>
-          <p className="text-3xl font-bold text-green-600 mt-1">{data.approvalRate}%</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-5">
           <p className="text-sm text-gray-500">Pending</p>
@@ -65,34 +84,52 @@ export default function AdminAnalyticsPage() {
           <p className="text-sm text-gray-500">Rejected</p>
           <p className="text-3xl font-bold text-red-600 mt-1">{data.rejected}</p>
         </div>
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <p className="text-sm text-gray-500">Cancelled</p>
+          <p className="text-3xl font-bold text-gray-600 mt-1">{data.cancelled}</p>
+        </div>
       </div>
+
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 
-        {/* Pie Chart — Status breakdown */}
+               {/* Bar Chart — Peak Hours */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Booking Status Breakdown</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">Peak Booking Hours</h2>
+          <p className="text-sm text-gray-500 mb-4">Number of bookings starting at each specific hour of the day</p>
           <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie
-                data={statusData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={90}
-                label={({ name, value }) => `${name}: ${value}`}
-              >
-                {statusData.map((entry, index) => (
-                  <Cell key={index} fill={entry.color} />
-                ))}
-              </Pie>
-              <Legend />
-              <Tooltip />
-            </PieChart>
+            <BarChart data={peakHoursData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis 
+                dataKey="Time" 
+                tick={{ fontSize: 12, fill: '#6b7280' }} 
+                tickMargin={10}
+              />
+              <YAxis 
+                allowDecimals={false} 
+                tick={{ fontSize: 12, fill: '#6b7280' }}
+                label={{ 
+                  value: 'Number of Bookings', 
+                  angle: -90, 
+                  position: 'insideLeft', 
+                  style: { textAnchor: 'middle', fill: '#6b7280', fontSize: 12 } 
+                }}
+              />
+              <Tooltip 
+                cursor={{ fill: '#f3f4f6' }}
+                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+              />
+              <Bar 
+                dataKey="Bookings" 
+                fill="#f59e0b" 
+                radius={[4, 4, 0, 0]} 
+                barSize={50}
+              />
+            </BarChart>
           </ResponsiveContainer>
         </div>
+
 
         {/* Bar Chart — Top facilities */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">

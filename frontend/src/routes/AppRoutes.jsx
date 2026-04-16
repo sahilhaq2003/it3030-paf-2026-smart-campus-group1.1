@@ -36,6 +36,7 @@ import BookingDetailPage from "../pages/member2/BookingDetailPage";
 import AdminBookingsPage from "../pages/member2/AdminBookingsPage";
 import EditBookingPage from "../pages/member2/EditBookingPage"; 
 import AdminReviewBookingPage from "../pages/member2/AdminReviewBookingPage";
+import AdminAnalyticsPage from "../pages/member2/AdminAnalyticsPage";
 
 /**
  * Router setup:
@@ -69,6 +70,7 @@ export default function AppRoutes() {
         <Route path="/bookings/:id" element={<BookingDetailPage />} />
         <Route path="/admin/bookings" element={<AdminBookingsPage />} />
         <Route path="/admin/bookings/:id" element={<AdminReviewBookingPage />} />
+        <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
 
         
         <Route path="/home" element={<HomePage />} />
