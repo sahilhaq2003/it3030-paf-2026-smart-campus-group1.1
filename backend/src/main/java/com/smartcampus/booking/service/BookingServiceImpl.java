@@ -280,12 +280,23 @@ public Map<String, Object> getAnalytics() {
             Collectors.counting()
         ));
 
-    // Bookings per day
+        // Bookings per day (grouped by when the request was made)
     Map<String, Long> bookingsPerDay = all.stream()
+        .filter(b -> b.getCreatedAt() != null)
         .collect(Collectors.groupingBy(
-            b -> b.getBookingDate().toString(),
+            b -> b.getCreatedAt().toLocalDate().toString(),
             Collectors.counting()
         ));
+
+
+            // Peak booking hours
+    Map<String, Long> peakHours = all.stream()
+        .filter(b -> b.getStartTime() != null)
+        .collect(Collectors.groupingBy(
+            b -> String.format("%02d:00", b.getStartTime().getHour()),
+            Collectors.counting()
+        ));
+
 
     Map<String, Object> analytics = new HashMap<>();
     analytics.put("total", total);
@@ -296,6 +307,8 @@ public Map<String, Object> getAnalytics() {
     analytics.put("approvalRate", Math.round(approvalRate * 10.0) / 10.0);
     analytics.put("facilityCount", facilityCount);
     analytics.put("bookingsPerDay", bookingsPerDay);
+    analytics.put("peakHours", peakHours);
+
 
     return analytics;
 }
