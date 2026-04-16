@@ -17,6 +17,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/bookings")
 @RequiredArgsConstructor
@@ -115,4 +117,11 @@ public class BookingController {
         bookingService.deleteBooking(id);
         return ResponseEntity.noContent().build();
     }
+
+    // GET /api/bookings/analytics — ADMIN only
+@GetMapping("/analytics")
+@PreAuthorize("hasRole('ADMIN')")
+public ResponseEntity<Map<String, Object>> getAnalytics() {
+    return ResponseEntity.ok(bookingService.getAnalytics());
+}
 }

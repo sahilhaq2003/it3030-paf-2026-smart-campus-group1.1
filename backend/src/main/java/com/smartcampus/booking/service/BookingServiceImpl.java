@@ -22,6 +22,10 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
@@ -278,4 +282,56 @@ public class BookingServiceImpl implements BookingService {
         dto.setUpdatedAt(booking.getUpdatedAt());
         return dto;
     }
+
+    @Override
+public Map<String, Object> getAnalytics() {
+    List<Booking> all = bookingRepository.findAll();
+
+    long total = all.size();
+    long approved = all.stream().filter(b -> b.getStatus() == BookingStatus.APPROVED).count();
+    long rejected = all.stream().filter(b -> b.getStatus() == BookingStatus.REJECTED).count();
+    long pending = all.stream().filter(b -> b.getStatus() == BookingStatus.PENDING).count();
+    long cancelled = all.stream().filter(b -> b.getStatus() == BookingStatus.CANCELLED).count();
+
+    double approvalRate = total > 0 ? (approved * 100.0 / total) : 0;
+
+    // Most booked facilities
+    Map<String, Long> facilityCount = all.stream()
+        .collect(Collectors.groupingBy(
+            b -> b.getFacility().getName(),
+            Collectors.counting()
+        ));
+
+        // Bookings per day (grouped by when the request was made)
+    Map<String, Long> bookingsPerDay = all.stream()
+        .filter(b -> b.getCreatedAt() != null)
+        .collect(Collectors.groupingBy(
+            b -> b.getCreatedAt().toLocalDate().toString(),
+            Collectors.counting()
+        ));
+
+
+            // Peak booking hours
+    Map<String, Long> peakHours = all.stream()
+        .filter(b -> b.getStartTime() != null)
+        .collect(Collectors.groupingBy(
+            b -> String.format("%02d:00", b.getStartTime().getHour()),
+            Collectors.counting()
+        ));
+
+
+    Map<String, Object> analytics = new HashMap<>();
+    analytics.put("total", total);
+    analytics.put("approved", approved);
+    analytics.put("rejected", rejected);
+    analytics.put("pending", pending);
+    analytics.put("cancelled", cancelled);
+    analytics.put("approvalRate", Math.round(approvalRate * 10.0) / 10.0);
+    analytics.put("facilityCount", facilityCount);
+    analytics.put("bookingsPerDay", bookingsPerDay);
+    analytics.put("peakHours", peakHours);
+
+
+    return analytics;
+}
 }

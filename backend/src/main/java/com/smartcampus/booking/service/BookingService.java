@@ -8,6 +8,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
+import java.util.Map;
+
 public interface BookingService {
 
     // Create a new booking
@@ -40,4 +42,7 @@ public interface BookingService {
 
     // Delete a booking — ADMIN only
     void deleteBooking(Long bookingId);
+
+    // Get analytics data — ADMIN only
+    Map<String, Object> getAnalytics();
 }
