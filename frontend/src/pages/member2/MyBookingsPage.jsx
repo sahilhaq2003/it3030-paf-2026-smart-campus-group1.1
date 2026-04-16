@@ -30,7 +30,9 @@ export default function MyBookingsPage() {
     onError: () => toast.error("Failed to cancel booking"),
   });
 
-  const bookings = data || [];
+  const bookings = (data || []).sort((a, b) => 
+  new Date(b.createdAt) - new Date(a.createdAt)
+);
   const filtered = activeTab === "ALL"
     ? bookings
     : bookings.filter((b) => b.status === activeTab);

@@ -41,6 +41,7 @@ export default function AdminBookingsPage() {
     queryFn: () => getAllBookings().then((r) => r.data),
   });
 
+
   // Filter based on Tabs and Search Bar (facility or purpose)
   const filtered = bookings.filter((b) => {
     const matchStatus = filterStatus === "ALL" || b.status === filterStatus;
@@ -49,7 +50,8 @@ export default function AdminBookingsPage() {
       (b.facilityName && b.facilityName.toLowerCase().includes(term)) ||
       (b.purpose && b.purpose.toLowerCase().includes(term));
     return matchStatus && matchSearch;
-  });
+  })
+   .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   if (isLoading) return <div className="p-6 text-center text-gray-500">Loading bookings...</div>;
   if (isError) return <div className="p-6 text-center text-red-500">Failed to load bookings.</div>;
