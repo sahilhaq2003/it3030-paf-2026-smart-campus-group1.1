@@ -1,14 +1,40 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
-import { getAllBookings } from "../../api/bookingApi";
+import { getAllBookings, deleteBooking } from "../../api/bookingApi";
 import StatusBadge from "../../components/StatusBadge";
+import toast from "react-hot-toast";
+
 
 export default function AdminBookingsPage() {
   const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
+  const [bookingToDelete, setBookingToDelete] = useState(null);
+
+  const queryClient = useQueryClient();
+
+   const deleteMutation = useMutation({
+    mutationFn: (id) => deleteBooking(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["allBookings"]);
+      toast.success("Booking deleted successfully!");
+      setBookingToDelete(null); // Closes the modal on success
+    },
+    onError: () => {
+      toast.error("Failed to delete booking.");
+      setBookingToDelete(null); // Closes the modal on error
+    }
+  });
+
+  const confirmDelete = () => {
+    if (bookingToDelete) {
+      deleteMutation.mutate(bookingToDelete);
+    }
+  };
+
+
 
   const { data: bookings = [], isLoading, isError } = useQuery({
     queryKey: ["allBookings"],
@@ -78,6 +104,7 @@ export default function AdminBookingsPage() {
               <th className="px-6 py-4 font-semibold text-gray-600 w-1/4">Purpose</th>
               <th className="px-6 py-4 font-semibold text-gray-600 w-1/12">Status</th>
               <th className="px-6 py-4 font-semibold text-gray-600">Actions</th>
+              <th className="px-6 py-4 font-semibold text-gray-600 w-1/12">Delete</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -104,9 +131,13 @@ export default function AdminBookingsPage() {
                   <td className="px-6 py-4 text-gray-700 max-w-xs truncate">
                     {booking.purpose}
                   </td>
+
+                 {/* Status Column */}
                   <td className="px-6 py-4">
                     <StatusBadge status={booking.status} />
                   </td>
+                  
+                  {/* Actions Column */}
                   <td className="px-6 py-4">
                     <button
                       onClick={() => navigate(`/admin/bookings/${booking.id}`)}
@@ -115,12 +146,56 @@ export default function AdminBookingsPage() {
                       Review
                     </button>
                   </td>
+                  
+                  {/* Delete Column */}
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => setBookingToDelete(booking.id)}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded-md font-medium tracking-wide text-[13px] transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </td>
+
+
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+      
+      {/* Delete Confirmation Modal */}
+      {bookingToDelete && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Delete Booking</h2>
+            <p className="text-gray-500 text-sm mb-4">
+              Are you sure you want to delete this booking? This action cannot be undone.
+            </p>
+            
+            <div className="flex gap-3 mt-6">
+              <button 
+                onClick={() => setBookingToDelete(null)}
+                className="flex-1 bg-gray-100 text-gray-800 py-3 rounded-xl font-medium hover:bg-gray-200 transition"
+                disabled={deleteMutation.isPending}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="flex-1 bg-[#e60000] text-white py-3 rounded-xl font-medium hover:bg-red-700 transition disabled:opacity-50"
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? "Processing..." : "Confirm Deletion"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+
+   
