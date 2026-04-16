@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { AlertCircle, Clock, MapPin } from 'lucide-react';
+import { MapPin, Clock } from 'lucide-react';
 import PriorityBadge from './PriorityBadge';
 import StatusBadge from './StatusBadge';
+import SLAStatusBadge from './SLAStatusBadge';
 import { technicianCategoryLabel } from '../constants/technicianCategories';
 
 const categoryConfig = {
@@ -33,30 +34,10 @@ export default function TicketCard({ ticket, onSelect }) {
     LOW: 'border-l-gray-500',
   };
 
-  const isOverdue = ticket.slaViolated;
   const createdLabel =
     ticket.createdAt != null && !Number.isNaN(new Date(ticket.createdAt).getTime())
       ? formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true })
       : '—';
-
-  const slaDeadlineDate = ticket.slaDeadline ? new Date(ticket.slaDeadline) : null;
-  const hoursUntilSla =
-    slaDeadlineDate && !Number.isNaN(slaDeadlineDate.getTime())
-      ? (slaDeadlineDate.getTime() - Date.now()) / (1000 * 60 * 60)
-      : null;
-  const showSlaApproaching =
-    !isOverdue && hoursUntilSla != null && hoursUntilSla > 0 && hoursUntilSla <= 24;
-
-  // SLA status configuration
-  const isResolved = ticket.status === 'RESOLVED' || ticket.status === 'CLOSED';
-  const slaBreach = isOverdue && !isResolved;
-  const slaDisplay = hoursUntilSla != null && !isResolved
-    ? hoursUntilSla > 0
-      ? `${hoursUntilSla.toFixed(1)}h remaining`
-      : 'SLA breached'
-    : isResolved
-    ? 'Completed on time'
-    : null;
 
   return (
     <div
@@ -65,7 +46,6 @@ export default function TicketCard({ ticket, onSelect }) {
         border-l-4 ${priorityColor[ticket.priority]} 
         bg-white rounded-lg shadow hover:shadow-md transition-shadow
         p-4 cursor-pointer
-        ${isOverdue ? 'ring-2 ring-red-200 bg-red-50' : ''}
       `}
     >
       {/* Header row with title and badge */}
@@ -74,7 +54,6 @@ export default function TicketCard({ ticket, onSelect }) {
           <h3 className="font-semibold text-gray-900 truncate flex items-center gap-2">
             <span className="text-lg">{categoryConfig[ticket.category] || '📋'}</span>
             {ticket.title}
-            {isOverdue && <AlertCircle size={16} className="text-red-500 flex-shrink-0" />}
           </h3>
           <p className="text-sm text-gray-600 line-clamp-2 mt-1">{ticket.description}</p>
         </div>
@@ -134,46 +113,15 @@ export default function TicketCard({ ticket, onSelect }) {
         )}
       </div>
 
-      {showSlaApproaching && (
-        <div className="mt-2 text-xs text-orange-700 bg-orange-50 px-2 py-1 rounded">
-          ⚠️ SLA deadline approaching
-        </div>
-      )}
-
-      {/* SLA Status */}
-      {slaDisplay && (
-        <div className={`mt-3 rounded-lg border p-2.5 flex items-center gap-2 ${
-          slaBreach
-            ? 'border-red-300 bg-red-50'
-            : showSlaApproaching
-            ? 'border-orange-300 bg-orange-50'
-            : 'border-green-300 bg-green-50'
-        }`}>
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" 
-            style={{
-              backgroundColor: slaBreach ? '#fecaca' : showSlaApproaching ? '#fed7aa' : '#bbf7d0',
-              color: slaBreach ? '#dc2626' : showSlaApproaching ? '#ea580c' : '#059669'
-            }}>
-            {slaBreach ? (
-              <AlertCircle size={14} strokeWidth={2} />
-            ) : (
-              <Clock size={14} strokeWidth={2} />
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className={`text-xs font-semibold ${
-              slaBreach ? 'text-red-700' : showSlaApproaching ? 'text-orange-700' : 'text-green-700'
-            }`}>
-              {slaBreach ? 'SLA Breached' : showSlaApproaching ? 'SLA Warning' : 'SLA Status'}
-            </p>
-            <p className={`text-xs font-medium ${
-              slaBreach ? 'text-red-600' : showSlaApproaching ? 'text-orange-600' : 'text-green-600'
-            }`}>
-              {slaDisplay}
-            </p>
-          </div>
-        </div>
-      )}
+      {/* SLA Status Badge with Real-time Tracking */}
+      <div className="mt-3">
+        <SLAStatusBadge
+          createdAt={ticket.createdAt}
+          priority={ticket.priority}
+          status={ticket.status}
+          closedAt={ticket.closedAt || ticket.resolvedAt}
+        />
+      </div>
     </div>
   );
 }
