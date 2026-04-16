@@ -138,6 +138,7 @@ function AppHeader() {
         onMarkRead={markRead}
         onDelete={deleteNotification}
         markAllPending={isMarkingAllRead}
+        user={user}
       />
     </>
   );
