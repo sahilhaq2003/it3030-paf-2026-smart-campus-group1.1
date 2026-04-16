@@ -43,3 +43,7 @@ export const deleteBooking = (id) =>
 // Update booking details
 export const updateBooking = (id, bookingData) =>
   axiosInstance.put(`/bookings/${id}`, bookingData);
+
+// Get analytics data (admin)
+export const getBookingAnalytics = () =>
+  axiosInstance.get('/bookings/analytics');
