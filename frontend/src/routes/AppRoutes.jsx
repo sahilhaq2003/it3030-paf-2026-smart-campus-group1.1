@@ -30,6 +30,12 @@ import FacilitiesListPage from "../pages/member1/FacilitiesListPage";
 import FacilityDetailPage from "../pages/member1/FacilityDetailPage";
 import AdminFacilityRoute from "./AdminFacilityRoute";
 import AdminFacilitiesPage from "../pages/member1/AdminFacilitiesPage";
+import BookingRequestPage from "../pages/member2/BookingRequestPage";
+import MyBookingsPage from "../pages/member2/MyBookingsPage";
+import BookingDetailPage from "../pages/member2/BookingDetailPage";
+import AdminBookingsPage from "../pages/member2/AdminBookingsPage";
+import EditBookingPage from "../pages/member2/EditBookingPage"; 
+import AdminReviewBookingPage from "../pages/member2/AdminReviewBookingPage";
 
 /**
  * Router setup:
@@ -56,6 +62,15 @@ export default function AppRoutes() {
       >
         <Route path="/facilities" element={<FacilitiesListPage />} />
         <Route path="/facilities/:id" element={<FacilityDetailPage />} />
+        {/* Member 2 - Booking Routes */}
+        <Route path="/bookings/request" element={<BookingRequestPage />} />
+        <Route path="/bookings/my" element={<MyBookingsPage />} />
+        <Route path="/bookings/edit/:id" element={<EditBookingPage />} />
+        <Route path="/bookings/:id" element={<BookingDetailPage />} />
+        <Route path="/admin/bookings" element={<AdminBookingsPage />} />
+        <Route path="/admin/bookings/:id" element={<AdminReviewBookingPage />} />
+
+        
         <Route path="/home" element={<HomePage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route
