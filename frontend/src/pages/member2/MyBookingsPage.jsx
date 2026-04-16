@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { getMyBookings, cancelBooking } from "../../api/bookingApi";
 import StatusBadge from "../../components/StatusBadge";
@@ -15,6 +15,11 @@ export default function MyBookingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("ALL");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightId = searchParams.get("highlight")
+    ? Number(searchParams.get("highlight"))
+    : null;
+  const highlightRef = useRef(null);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["myBookings"],
@@ -34,6 +39,16 @@ export default function MyBookingsPage() {
   const filtered = activeTab === "ALL"
     ? bookings
     : bookings.filter((b) => b.status === activeTab);
+
+  // Scroll the highlighted booking into view, then clear the query param
+  useEffect(() => {
+    if (!highlightId || !highlightRef.current) return;
+    highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    const timer = setTimeout(() => {
+      setSearchParams({}, { replace: true });
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [highlightId, highlightRef.current]);
 
   if (isLoading) return (
     <div className="p-6 text-center text-gray-500">Loading bookings...</div>
@@ -73,10 +88,17 @@ export default function MyBookingsPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {bookings.map((booking) => (
+          {bookings.map((booking) => {
+            const isHighlighted = booking.id === highlightId;
+            return (
             <div
               key={booking.id}
-              className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-sm transition-shadow"
+              ref={isHighlighted ? highlightRef : null}
+              className={`bg-white border rounded-xl p-5 hover:shadow-sm transition-all duration-700 ${
+                isHighlighted
+                  ? "border-blue-400 ring-2 ring-blue-300 shadow-md"
+                  : "border-gray-200"
+              }`}
             >
               <div className="flex justify-between items-start">
                 <div>
@@ -110,7 +132,8 @@ export default function MyBookingsPage() {
 
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

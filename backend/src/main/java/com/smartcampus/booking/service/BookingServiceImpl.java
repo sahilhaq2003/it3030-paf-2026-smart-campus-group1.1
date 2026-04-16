@@ -8,6 +8,7 @@ import com.smartcampus.booking.model.Booking;
 import com.smartcampus.booking.model.BookingStatus;
 import com.smartcampus.booking.repository.BookingRepository;
 import com.smartcampus.facilities.model.Facility;
+import com.smartcampus.facilities.repository.FacilityRepository;
 import com.smartcampus.user.model.User;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
+    private final FacilityRepository facilityRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     // ─── Create ───────────────────────────────────────────────────────────────
@@ -64,28 +66,48 @@ public class BookingServiceImpl implements BookingService {
         .status(BookingStatus.PENDING)
         .build();
         Booking saved = bookingRepository.save(booking);
+
+        // Notify the user that their booking request was received.
+        // Look up the real name since saved.getFacility() is an unloaded proxy here.
+        String facilityName = facilityRepository.findById(request.getFacilityId())
+                .map(Facility::getName)
+                .orElse("the requested facility");
+        eventPublisher.publishEvent(new BookingStatusChangedEvent(
+                this,
+                saved.getId(),
+                saved.getUser().getId(),
+                null,
+                BookingStatus.PENDING,
+                facilityName,
+                "Your booking request for " + facilityName + " has been received and is pending review."
+        ));
+
         return mapToResponse(saved);
     }
 
     // ─── Read ─────────────────────────────────────────────────────────────────
 
     @Override
+    @Transactional(readOnly = true)
     public List<BookingResponseDTO> getAllBookings() {
-        return bookingRepository.findAll()
+        return bookingRepository.findAllWithDetails()
                 .stream().map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<BookingResponseDTO> getMyBookings(Long userId) {
-        return bookingRepository.findByUserId(userId)
+        return bookingRepository.findByUserIdWithDetails(userId)
                 .stream().map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public BookingResponseDTO getBookingById(Long bookingId) {
-        Booking booking = findOrThrow(bookingId);
+        Booking booking = bookingRepository.findByIdWithDetails(bookingId)
+                .orElseThrow(() -> new EntityNotFoundException("Booking not found with id: " + bookingId));
         return mapToResponse(booking);
     }
 
@@ -229,7 +251,7 @@ public class BookingServiceImpl implements BookingService {
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private Booking findOrThrow(Long bookingId) {
-        return bookingRepository.findById(bookingId)
+        return bookingRepository.findByIdWithDetails(bookingId)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Booking not found with id: " + bookingId));
     }

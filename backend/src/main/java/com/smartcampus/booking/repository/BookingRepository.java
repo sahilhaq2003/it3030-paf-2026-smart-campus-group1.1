@@ -10,9 +10,20 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
+
+    // Eagerly fetch user, facility, and reviewedBy in one query to avoid LazyInitializationException
+    @Query("SELECT b FROM Booking b LEFT JOIN FETCH b.user LEFT JOIN FETCH b.facility LEFT JOIN FETCH b.reviewedBy WHERE b.id = :id")
+    Optional<Booking> findByIdWithDetails(@Param("id") Long id);
+
+    @Query("SELECT b FROM Booking b LEFT JOIN FETCH b.user LEFT JOIN FETCH b.facility LEFT JOIN FETCH b.reviewedBy ORDER BY b.createdAt DESC")
+    List<Booking> findAllWithDetails();
+
+    @Query("SELECT b FROM Booking b LEFT JOIN FETCH b.user LEFT JOIN FETCH b.facility LEFT JOIN FETCH b.reviewedBy WHERE b.user.id = :userId ORDER BY b.createdAt DESC")
+    List<Booking> findByUserIdWithDetails(@Param("userId") Long userId);
 
     // Get all bookings for a specific user
     List<Booking> findByUserId(Long userId);
