@@ -114,13 +114,15 @@ export default function BookingDetailPage() {
   </button>
 )}
         
-        <button
-          onClick={() => cancelMutation.mutate()}
-          disabled={cancelMutation.isPending}
-          className="bg-red-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-red-700 transition disabled:opacity-50"
-        >
-          {cancelMutation.isPending ? "Cancelling..." : "Cancel Booking"}
-        </button>
+        {(booking.status === "PENDING" || booking.status === "APPROVED") && (
+  <button
+    onClick={() => cancelMutation.mutate()}
+    disabled={cancelMutation.isPending}
+    className="bg-red-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-red-700 transition disabled:opacity-50"
+  >
+    {cancelMutation.isPending ? "Cancelling..." : "Cancel Booking"}
+  </button>
+)}
       </div>
 
     </div>
