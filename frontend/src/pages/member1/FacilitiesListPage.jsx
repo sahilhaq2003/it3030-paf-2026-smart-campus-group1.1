@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { facilityApi } from '../../api/facilityApi';
-import { MapPin, Users, Activity, Loader2, Navigation, Search, Filter, Scale, X } from 'lucide-react';
+import { MapPin, Users, Activity, Loader2, Navigation, Search, Filter, Scale, X, BarChart3 } from 'lucide-react';
 
 export default function FacilitiesListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Read current filters from URL to persist state
+  const nameQ = searchParams.get('name') || '';
   const locationQ = searchParams.get('location') || '';
   const typeQ = searchParams.get('type') || '';
   const capacityQ = searchParams.get('capacity') || '';
@@ -16,6 +17,9 @@ export default function FacilitiesListPage() {
   // Facility Comparative Analysis State
   const [compareList, setCompareList] = useState([]);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+  
+  // Heatmap State
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
   // Handle Filter Update mapping back to URL
   const handleFilterChange = (key, value) => {
@@ -42,8 +46,9 @@ export default function FacilitiesListPage() {
 
   // Fetch data dynamically bridging to our new search API
   const { data, isLoading, error } = useQuery({
-    queryKey: ['facilities', locationQ, typeQ, capacityQ, statusQ],
+    queryKey: ['facilities', nameQ, locationQ, typeQ, capacityQ, statusQ],
     queryFn: () => facilityApi.searchFacilities({ 
+      name: nameQ || undefined,
       location: locationQ || undefined,
       type: typeQ || undefined,
       capacity: capacityQ ? parseInt(capacityQ) : undefined,
@@ -68,6 +73,36 @@ export default function FacilitiesListPage() {
   // Extract paginated slice
   const facilities = data?.content || [];
 
+  /**
+   * Campus Heatmap Availability Algorithm
+   * Calculates exactly how many ACTIVE facilities are open at any given hour.
+   * 
+   * 1. Array.from creates a 24-slot array representing 00:00 to 23:00 hours.
+   * 2. For each hour, we filter the current facilities array to find those that are online 
+   *    and functionally open during that exact hour based on their availability ranges.
+   */
+  const heatmapData = Array.from({ length: 24 }).map((_, hour) => {
+    const count = facilities.filter(f => {
+      // Ignore facilities that are offline or broken
+      if (f.status !== 'ACTIVE') return false;
+      // Ignore facilities missing schedule metadata
+      if (!f.availabilityStart || !f.availabilityEnd) return false;
+      
+      // Extract just the core Hour integer (e.g. "08:30" -> 8)
+      const startHour = parseInt(f.availabilityStart.split(':')[0], 10);
+      const endHour = parseInt(f.availabilityEnd.split(':')[0], 10);
+      
+      // Determine if our current loop 'hour' falls precisely within this facility's operating window
+      return hour >= startHour && hour < endHour;
+    }).length;
+    
+    return { hour, count };
+  });
+
+  // Find the absolute highest density hour (the "ceiling") to mathematically scale 
+  // the CSS bar heights properly. (Fallback to 1 to prevent generic divide-by-zero errors)
+  const maxAvailability = Math.max(...heatmapData.map(d => d.count), 1);
+
   return (
     <div className="min-h-screen bg-gray-50/50 py-12 px-4 sm:px-6 lg:px-8 relative pb-32">
       <div className="max-w-7xl mx-auto">
@@ -87,10 +122,21 @@ export default function FacilitiesListPage() {
             <span className="tracking-wide text-lg">REFINE SYSTEM SEARCH</span>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Location Filter */}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {/* Name Filter */}
             <div className="relative">
               <Search className="w-5 h-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input 
+                type="text" 
+                placeholder="Search facility name..." 
+                value={nameQ}
+                onChange={(e) => handleFilterChange('name', e.target.value)}
+                className="w-full bg-gray-50 hover:bg-white border border-gray-200 rounded-2xl py-3.5 pl-12 pr-4 font-medium text-gray-700 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none"
+              />
+            </div>
+            {/* Location Filter */}
+            <div className="relative">
+              <MapPin className="w-5 h-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input 
                 type="text" 
                 placeholder="Search precise location..." 
@@ -144,6 +190,77 @@ export default function FacilitiesListPage() {
             </div>
           </div>
         </div>
+
+        {/* Heatmap Toggle & Visualization */}
+        <div className="mb-8 flex justify-end">
+           <button 
+             onClick={() => setShowHeatmap(!showHeatmap)} 
+             className="flex items-center gap-2 text-indigo-700 bg-indigo-100/50 hover:bg-indigo-100 border border-indigo-200 px-5 py-2.5 rounded-2xl font-black uppercase text-xs tracking-wider transition-colors shadow-sm"
+           >
+              <BarChart3 className="w-4 h-4" />
+              {showHeatmap ? 'Hide Traffic Heatmap' : 'Analyze Daily Availability Pattern'}
+           </button>
+        </div>
+
+        {showHeatmap && !isLoading && (
+          <div className="bg-white p-8 rounded-[2rem] shadow-2xl shadow-indigo-100/50 border border-indigo-50 mb-10 overflow-hidden transform transition-all animate-in fade-in slide-in-from-bottom-4">
+             <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-3">
+               <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">
+                 <Activity className="w-5 h-5" />
+               </div>
+               24-Hour Campus Availability Matrix
+             </h3>
+             
+             {/* Graphical 24-Hour Plot Generation */}
+             <div className="flex justify-between items-end gap-2 overflow-x-auto pb-8 pt-4 px-2">
+                {heatmapData.map((data, idx) => {
+                  // Calculate mathematical height. Enforce a minimum 15% height if > 0 so the bar is visible
+                  const heightPercentage = data.count > 0 ? Math.max((data.count / maxAvailability) * 100, 15) : 0;
+                  
+                  // Heatmap color logic dynamically jumps intervals natively based on threshold ceilings
+                  const intensityClass = data.count === 0 ? 'bg-gray-50' : 
+                    data.count < maxAvailability * 0.33 ? 'bg-indigo-200' :         // Low Traffic
+                    data.count < maxAvailability * 0.66 ? 'bg-indigo-400' :         // Medium Traffic
+                    'bg-indigo-600';                                                // Peak Traffic (66%-100%)
+                  
+                  return (
+                    <div key={idx} className="flex flex-col items-center flex-1 min-w-[24px] group relative">
+                      
+                      {/* Interactive Hover Tooltip Block */}
+                      <div className="opacity-0 group-hover:opacity-100 group-hover:-translate-y-2 absolute -top-12 bg-gray-900 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all whitespace-nowrap z-10 pointer-events-none shadow-xl">
+                        {data.count} Resources Online
+                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                      </div>
+                      
+                      {/* Vertical Bar Rendering Wrapper (Ceiling = 10rem/h-40) */}
+                      <div className="h-40 w-full flex items-end justify-center rounded-xl bg-gray-50/50 overflow-hidden relative border border-gray-100">
+                         {/* Dynamic Sized Inner Bar */}
+                         <div 
+                           className={`w-full rounded-t-sm transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${intensityClass} ${data.count > 0 ? 'shadow-[0_-4px_10px_rgba(99,102,241,0.2)]' : ''}`} 
+                           style={{ height: `${heightPercentage}%` }}
+                         />
+                      </div>
+                      
+                      {/* Time Labels (e.g. 09:00, 14:00) */}
+                      <span className="text-[11px] font-extrabold text-gray-400 mt-4 tracking-tighter">
+                        {data.hour.toString().padStart(2, '0')}:00
+                      </span>
+                    </div>
+                  )
+                })}
+             </div>
+             
+             <div className="mt-4 pt-5 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between text-xs font-black text-gray-400 uppercase tracking-widest gap-4">
+               <span>Based on active queried metadata</span>
+               <div className="flex flex-wrap items-center gap-4 bg-gray-50 px-4 py-2 rounded-xl">
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-100 border border-gray-200"></div> Offline</div>
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-indigo-200"></div> Low</div>
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-indigo-400"></div> Medium</div>
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div> Max Traffic</div>
+               </div>
+             </div>
+          </div>
+        )}
 
         {/* Dynamic Display Rendering */}
         {isLoading ? (

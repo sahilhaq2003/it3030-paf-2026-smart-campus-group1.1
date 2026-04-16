@@ -59,8 +59,7 @@ public class AuthService {
 
     /**
      * Google Sign-In: when {@code app.google.client-id} is set, verifies the credential JWT with
-     * Google. Otherwise accepts {@code dummy-google-token} or a decoded/simulated payload for local
-     * development only.
+     * Google. Otherwise accepts a decoded/simulated payload for local development only.
      */
     @Transactional
     public AuthResponseDTO signInWithGoogle(String idToken) {
@@ -80,9 +79,6 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "idToken is required");
         }
         String trimmed = idToken.trim();
-        if ("dummy-google-token".equals(trimmed)) {
-            return new SimulatedGoogleProfile("IT23603004@my.sliit.lk", "Pasindi", null);
-        }
         if (googleOAuthTokenVerifier.isEnabled()) {
             Optional<GoogleUserClaims> verified = googleOAuthTokenVerifier.verify(trimmed);
             if (verified.isPresent()) {
@@ -90,7 +86,8 @@ public class AuthService {
                 return new SimulatedGoogleProfile(c.email(), c.name(), c.picture());
             }
             if (looksLikeJwt(trimmed)) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Google credential");
+                String reason = explainInvalidGoogleJwt(trimmed);
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, reason);
             }
         }
         return parseSimulatedGoogleIdToken(trimmed);
@@ -303,7 +300,8 @@ public class AuthService {
         }
         String trimmed = idToken.trim();
         if ("dummy-google-token".equals(trimmed)) {
-            return new SimulatedGoogleProfile("IT23603004@my.sliit.lk", "Pasindi", null);
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "dummy-google-token is no longer supported");
         }
         String jsonPayload = null;
         if (trimmed.startsWith("{")) {
@@ -339,6 +337,40 @@ public class AuthService {
     private static String text(JsonNode node, String field) {
         JsonNode v = node.get(field);
         return v != null && !v.isNull() ? v.asText() : null;
+    }
+
+    private String explainInvalidGoogleJwt(String idToken) {
+        String payloadJson = decodeJwtPayloadJson(idToken);
+        if (payloadJson == null) {
+            return "Invalid Google credential";
+        }
+        try {
+            JsonNode root = objectMapper.readTree(payloadJson);
+            JsonNode audNode = root.get("aud");
+            String configuredClientId = googleOAuthTokenVerifier.getConfiguredClientId();
+            if (configuredClientId != null
+                    && !configuredClientId.isBlank()
+                    && audNode != null
+                    && !audNode.isNull()) {
+                boolean audMatched = false;
+                if (audNode.isTextual()) {
+                    audMatched = configuredClientId.equals(audNode.asText());
+                } else if (audNode.isArray()) {
+                    for (JsonNode n : audNode) {
+                        if (n != null && n.isTextual() && configuredClientId.equals(n.asText())) {
+                            audMatched = true;
+                            break;
+                        }
+                    }
+                }
+                if (!audMatched) {
+                    return "Google client ID mismatch. Update GOOGLE_CLIENT_ID and VITE_GOOGLE_CLIENT_ID to the same OAuth Web client ID.";
+                }
+            }
+        } catch (Exception ignored) {
+            // Fall through to generic message.
+        }
+        return "Invalid Google credential";
     }
 
     /** JWT payload segment decoded as UTF-8 JSON (no signature verification — simulation only). */

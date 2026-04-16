@@ -74,7 +74,7 @@ function AppHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-[3.25rem] shrink-0 items-center justify-between gap-4 border-b border-slate-200/90 bg-white px-5 shadow-[0_1px_0_0_rgba(15,23,42,0.06)] sm:px-6">
+      <header className="sticky top-0 z-30 flex h-[3.25rem] shrink-0 items-center justify-between gap-4 border-b border-white/40 bg-white/60 px-5 shadow-[0_1px_0_0_rgba(15,23,42,0.04)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/50 sm:px-6">
         <div className="min-w-0 flex flex-col justify-center">
           <span className="truncate text-sm font-semibold tracking-tight text-slate-900">Smart Campus Hub</span>
           <span className="truncate text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">
@@ -90,7 +90,7 @@ function AppHeader() {
           <button
             type="button"
             onClick={() => setPanelOpen(true)}
-            className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand"
+            className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/55 bg-white/55 text-slate-600 shadow-sm backdrop-blur-md transition hover:border-white/75 hover:bg-white/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand"
             aria-label={
               unreadCount > 0
                 ? `Notifications (${unreadCount} unread)`
@@ -104,7 +104,7 @@ function AppHeader() {
               </span>
             ) : null}
           </button>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/55 bg-white/40 backdrop-blur-md">
             <img
               src={avatarSrc}
               alt={user?.name ? `${user.name} avatar` : "Profile avatar"}
@@ -121,7 +121,7 @@ function AppHeader() {
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/55 bg-white/55 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm backdrop-blur-md transition hover:border-white/75 hover:bg-white/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-campus-brand"
           >
             <LogOut className="h-4 w-4 text-slate-500" strokeWidth={2} />
             <span className="hidden sm:inline">Log out</span>
@@ -154,23 +154,23 @@ function Sidebar() {
   const dash =
     primaryDash === DASHBOARD_PATHS.ADMIN
       ? {
-          to: DASHBOARD_PATHS.ADMIN,
-          label: "Admin dashboard",
-          active: (p) => p.startsWith("/AdminDashboard"),
-        }
+        to: DASHBOARD_PATHS.ADMIN,
+        label: "Admin dashboard",
+        active: (p) => p.startsWith("/AdminDashboard"),
+      }
       : primaryDash === DASHBOARD_PATHS.TECHNICIAN
         ? {
-            to: DASHBOARD_PATHS.TECHNICIAN,
-            label: "Technician dashboard",
-            active: (p) => p.startsWith("/TechnicianDashboard"),
-          }
+          to: DASHBOARD_PATHS.TECHNICIAN,
+          label: "Technician dashboard",
+          active: (p) => p.startsWith("/TechnicianDashboard"),
+        }
         : primaryDash === DASHBOARD_PATHS.LECTURER
           ? {
-              to: DASHBOARD_PATHS.LECTURER,
-              label: "Lecturer dashboard",
-              active: (p) => p.startsWith("/LecturerDashboard"),
-            }
-        : {
+            to: DASHBOARD_PATHS.LECTURER,
+            label: "Lecturer dashboard",
+            active: (p) => p.startsWith("/LecturerDashboard"),
+          }
+          : {
             to: DASHBOARD_PATHS.USER,
             label: "User dashboard",
             active: (p) => p === "/UserDashboard",
@@ -185,8 +185,16 @@ function Sidebar() {
       active: (p) => p === "/profile",
     },
     { to: dash.to, label: dash.label, icon: LayoutDashboard, active: dash.active },
-    { to: "/facilities", label: "Campus Facilities", icon: Building, active: (p) => p.startsWith("/facilities") },
   ];
+
+  if (!isOpsAdmin) {
+    items.push({
+      to: "/facilities",
+      label: "Campus Facilities",
+      icon: Building,
+      active: (p) => p.startsWith("/facilities"),
+    });
+  }
 
   if (canCreateTickets(roles)) {
     items.push({
@@ -240,11 +248,10 @@ function Sidebar() {
             <Link
               key={to}
               to={to}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                on
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${on
                   ? "bg-white/12 text-white shadow-sm ring-1 ring-white/10"
                   : "text-zinc-300 hover:bg-white/8 hover:text-white"
-              }`}
+                }`}
             >
               <Icon className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2} />
               {label}
@@ -272,14 +279,11 @@ export default function AppShell() {
     if (!nextMessage) return;
 
     setFlashMessage(nextMessage);
-    const timer = setTimeout(() => setFlashMessage(""), 3500);
 
     navigate(location.pathname, {
       replace: true,
       state: { ...(location.state || {}), loginSuccess: undefined },
     });
-
-    return () => clearTimeout(timer);
   }, [location.pathname, location.state, navigate]);
 
   return (
