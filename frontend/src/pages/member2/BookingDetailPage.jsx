@@ -103,21 +103,26 @@ export default function BookingDetailPage() {
       {/* Cancel Button */}
             {/* Action Buttons */}
       <div className="flex gap-4 mb-8">
-        <button
-          onClick={() => navigate(`/bookings/edit/${booking.id}`)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition"
-        >
-          <Pencil className="w-5 h-5" />
-          Edit Booking
-        </button>
+
+        {booking.status === "PENDING" && (
+  <button
+    onClick={() => navigate(`/bookings/edit/${booking.id}`)}
+    className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition"
+  >
+    <Pencil className="w-5 h-5" />
+    Edit Booking
+  </button>
+)}
         
-        <button
-          onClick={() => cancelMutation.mutate()}
-          disabled={cancelMutation.isPending}
-          className="bg-red-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-red-700 transition disabled:opacity-50"
-        >
-          {cancelMutation.isPending ? "Cancelling..." : "Cancel Booking"}
-        </button>
+        {(booking.status === "PENDING" || booking.status === "APPROVED") && (
+  <button
+    onClick={() => cancelMutation.mutate()}
+    disabled={cancelMutation.isPending}
+    className="bg-red-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-red-700 transition disabled:opacity-50"
+  >
+    {cancelMutation.isPending ? "Cancelling..." : "Cancel Booking"}
+  </button>
+)}
       </div>
 
     </div>
