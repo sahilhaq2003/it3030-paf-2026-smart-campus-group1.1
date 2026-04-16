@@ -36,13 +36,34 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
-    public ResponseEntity<Map<String, Object>> handleResponseStatusException(org.springframework.web.server.ResponseStatusException ex) {
+    public ResponseEntity<Map<String, Object>> handleResponseStatusException(
+            org.springframework.web.server.ResponseStatusException ex) {
         return buildErrorResponse(HttpStatus.valueOf(ex.getStatusCode().value()), "Error", ex.getReason());
     }
-    
 
-    // Add additional generic business exceptions here using 400, 409, 404 accordingly.
-    
+    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationExceptions(
+            org.springframework.web.bind.MethodArgumentNotValidException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("error", "Bad Request");
+
+        Map<String, String> errors = new java.util.HashMap<>();
+        ex.getBindingResult().getFieldErrors()
+                .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
+
+        ex.getBindingResult().getGlobalErrors()
+                .forEach(error -> errors.put(error.getObjectName(), error.getDefaultMessage()));
+
+        body.put("message", "Validation failed");
+        body.put("details", errors);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    // Add additional generic business exceptions here using 400, 409, 404
+    // accordingly.
+
     private ResponseEntity<Map<String, Object>> buildErrorResponse(HttpStatus status, String error, String message) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("status", status.value());
