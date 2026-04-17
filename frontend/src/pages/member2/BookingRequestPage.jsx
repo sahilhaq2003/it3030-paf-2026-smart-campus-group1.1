@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { createBooking, checkAvailability } from "../../api/bookingApi";
@@ -274,8 +275,9 @@ export default function BookingRequestPage() {
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", padding: "32px 24px", fontFamily: "system-ui, sans-serif" }}>
       <a href="#" onClick={(e) => { e.preventDefault(); navigate(-1); }}
-        style={{ color: "#6b7280", fontSize: 14, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 20 }}>
-        ← Back to facility
+        style={{ color: "#7c3aed", fontSize: 15, fontWeight: 500, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 24 }}>
+        <ArrowLeft className="w-4 h-4" />
+        Back to facility
       </a>
 
       <h1 style={{ fontSize: 30, fontWeight: 700, color: "#111827", margin: "0 0 6px" }}>
