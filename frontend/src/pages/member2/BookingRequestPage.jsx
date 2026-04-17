@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { createBooking, checkAvailability } from "../../api/bookingApi";
@@ -221,8 +221,7 @@ const inputStyle = {
 
 export default function BookingRequestPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const facilityIdFromUrl = searchParams.get("facilityId");
+  const { id: facilityIdFromUrl } = useParams();
 
   const [formData, setFormData] = useState({
     facilityId: facilityIdFromUrl || "",

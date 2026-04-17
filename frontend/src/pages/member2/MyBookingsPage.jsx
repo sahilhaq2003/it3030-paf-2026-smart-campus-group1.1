@@ -82,7 +82,7 @@ export default function MyBookingsPage() {
         <div className="text-center py-12 text-gray-400">
           <p className="text-lg">No bookings found</p>
           <button
-            onClick={() => navigate("/bookings/request")}
+            onClick={() => navigate("/facilities")}
             className="mt-4 text-blue-600 hover:underline text-sm"
           >
             Make your first booking

@@ -117,7 +117,7 @@ export default function FacilityDetailPage() {
             {/* Action Area */}
             <div className="flex justify-center border-t-2 border-dashed border-gray-200 pt-10 mt-8">
               <button 
-                onClick={() => navigate(`/bookings/request?facilityId=${facility.id}`)}
+                onClick={() => navigate(`/facilities/${facility.id}/book`)}
                 disabled={facility.status !== 'ACTIVE'}
                 className={`w-full sm:w-auto px-14 py-5 rounded-2xl text-xl font-bold shadow-xl transition-all duration-300 transform 
                   ${facility.status === 'ACTIVE' 
