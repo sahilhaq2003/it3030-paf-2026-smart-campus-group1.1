@@ -73,7 +73,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
                            AVG(EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0) AS avg_resolution_hours
                     FROM tickets t
                     INNER JOIN users u ON u.id = t.assigned_to
-                    WHERE t.status = 'CLOSED'
+                    WHERE (t.status = 'CLOSED' OR t.status = 'RESOLVED')
                       AND t.resolved_at IS NOT NULL
                       AND t.assigned_to IS NOT NULL
                     GROUP BY t.assigned_to, u.name

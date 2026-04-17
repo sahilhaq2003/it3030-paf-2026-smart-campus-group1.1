@@ -27,7 +27,7 @@ export function DashboardSummaryCard({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-4">
           {Icon ? (
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-campus-brand-soft to-white text-campus-brand shadow-inner shadow-slate-900/[0.04] ring-1 ring-campus-brand-muted/40">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/60 bg-gradient-to-br from-campus-brand-soft/90 to-white/70 text-campus-brand shadow-inner shadow-slate-900/[0.06] ring-1 ring-campus-brand-muted/35 backdrop-blur-sm">
               <Icon className="h-5 w-5" strokeWidth={2} />
             </div>
           ) : null}
@@ -48,7 +48,7 @@ export function DashboardSummaryCard({
 /** Compact metric inside a summary card */
 export function DashboardSummaryStat({ label, value, hint }) {
   return (
-    <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3.5 ring-1 ring-slate-900/[0.02] transition hover:bg-slate-50">
+    <div className="rounded-xl border border-white/55 bg-white/45 px-4 py-3.5 ring-1 ring-white/35 backdrop-blur-md transition hover:border-white/75 hover:bg-white/60">
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
         {label}
       </p>
@@ -69,7 +69,7 @@ export function DashboardInlineMessage({ variant = "muted", children }) {
   return <p className={cls}>{children}</p>;
 }
 
-const inputClass = `w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm shadow-slate-900/[0.02] ${campusInputFocus}`;
+const inputClass = `w-full rounded-xl border border-white/60 bg-white/70 px-3 py-2.5 text-sm text-slate-900 shadow-sm shadow-slate-900/[0.04] backdrop-blur-md ${campusInputFocus}`;
 
 /** Scrollable ticket rows with optional “View all” */
 export function DashboardTicketList({
@@ -108,12 +108,12 @@ export function DashboardTicketList({
 
   return (
     <div>
-      <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/80 bg-white ring-1 ring-slate-900/[0.03]">
+      <ul className="divide-y divide-slate-200/40 overflow-hidden rounded-xl border border-white/55 bg-white/50 ring-1 ring-white/35 backdrop-blur-md">
         {rows.map((t) => (
           <li key={t.id}>
             <Link
               to={`/tickets/${t.id}`}
-              className="group flex items-center justify-between gap-3 px-4 py-3.5 transition hover:bg-slate-50/90"
+              className="group flex items-center justify-between gap-3 px-4 py-3.5 transition hover:bg-campus-brand/5"
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium text-slate-900 transition group-hover:text-campus-brand-hover">

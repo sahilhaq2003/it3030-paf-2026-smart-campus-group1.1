@@ -10,12 +10,14 @@ import {
 import StatusBadge from "../../components/StatusBadge";
 import TicketCard from "../../components/TicketCard";
 import AssignTechnicianModal from "../../components/AssignTechnicianModal";
+import ConfirmModal from "../../components/ConfirmModal";
 import { Search, ChevronRight } from "lucide-react";
 import { ticketApi } from "../../api/ticketApi";
 import { fetchTechnicians } from "../../api/userAdminApi";
 import { useAuth } from "../../context/AuthContext";
 import { normalizeRoles } from "../../utils/getDashboardRoute";
 import { isResolvedLikeTicket } from "../../utils/ticketStatusDisplay";
+import { technicianCategoryLabel } from "../../constants/technicianCategories";
 
 const PRIORITY_ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
 
@@ -25,7 +27,7 @@ function formatDate(iso) {
     return new Date(iso).toLocaleDateString();
   } catch {
     return String(iso);
-  }
+  } 
 }
 
 export default function AdminTicketsPage() {
@@ -44,6 +46,11 @@ export default function AdminTicketsPage() {
   const [rowTechPick, setRowTechPick] = useState({});
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [selectedTicketForAssign, setSelectedTicketForAssign] = useState(null);
+  const [isReassignMode, setIsReassignMode] = useState(false);
+  const [reassignConfirmOpen, setReassignConfirmOpen] = useState(false);
+  const [pendingReassignData, setPendingReassignData] = useState(null);
+  const [perfSortBy, setPerfSortBy] = useState("ticketsResolved");
+  const [perfSortOrder, setPerfSortOrder] = useState("desc");
 
   const ticketsQuery = useQuery({
     queryKey: ["admin", "tickets", "list"],
@@ -67,14 +74,86 @@ export default function AdminTicketsPage() {
   const technicians = techniciansQuery.data ?? [];
   const performanceData = performanceQuery.data ?? [];
 
+  // Sort performance data
+  const sortedPerformanceData = useMemo(() => {
+    const data = [...performanceData];
+    data.sort((a, b) => {
+      let aVal, bVal;
+      
+      if (perfSortBy === "name") {
+        aVal = a.technicianName.toLowerCase();
+        bVal = b.technicianName.toLowerCase();
+      } else if (perfSortBy === "ticketsResolved") {
+        aVal = a.ticketsResolved ?? 0;
+        bVal = b.ticketsResolved ?? 0;
+      } else if (perfSortBy === "avgResolutionHours") {
+        aVal = a.avgResolutionHours ?? Infinity;
+        bVal = b.avgResolutionHours ?? Infinity;
+      }
+      
+      if (perfSortOrder === "asc") {
+        return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      } else {
+        return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+      }
+    });
+    return data;
+  }, [performanceData, perfSortBy, perfSortOrder]);
+
+  const handlePerfSort = (sortByField) => {
+    if (perfSortBy === sortByField) {
+      // Toggle sort order if clicking the same column
+      setPerfSortOrder(perfSortOrder === "asc" ? "desc" : "asc");
+    } else {
+      // Set new sort field with descending order
+      setPerfSortBy(sortByField);
+      setPerfSortOrder("desc");
+    }
+  };
+
   const assignMutation = useMutation({
     mutationFn: ({ ticketId, technicianId }) =>
       ticketApi.assignTechnician(ticketId, technicianId).then((r) => r.data),
+    onMutate: async ({ ticketId, technicianId }) => {
+      // Cancel ongoing queries to prevent conflicts
+      await queryClient.cancelQueries({ queryKey: ["admin", "tickets", "list"] });
+      
+      // Get the selected technician for the update
+      const selectedTech = technicians.find(t => t.id === technicianId);
+      
+      // Snapshot previous data
+      const previousTickets = queryClient.getQueryData(["admin", "tickets", "list"]);
+      
+      // Optimistically update the cache
+      queryClient.setQueryData(["admin", "tickets", "list"], (old) => {
+        if (!old?.content) return old;
+        return {
+          ...old,
+          content: old.content.map((ticket) =>
+            ticket.id === ticketId
+              ? {
+                  ...ticket,
+                  assignedToId: technicianId,
+                  assignedToName: selectedTech?.name || "Unknown",
+                  status: "IN_PROGRESS",
+                }
+              : ticket
+          ),
+        };
+      });
+      
+      return { previousTickets };
+    },
     onSuccess: () => {
+      // Refetch to ensure data consistency (without showing default toast)
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard", "assignedTickets"] });
     },
-    onError: (err) => {
+    onError: (err, variables, context) => {
+      // Revert the optimistic update on error
+      if (context?.previousTickets) {
+        queryClient.setQueryData(["admin", "tickets", "list"], context.previousTickets);
+      }
       const msg =
         err?.response?.data?.message ||
         (typeof err?.response?.data === "string" ? err.response.data : null) ||
@@ -97,6 +176,7 @@ export default function AdminTicketsPage() {
       ticketApi.updateStatus(ticketId, { status: "RESOLVED", resolutionNotes }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "technician", "performance"] });
     },
     onError: () => toast.error("Could not resolve ticket"),
   });
@@ -247,13 +327,48 @@ export default function AdminTicketsPage() {
 
   const handleAssignModalSubmit = async (technicianId) => {
     if (!selectedTicketForAssign) return;
+    
+    const techId = Number(technicianId);
+    if (!techId) {
+      toast.error("Invalid technician selected");
+      return;
+    }
+    
+    // If it's a reassignment, show confirmation dialog
+    if (isReassignMode) {
+      setPendingReassignData({ ticketId: selectedTicketForAssign, technicianId: techId });
+      setReassignConfirmOpen(true);
+    } else {
+      // For new assignments, execute directly
+      assignMutation.mutate(
+        { ticketId: selectedTicketForAssign, technicianId: techId },
+        {
+          onSuccess: () => {
+            toast.success("Ticket assigned successfully");
+            setAssignModalOpen(false);
+            setSelectedTicketForAssign(null);
+          },
+        },
+      );
+    }
+  };
+
+  const handleReassignConfirm = () => {
+    if (!pendingReassignData) return;
+    
+    const techId = Number(pendingReassignData.technicianId);
+    
+    // Close modals immediately (optimistic update already updated cache)
+    setAssignModalOpen(false);
+    setSelectedTicketForAssign(null);
+    setReassignConfirmOpen(false);
+    setPendingReassignData(null);
+    
     assignMutation.mutate(
-      { ticketId: selectedTicketForAssign, technicianId },
+      { ticketId: pendingReassignData.ticketId, technicianId: techId },
       {
         onSuccess: () => {
-          toast.success("Ticket assigned");
-          setAssignModalOpen(false);
-          setSelectedTicketForAssign(null);
+          toast.success("Technician reassigned successfully");
         },
       },
     );
@@ -443,16 +558,28 @@ export default function AdminTicketsPage() {
                   <TicketCard ticket={ticket} />
                 </div>
                 {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedTicketForAssign(ticket.id);
-                      setAssignModalOpen(true);
-                    }}
-                    className="shrink-0 rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-900 disabled:opacity-50"
-                  >
-                    Assign
-                  </button>
+                  ticket.status === 'CLOSED' || ticket.status === 'RESOLVED' ? (
+                    <div className="shrink-0 flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+                      <span>✓</span>
+                      <span>Completed</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTicketForAssign(ticket.id);
+                        setIsReassignMode(!!ticket.assignedToId);
+                        setAssignModalOpen(true);
+                      }}
+                      className={`shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white transition disabled:opacity-50 ${
+                        ticket.assignedToId
+                          ? 'bg-campus-brand hover:bg-campus-brand-hover'
+                          : 'bg-slate-800 hover:bg-slate-900'
+                      }`}
+                    >
+                      {ticket.assignedToId ? 'Reassign' : 'Assign'}
+                    </button>
+                  )
                 )}
               </div>
             ))}
@@ -488,38 +615,81 @@ export default function AdminTicketsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200">
-                    <th className="px-4 py-3 text-left font-semibold text-slate-900">Technician</th>
-                    <th className="px-4 py-3 text-right font-semibold text-slate-900">Tickets Resolved</th>
-                    <th className="px-4 py-3 text-right font-semibold text-slate-900">Avg Resolution Time</th>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-900">
+                      <button
+                        type="button"
+                        onClick={() => handlePerfSort("name")}
+                        className="flex items-center gap-1 hover:text-campus-brand transition"
+                      >
+                        Technician
+                        {perfSortBy === "name" && (
+                          <span className="text-xs">{perfSortOrder === "asc" ? "↑" : "↓"}</span>
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-slate-900">
+                      <button
+                        type="button"
+                        onClick={() => handlePerfSort("ticketsResolved")}
+                        className="flex items-center justify-end gap-1 ml-auto hover:text-campus-brand transition"
+                      >
+                        Tickets Resolved
+                        {perfSortBy === "ticketsResolved" && (
+                          <span className="text-xs">{perfSortOrder === "asc" ? "↑" : "↓"}</span>
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-slate-900">
+                      <button
+                        type="button"
+                        onClick={() => handlePerfSort("avgResolutionHours")}
+                        className="flex items-center justify-end gap-1 ml-auto hover:text-campus-brand transition"
+                      >
+                        Avg Resolution Time
+                        {perfSortBy === "avgResolutionHours" && (
+                          <span className="text-xs">{perfSortOrder === "asc" ? "↑" : "↓"}</span>
+                        )}
+                      </button>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {performanceData.map((perf, idx) => (
-                    <tr
-                      key={perf.technicianId}
-                      className={`border-b border-slate-100 last:border-b-0 ${
-                        idx % 2 === 0 ? "bg-white" : "bg-slate-50"
-                      } hover:bg-slate-50`}
-                    >
-                      <td className="px-4 py-3 font-medium text-slate-900">
-                        {perf.technicianName}
-                      </td>
-                      <td className="px-4 py-3 text-right text-slate-600">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
-                          {perf.ticketsResolved}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right text-slate-600">
-                        {perf.avgResolutionHours != null ? (
-                          <span className="font-medium">
-                            {perf.avgResolutionHours.toFixed(1)} hours
+                  {sortedPerformanceData.map((perf, idx) => {
+                    const tech = technicians.find(t => t.id === perf.technicianId);
+                    return (
+                      <tr
+                        key={perf.technicianId}
+                        className={`border-b border-slate-100 last:border-b-0 ${
+                          idx % 2 === 0 ? "bg-white" : "bg-slate-50"
+                        } hover:bg-slate-50`}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col gap-1">
+                            <p className="font-medium text-slate-900">{perf.technicianName}</p>
+                            {tech?.technicianCategory && (
+                              <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 w-fit">
+                                {technicianCategoryLabel(tech.technicianCategory)}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right text-slate-600">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
+                            {perf.ticketsResolved}
                           </span>
-                        ) : (
-                          <span className="text-slate-400">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-4 py-3 text-right text-slate-600">
+                          {perf.avgResolutionHours != null ? (
+                            <span className="font-medium">
+                              {perf.avgResolutionHours.toFixed(1)} hours
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -532,11 +702,23 @@ export default function AdminTicketsPage() {
         onClose={() => {
           setAssignModalOpen(false);
           setSelectedTicketForAssign(null);
+          setIsReassignMode(false);
         }}
         onAssign={handleAssignModalSubmit}
         currentTechnicianName={
           selectedTicketForAssign ? tickets.find(t => t.id === selectedTicketForAssign)?.assignedToName : null
         }
+        isReassignment={isReassignMode}
+      />
+
+      <ConfirmModal
+        open={reassignConfirmOpen}
+        message={`Are you sure you want to reassign this ticket to a different technician? The previous assignment will be replaced.`}
+        onConfirm={handleReassignConfirm}
+        onCancel={() => {
+          setReassignConfirmOpen(false);
+          setPendingReassignData(null);
+        }}
       />
     </DashboardPageLayout>
   );

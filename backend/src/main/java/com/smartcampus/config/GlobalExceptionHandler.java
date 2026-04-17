@@ -35,18 +35,11 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, "Bad Request", "Invalid parameter provided.");
     }
 
-    @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex) {
-        HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
-        if (status == null) {
-            status = HttpStatus.INTERNAL_SERVER_ERROR;
-        }
-        String message =
-                ex.getReason() != null && !ex.getReason().isBlank()
-                        ? ex.getReason()
-                        : status.getReasonPhrase();
-        return buildErrorResponse(status, status.getReasonPhrase(), message);
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleResponseStatusException(org.springframework.web.server.ResponseStatusException ex) {
+        return buildErrorResponse(HttpStatus.valueOf(ex.getStatusCode().value()), "Error", ex.getReason());
     }
+    
 
     // Add additional generic business exceptions here using 400, 409, 404 accordingly.
     

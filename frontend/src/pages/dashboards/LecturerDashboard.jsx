@@ -125,6 +125,9 @@ export default function LecturerDashboard() {
         <Link to="/tickets/create" className={dashboardBtnSecondary}>
           Report classroom issue
         </Link>
+        <Link to="/facilities" className={dashboardBtnSecondary}>
+          View campus map
+        </Link>
       </div>
     </DashboardPageLayout>
   );
