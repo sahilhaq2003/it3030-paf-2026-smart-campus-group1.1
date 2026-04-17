@@ -16,12 +16,20 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 import com.smartcampus.facilities.exception.ActiveBookingsExistException;
 
+/**
+ * Implementation of the FacilityService interface.
+ * Handles the business logic for creating, updating, retrieving,
+ * deleting, and searching facilities in the campus system.
+ */
 @Service
 @RequiredArgsConstructor
 public class FacilityServiceImpl implements FacilityService {
 
     private final FacilityRepository facilityRepository;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public FacilityDto createFacility(FacilityDto facilityDto) {
@@ -42,6 +50,9 @@ public class FacilityServiceImpl implements FacilityService {
         return mapToDto(savedFacility);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional(readOnly = true)
     public FacilityDto getFacilityById(Long id) {
@@ -50,6 +61,9 @@ public class FacilityServiceImpl implements FacilityService {
         return mapToDto(facility);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<FacilityDto> getAllFacilities(Pageable pageable) {
@@ -57,6 +71,9 @@ public class FacilityServiceImpl implements FacilityService {
                 .map(this::mapToDto);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public FacilityDto updateFacility(Long id, FacilityDto facilityDto) {
@@ -92,6 +109,9 @@ public class FacilityServiceImpl implements FacilityService {
         return mapToDto(updatedFacility);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public void deleteFacility(Long id) {
@@ -105,6 +125,9 @@ public class FacilityServiceImpl implements FacilityService {
         facilityRepository.delete(facility);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public FacilityDto updateFacilityStatus(Long id, Status status) {
@@ -115,6 +138,9 @@ public class FacilityServiceImpl implements FacilityService {
         return mapToDto(updatedFacility);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<FacilityDto> searchFacilities(String name, ResourceType type, Integer capacity, String location,
@@ -152,6 +178,12 @@ public class FacilityServiceImpl implements FacilityService {
         return false;
     }
 
+    /**
+     * Helper method to map a FacilityDto to a Facility entity.
+     *
+     * @param dto the DTO to map
+     * @return the mapped Facility entity
+     */
     private Facility mapToEntity(FacilityDto dto) {
         return Facility.builder()
                 .name(dto.getName())
@@ -165,6 +197,12 @@ public class FacilityServiceImpl implements FacilityService {
                 .build();
     }
 
+    /**
+     * Helper method to map a Facility entity to a FacilityDto.
+     *
+     * @param facility the entity to map
+     * @return the mapped FacilityDto
+     */
     private FacilityDto mapToDto(Facility facility) {
         FacilityDto dto = new FacilityDto();
         dto.setId(facility.getId());

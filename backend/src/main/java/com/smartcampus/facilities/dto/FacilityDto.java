@@ -13,6 +13,11 @@ import lombok.Data;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
 
+/**
+ * Data Transfer Object (DTO) for Facility.
+ * Used to transfer facility data between the client and the server,
+ * and includes validation constraints for the data fields.
+ */
 @Data
 public class FacilityDto {
     private Long id;
@@ -42,6 +47,12 @@ public class FacilityDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    /**
+     * Custom validation logic to ensure that the availability start time
+     * is before the availability end time.
+     * 
+     * @return true if the availability time range is valid, false otherwise.
+     */
     @AssertTrue(message = "Availability start time must be before end time")
     @JsonIgnore
     public boolean isValidAvailability() {

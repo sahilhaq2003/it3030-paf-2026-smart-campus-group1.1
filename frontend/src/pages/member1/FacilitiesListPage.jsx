@@ -4,6 +4,13 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { facilityApi } from '../../api/facilityApi';
 import { MapPin, Users, Activity, Loader2, Navigation, Search, Filter, Scale, X, BarChart3 } from 'lucide-react';
 
+/**
+ * FacilitiesListPage Component
+ * 
+ * This component acts as the public discovery hub for users to view, search,
+ * and filter all available facilities in the campus system.
+ * It provides advanced features like comparison synthesis matrix and a daily heatmap.
+ */
 export default function FacilitiesListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 

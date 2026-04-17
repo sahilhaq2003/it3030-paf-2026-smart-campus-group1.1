@@ -5,6 +5,13 @@ import { facilityApi } from '../../api/facilityApi';
 import { MapPin, Users, MonitorPlay, CalendarDays, Loader2, ArrowLeft } from 'lucide-react';
 
 
+/**
+ * FacilityDetailPage Component
+ * 
+ * Displays detailed information about a specific facility selected by the user.
+ * Provides details like capacity, location, status, and allows the user
+ * to proceed to the booking workflow if the facility is ACTIVE.
+ */
 export default function FacilityDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
