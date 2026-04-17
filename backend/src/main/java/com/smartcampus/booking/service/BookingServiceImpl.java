@@ -26,6 +26,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.smartcampus.user.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
@@ -33,7 +37,9 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final FacilityRepository facilityRepository;
     private final ApplicationEventPublisher eventPublisher;
-
+    
+    private final BookingQrEmailService bookingQrEmailService;
+    private final UserRepository userRepository;
     // ─── Create ───────────────────────────────────────────────────────────────
 
     @Override
@@ -70,7 +76,8 @@ public class BookingServiceImpl implements BookingService {
         .status(BookingStatus.PENDING)
         .build();
         Booking saved = bookingRepository.save(booking);
-
+        
+        
         // Notify the user that their booking request was received.
         // Look up the real name since saved.getFacility() is an unloaded proxy here.
         String facilityName = facilityRepository.findById(request.getFacilityId())
@@ -174,6 +181,22 @@ public class BookingServiceImpl implements BookingService {
         BookingStatus oldStatus = booking.getStatus();
         booking.setStatus(BookingStatus.APPROVED);
         Booking saved = bookingRepository.save(booking);
+        
+        try {
+    userRepository.findById(saved.getUser().getId()).ifPresent(approvedUser -> {
+        bookingQrEmailService.sendQrEmail(
+            saved.getId(),
+            approvedUser.getEmail(),
+            approvedUser.getName(),
+            saved.getFacility().getName(),
+            saved.getBookingDate().toString(),
+            saved.getStartTime().toString(),
+            saved.getEndTime().toString()
+        );
+    });
+} catch (Exception e) {
+    log.warn("QR email failed for bookingId={}: {}", saved.getId(), e.getMessage());
+}
 
         // Fire event for Member 4's notification listener
         eventPublisher.publishEvent(new BookingStatusChangedEvent(
