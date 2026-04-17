@@ -308,6 +308,18 @@ export default function AdminFacilitiesPage() {
                     </div>
 
                     <div className="col-span-2">
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Current Status</label>
+                      <select
+                        value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                        className="w-full border-gray-300 bg-gray-50 border focus:bg-white rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
+                      >
+                        <option value="ACTIVE">Active (Available)</option>
+                        <option value="OUT_OF_SERVICE">Out of Service</option>
+                        <option value="UNDER_MAINTENANCE">Under Maintenance</option>
+                      </select>
+                    </div>
+
+                    <div className="col-span-2">
                       <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
                       <textarea
                         rows="3"
