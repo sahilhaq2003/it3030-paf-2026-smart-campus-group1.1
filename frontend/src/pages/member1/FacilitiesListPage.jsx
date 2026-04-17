@@ -106,6 +106,16 @@ export default function FacilitiesListPage() {
     return { hour, count };
   });
 
+  const getFacilityImage = (type) => {
+    switch(type) {
+      case 'LECTURE_HALL': return '/facilities/lecture_hall.png';
+      case 'LAB': return '/facilities/lab.png';
+      case 'MEETING_ROOM': return '/facilities/meeting.png';
+      case 'EQUIPMENT': return '/facilities/equipment.png';
+      default: return '/facilities/campus.png';
+    }
+  };
+
   // Find the absolute highest density hour (the "ceiling") to mathematically scale 
   // the CSS bar heights properly. (Fallback to 1 to prevent generic divide-by-zero errors)
   const maxAvailability = Math.max(...heatmapData.map(d => d.count), 1);
@@ -286,10 +296,21 @@ export default function FacilitiesListPage() {
             {facilities.map((f) => (
               <div 
                 key={f.id} 
-                className={`bg-white rounded-[2rem] shadow-sm hover:shadow-2xl hover:shadow-indigo-100 border-2 overflow-hidden transition-all duration-300 transform hover:-translate-y-2 flex flex-col ${compareList.find(c => c.id === f.id) ? 'border-indigo-500 ring-4 ring-indigo-500/20' : 'border-gray-100'}`}
+                className={`group bg-white rounded-[2rem] shadow-sm hover:shadow-2xl hover:shadow-indigo-100 border-2 overflow-hidden transition-all duration-300 transform hover:-translate-y-2 flex flex-col ${compareList.find(c => c.id === f.id) ? 'border-indigo-500 ring-4 ring-indigo-500/20' : 'border-gray-100'}`}
               >
-                <div className={`h-48 bg-gradient-to-br from-indigo-500 to-purple-600 relative overflow-hidden flex items-center justify-center p-6 text-white text-center`}>
-                  <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]"></div>
+                <div className={`h-48 relative overflow-hidden flex items-end p-6 text-white text-left`}>
+                  {/* Background Image */}
+                  <div className="absolute inset-0 bg-gray-900">
+                    <img 
+                      src={getFacilityImage(f.resourceType)} 
+                      alt={f.name}
+                      className="w-full h-full object-cover opacity-60 transition-transform duration-700 group-hover:scale-110" 
+                    />
+                  </div>
+                  {/* Gradient Overlay for Text Readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
+                  
+                  {/* Content */}
                   <h2 className="text-3xl font-extrabold tracking-tight relative z-10 leading-tight drop-shadow-md">
                     {f.name}
                   </h2>
