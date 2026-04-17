@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { getBookingById, cancelBooking } from "../../api/bookingApi";
 import StatusBadge from "../../components/StatusBadge";
-import { Pencil } from "lucide-react";
+import { Pencil, ArrowLeft } from "lucide-react";
 
 
 export default function BookingDetailPage() {
@@ -40,9 +40,10 @@ export default function BookingDetailPage() {
       {/* Back Button */}
       <button
         onClick={() => navigate(-1)}
-        className="text-sm text-blue-600 hover:underline mb-6 flex items-center gap-1"
+        className="inline-flex items-center gap-2 text-[15px] font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors mb-6"
       >
-        ← Back
+        <ArrowLeft className="w-4 h-4" />
+        Back
       </button>
 
             {/* Header */}
@@ -69,7 +70,7 @@ export default function BookingDetailPage() {
           <div className="flex justify-between py-4 border-b border-gray-100">
             <span className="text-sm text-gray-500">Time</span>
             <span className="text-sm font-medium text-gray-900">
-              {booking.startTime} — {booking.endTime}
+              {booking.startTime?.substring(0, 5)} — {booking.endTime?.substring(0, 5)}
             </span>
           </div>
           <div className="flex justify-between py-4 border-b border-gray-100">

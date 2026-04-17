@@ -51,7 +51,8 @@ public class BookingServiceImpl implements BookingService {
                 request.getFacilityId(),
                 request.getBookingDate(),
                 request.getStartTime(),
-                request.getEndTime()
+                request.getEndTime(),
+                null
         );
         if (conflict) {
             throw new IllegalStateException(
@@ -124,8 +125,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public boolean isAvailable(Long facilityId, LocalDate date,
-                                LocalTime startTime, LocalTime endTime) {
-        return !bookingRepository.existsConflict(facilityId, date, startTime, endTime);
+                                LocalTime startTime, LocalTime endTime, Long excludeBookingId) {
+        return !bookingRepository.existsConflict(facilityId, date, startTime, endTime, excludeBookingId);
     }
         @Override
     @Transactional
@@ -146,7 +147,8 @@ public class BookingServiceImpl implements BookingService {
                     request.getFacilityId(),
                     request.getBookingDate(),
                     request.getStartTime(),
-                    request.getEndTime()
+                    request.getEndTime(),
+                    bookingId
             );
             
             if (conflict) {

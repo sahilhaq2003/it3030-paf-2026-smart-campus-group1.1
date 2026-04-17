@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
+import { CheckCircle, XCircle, Clock, AlertCircle, ArrowLeft } from "lucide-react";
 import axios from "axios";
 
 export default function VerifyBookingPage() {
@@ -86,9 +86,10 @@ useEffect(() => {
       <div className="max-w-md w-full">
          <button
           onClick={() => window.history.back()}
-          className="text-sm text-indigo-600 hover:underline mb-4 flex items-center gap-1"
+          className="inline-flex items-center gap-2 text-[15px] font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors mb-4"
         >
-          ← Back
+          <ArrowLeft className="w-4 h-4" />
+          Back
         </button>
         <div className={`${config.bg} ${config.border} border rounded-2xl p-8 text-center mb-4`}>
           {config.icon}
@@ -109,7 +110,7 @@ useEffect(() => {
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">Time</span>
               <span className="text-sm font-medium text-gray-900">
-                {booking.startTime} — {booking.endTime}
+                {booking.startTime?.substring(0, 5)} — {booking.endTime?.substring(0, 5)}
               </span>
             </div>
             <div className="flex justify-between">

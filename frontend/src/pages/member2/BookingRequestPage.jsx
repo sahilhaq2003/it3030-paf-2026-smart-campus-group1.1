@@ -6,24 +6,7 @@ import toast from "react-hot-toast";
 import { createBooking, checkAvailability } from "../../api/bookingApi";
 import axiosInstance from "../../api/axiosInstance";
 
-// Convert HH:MM 24h to { hour12, minute, period } or null if empty
-function parseTo12(time24) {
-  if (!time24) return null;
-  const [h, m] = time24.split(":").map(Number);
-  return { hour12: h % 12 || 12, minute: m, period: h >= 12 ? "PM" : "AM" };
-}
 
-// Convert { hour12, minute, period } to HH:MM 24h
-function toTime24({ hour12, minute, period }) {
-  let h = hour12 % 12;
-  if (period === "PM") h += 12;
-  return `${String(h).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-}
-
-function formatDisplay(parsed) {
-  if (!parsed) return "--:-- --";
-  return `${String(parsed.hour12).padStart(2, "0")}:${String(parsed.minute).padStart(2, "0")} ${parsed.period}`;
-}
 
 // Scrollable column for time picker
 function Column({ items, selected, onSelect, format }) {
@@ -67,13 +50,18 @@ function Column({ items, selected, onSelect, format }) {
   );
 }
 
-// Custom time picker — no native browser popup
+// Custom 24-jour time picker — no native browser popup
 function TimePicker({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  const parsed = parseTo12(value);
 
-  const hours = Array.from({ length: 12 }, (_, i) => i + 1);
+  const timeStr = value || "08:00";
+  const [hStr, mStr] = timeStr.split(":");
+  const currentHour = parseInt(hStr, 10);
+  const currentMinute = parseInt(mStr, 10);
+
+  // Available hours 8 to 18
+  const hours = Array.from({ length: 11 }, (_, i) => i + 8);
   const minutes = Array.from({ length: 60 }, (_, i) => i);
 
   useEffect(() => {
@@ -84,8 +72,9 @@ function TimePicker({ value, onChange }) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const parsedOrDefault = parsed || { hour12: 12, minute: 0, period: "AM" };
-  const update = (patch) => onChange(toTime24({ ...parsedOrDefault, ...patch }));
+  const update = (newHour, newMinute) => {
+    onChange(`${String(newHour).padStart(2, "0")}:${String(newMinute).padStart(2, "0")}`);
+  };
 
   return (
     <div ref={ref} style={{ position: "relative", width: "100%" }}>
@@ -103,7 +92,7 @@ function TimePicker({ value, onChange }) {
           position: "relative",
         }}
       >
-        {formatDisplay(parsed)}
+        {value ? value : "--:--"}
         <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", fontSize: 15 }}>
           ⏱
         </span>
@@ -125,38 +114,17 @@ function TimePicker({ value, onChange }) {
         >
           <Column
             items={hours}
-            selected={parsedOrDefault.hour12}
-            onSelect={(h) => update({ hour12: h })}
+            selected={currentHour}
+            onSelect={(h) => update(h, currentMinute)}
             format={(h) => String(h).padStart(2, "0")}
           />
           <div style={{ width: 1, background: "#f3f4f6", margin: "8px 0" }} />
           <Column
             items={minutes}
-            selected={parsedOrDefault.minute}
-            onSelect={(m) => update({ minute: m })}
+            selected={currentMinute}
+            onSelect={(m) => update(currentHour, m)}
             format={(m) => String(m).padStart(2, "0")}
           />
-          <div style={{ width: 1, background: "#f3f4f6", margin: "8px 0" }} />
-          <div style={{ display: "flex", flexDirection: "column", padding: "8px 0" }}>
-            {["AM", "PM"].map((p) => (
-              <div
-                key={p}
-                onClick={() => update({ period: p })}
-                style={{
-                  padding: "10px 20px",
-                  cursor: "pointer",
-                  fontWeight: parsedOrDefault.period === p ? 600 : 400,
-                  color: parsedOrDefault.period === p ? "#7c3aed" : "#374151",
-                  background: parsedOrDefault.period === p ? "#f5f3ff" : "transparent",
-                  borderRadius: 8,
-                  margin: "2px 6px",
-                  fontSize: 14,
-                }}
-              >
-                {p}
-              </div>
-            ))}
-          </div>
         </div>
       )}
     </div>
@@ -241,9 +209,23 @@ export default function BookingRequestPage() {
     enabled: !!facilityIdFromUrl,
   });
 
+  const getTodayStr = () => new Date().toISOString().split("T")[0];
+  const getLocalTimeStr = () => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+
   useEffect(() => {
     const { facilityId, bookingDate, startTime, endTime } = formData;
     if (facilityId && bookingDate && startTime && endTime) {
+      if (startTime >= endTime) {
+        setIsAvailable(null);
+        return;
+      }
+      if (bookingDate === getTodayStr() && startTime < getLocalTimeStr()) {
+        setIsAvailable(null);
+        return;
+      }
       setChecking(true);
       checkAvailability(facilityId, bookingDate, startTime, endTime)
         .then((res) => setIsAvailable(res.data))
@@ -270,7 +252,10 @@ export default function BookingRequestPage() {
   };
 
   const maxAttendees = facility?.capacity ?? undefined;
-  const canSubmit = formData.bookingDate && formData.startTime && formData.endTime && formData.purpose && isAvailable !== false;
+  const isValidTimeRange = formData.startTime && formData.endTime && (formData.startTime < formData.endTime);
+  const isPastTime = formData.bookingDate === getTodayStr() && formData.startTime && formData.startTime < getLocalTimeStr();
+
+  const canSubmit = formData.bookingDate && isValidTimeRange && !isPastTime && formData.purpose && isAvailable !== false;
 
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", padding: "32px 24px", fontFamily: "system-ui, sans-serif" }}>
@@ -309,8 +294,18 @@ export default function BookingRequestPage() {
         </div>
         <p style={{ fontSize: 13, color: "#6b7280", margin: "8px 0 0" }}>Available hours: 08:00 — 18:00</p>
         {checking && <div style={{ marginTop: 10, padding: "10px 14px", background: "#f9fafb", borderRadius: 8, fontSize: 13, color: "#6b7280" }}>Checking availability...</div>}
-        {!checking && isAvailable === true && <div style={{ marginTop: 10, padding: "10px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, fontSize: 13, color: "#15803d" }}>✅ This slot is available!</div>}
-        {!checking && isAvailable === false && <div style={{ marginTop: 10, padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>❌ This slot is not available. Please choose a different time.</div>}
+        {!checking && isAvailable === true && !isPastTime && formData.startTime < formData.endTime && <div style={{ marginTop: 10, padding: "10px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, fontSize: 13, color: "#15803d" }}>✅ This slot is available!</div>}
+        {!checking && isAvailable === false && !isPastTime && formData.startTime < formData.endTime && <div style={{ marginTop: 10, padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>❌ This slot is not available. Please choose a different time.</div>}
+        {formData.startTime && formData.endTime && formData.startTime >= formData.endTime && (
+          <div style={{ marginTop: 10, padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>
+            ❌ Invalid time range.
+          </div>
+        )}
+        {isPastTime && (
+          <div style={{ marginTop: 10, padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>
+            ❌ Cannot book for past times.
+          </div>
+        )}
       </SectionCard>
 
       <SectionCard icon="📄" title="Purpose of Booking">

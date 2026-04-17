@@ -29,7 +29,7 @@ public interface BookingService {
 
     // Check availability
     boolean isAvailable(Long facilityId, LocalDate date,
-                        LocalTime startTime, LocalTime endTime);
+                        LocalTime startTime, LocalTime endTime, Long excludeBookingId);
 
     // Approve a booking — ADMIN only
     BookingResponseDTO approveBooking(Long bookingId, Long adminId);

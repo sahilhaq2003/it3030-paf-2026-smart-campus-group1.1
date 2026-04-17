@@ -56,9 +56,10 @@ public class BookingController {
             @RequestParam Long facilityId,
             @RequestParam LocalDate date,
             @RequestParam LocalTime startTime,
-            @RequestParam LocalTime endTime) {
+            @RequestParam LocalTime endTime,
+            @RequestParam(required = false) Long excludeBookingId) {
         return ResponseEntity.ok(
-                bookingService.isAvailable(facilityId, date, startTime, endTime));
+                bookingService.isAvailable(facilityId, date, startTime, endTime, excludeBookingId));
     }
 
     // POST /api/bookings — STUDENT, LECTURER
