@@ -184,67 +184,35 @@ function Sidebar() {
             active: (p) => p === "/UserDashboard",
           };
 
-  const items = [
-    { to: "/home", label: "Home", icon: Home, active: (p) => p === "/home" },
-    {
-      to: "/profile",
-      label: "Profile",
-      icon: CircleUser,
-      active: (p) => p === "/profile",
-    },
-    { to: dash.to, label: dash.label, icon: LayoutDashboard, active: dash.active },
-    // Only show Campus Facilities for non-admins below
-    { to: isOpsAdmin ? null : "/facilities", label: isOpsAdmin ? null : "Campus Facilities", icon: isOpsAdmin ? null : Building, active: (p) => !isOpsAdmin && p.startsWith("/facilities") },
-    { to: isOpsAdmin ? "/admin/bookings" : "/bookings/my", label: isOpsAdmin ? "Manage Bookings" : "My Bookings", icon: ClipboardList, active: (p) => p.startsWith("/bookings") || p.startsWith("/admin/bookings") },
-  ].filter(item => item.to);
-
-  // Campus Facilities for non-admins handled above
-
-  if (canCreateTickets(roles)) {
-    items.push({
-      to: "/tickets",
-      label: "My tickets",
-      icon: Ticket,
-      active: (p) => p === "/tickets",
-    });
-    items.push({
-      to: "/tickets/create",
-      label: "New ticket",
-      icon: PlusCircle,
-      active: (p) => p === "/tickets/create",
-    });
-  }
-
-  if (canAccessAdminTickets(roles)) {
-    items.push({
-      to: "/admin/tickets",
-      label: "Admin tickets",
-      icon: ClipboardList,
-      active: (p) => p.startsWith("/admin/tickets"),
-    });
-  }
-
-  
+  let items;
 
   if (isOpsAdmin) {
-    items.push({
-  to: "/admin/scan",
-  label: "Scan Booking QR",
-  icon: Camera,
-  active: (p) => p.startsWith("/admin/scan"),
-});
-    items.push({
-      to: "/admin/users",
-      label: "Users",
-      icon: Users,
-      active: (p) => p.startsWith("/admin/users"),
-    });
-    items.push({
-      to: "/admin/facilities",
-      label: "Facility Manager",
-      icon: Settings,
-      active: (p) => p.startsWith("/admin/facilities"),
-    });
+    items = [
+      { to: dash.to, label: dash.label, icon: LayoutDashboard, active: dash.active },
+      { to: "/admin/users", label: "Users", icon: Users, active: (p) => p.startsWith("/admin/users") },
+      { to: "/admin/tickets", label: "Admin tickets", icon: ClipboardList, active: (p) => p.startsWith("/admin/tickets") },
+      { to: "/admin/bookings", label: "Manage Bookings", icon: ClipboardList, active: (p) => p.startsWith("/admin/bookings") },
+      { to: "/admin/scan", label: "Scan Booking QR", icon: Camera, active: (p) => p.startsWith("/admin/scan") },
+      { to: "/admin/facilities", label: "Facility Manager", icon: Settings, active: (p) => p.startsWith("/admin/facilities") },
+      { to: "/profile", label: "Profile", icon: CircleUser, active: (p) => p === "/profile" },
+    ];
+  } else {
+    items = [
+      { to: "/home", label: "Home", icon: Home, active: (p) => p === "/home" },
+      { to: "/profile", label: "Profile", icon: CircleUser, active: (p) => p === "/profile" },
+      { to: dash.to, label: dash.label, icon: LayoutDashboard, active: dash.active },
+      { to: "/facilities", label: "Campus Facilities", icon: Building, active: (p) => p.startsWith("/facilities") },
+      { to: "/bookings/my", label: "My Bookings", icon: ClipboardList, active: (p) => p.startsWith("/bookings") },
+    ];
+
+    if (canCreateTickets(roles)) {
+      items.push({ to: "/tickets", label: "My tickets", icon: Ticket, active: (p) => p === "/tickets" });
+      items.push({ to: "/tickets/create", label: "New ticket", icon: PlusCircle, active: (p) => p === "/tickets/create" });
+    }
+
+    if (canAccessAdminTickets(roles)) {
+      items.push({ to: "/admin/tickets", label: "Admin tickets", icon: ClipboardList, active: (p) => p.startsWith("/admin/tickets") });
+    }
   }
 
   return (
