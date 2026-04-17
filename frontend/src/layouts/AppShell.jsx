@@ -158,6 +158,7 @@ function Sidebar() {
   const primaryDash = getDashboardRoute(roles);
   const isOpsAdmin =
     normalizeRoles(roles).has("ADMIN") || normalizeRoles(roles).has("MANAGER");
+  const isTechnician = normalizeRoles(roles).has("TECHNICIAN");
 
   const dash =
     primaryDash === DASHBOARD_PATHS.ADMIN
@@ -195,7 +196,7 @@ function Sidebar() {
     { to: dash.to, label: dash.label, icon: LayoutDashboard, active: dash.active },
     // Only show Campus Facilities for non-admins below
     { to: isOpsAdmin ? null : "/facilities", label: isOpsAdmin ? null : "Campus Facilities", icon: isOpsAdmin ? null : Building, active: (p) => !isOpsAdmin && p.startsWith("/facilities") },
-    { to: isOpsAdmin ? "/admin/bookings" : "/bookings/my", label: isOpsAdmin ? "Manage Bookings" : "My Bookings", icon: ClipboardList, active: (p) => p.startsWith("/bookings") || p.startsWith("/admin/bookings") },
+    { to: isTechnician ? null : (isOpsAdmin ? "/admin/bookings" : "/bookings/my"), label: isOpsAdmin ? "Manage Bookings" : "My Bookings", icon: ClipboardList, active: (p) => p.startsWith("/bookings") || p.startsWith("/admin/bookings") },
   ].filter(item => item.to);
 
   // Campus Facilities for non-admins handled above
@@ -226,13 +227,16 @@ function Sidebar() {
 
   
 
-  if (isOpsAdmin) {
+  if (isOpsAdmin || isTechnician) {
     items.push({
-  to: "/admin/scan",
-  label: "Scan Booking QR",
-  icon: Camera,
-  active: (p) => p.startsWith("/admin/scan"),
-});
+      to: "/admin/scan",
+      label: "Scan Booking QR",
+      icon: Camera,
+      active: (p) => p.startsWith("/admin/scan"),
+    });
+  }
+
+  if (isOpsAdmin) {
     items.push({
       to: "/admin/users",
       label: "Users",
