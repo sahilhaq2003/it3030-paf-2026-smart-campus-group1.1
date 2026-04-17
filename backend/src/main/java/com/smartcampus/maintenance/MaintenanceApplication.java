@@ -8,23 +8,27 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication(scanBasePackages = "com.smartcampus")
 @EnableScheduling
+@EnableAsync
 @EntityScan(
         basePackages = {
             "com.smartcampus.maintenance",
             "com.smartcampus.user",
             "com.smartcampus.facilities",
-            "com.smartcampus.notification"
+            "com.smartcampus.notification",
+            "com.smartcampus.booking"      
         })
 @EnableJpaRepositories(
         basePackages = {
             "com.smartcampus.maintenance",
             "com.smartcampus.user",
             "com.smartcampus.facilities",
-            "com.smartcampus.notification"
+            "com.smartcampus.notification",
+             "com.smartcampus.booking"   
         })
 public class MaintenanceApplication {
 
