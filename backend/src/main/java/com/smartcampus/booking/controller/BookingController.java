@@ -124,4 +124,9 @@ public class BookingController {
 public ResponseEntity<Map<String, Object>> getAnalytics() {
     return ResponseEntity.ok(bookingService.getAnalytics());
 }
+
+@GetMapping("/public/{id}")
+public ResponseEntity<BookingResponseDTO> getPublicBooking(@PathVariable Long id) {
+    return ResponseEntity.ok(bookingService.getBookingById(id));
+}
 }

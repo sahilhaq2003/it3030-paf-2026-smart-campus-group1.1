@@ -13,6 +13,7 @@ import {
   Users,
   Building,
   Settings, 
+  Camera,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../hooks/useNotifications";
@@ -25,6 +26,7 @@ import {
   getDashboardRoute,
   normalizeRoles
 } from "../utils/getDashboardRoute";
+
 
 
 function routeTitle(pathname) {
@@ -225,7 +227,12 @@ function Sidebar() {
   
 
   if (isOpsAdmin) {
-    
+    items.push({
+  to: "/admin/scan",
+  label: "Scan Booking QR",
+  icon: Camera,
+  active: (p) => p.startsWith("/admin/scan"),
+});
     items.push({
       to: "/admin/users",
       label: "Users",

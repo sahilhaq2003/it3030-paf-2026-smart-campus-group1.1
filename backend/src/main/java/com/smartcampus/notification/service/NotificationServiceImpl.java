@@ -70,7 +70,7 @@ public class NotificationServiceImpl implements NotificationService {
                             .build());
         }
 
-        if (emailEnabled) {
+       if (emailEnabled && type != NotificationType.BOOKING_APPROVED) {
             notificationEmailService.sendNotificationEmail(recipient, saved);
         }
 

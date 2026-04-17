@@ -37,7 +37,8 @@ import AdminBookingsPage from "../pages/member2/AdminBookingsPage";
 import EditBookingPage from "../pages/member2/EditBookingPage"; 
 import AdminReviewBookingPage from "../pages/member2/AdminReviewBookingPage";
 import AdminAnalyticsPage from "../pages/member2/AdminAnalyticsPage";
-
+import ScanBookingPage from "../pages/member2/ScanBookingPage";
+import VerifyBookingPage from "../pages/member2/VerifyBookingPage";
 /**
  * Router setup:
  * - / → public landing
@@ -71,7 +72,7 @@ export default function AppRoutes() {
         <Route path="/admin/bookings" element={<AdminBookingsPage />} />
         <Route path="/admin/bookings/:id" element={<AdminReviewBookingPage />} />
         <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
-
+        <Route path="/admin/scan" element={<ScanBookingPage />} />
         
         <Route path="/home" element={<HomePage />} />
         <Route path="/profile" element={<ProfilePage />} />
@@ -182,6 +183,7 @@ export default function AppRoutes() {
           }
         />
       </Route>
+        <Route path="/verify/:id" element={<VerifyBookingPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
