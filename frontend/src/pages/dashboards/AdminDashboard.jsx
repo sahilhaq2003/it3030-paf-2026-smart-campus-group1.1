@@ -12,10 +12,29 @@ import {
 } from "../../components/dashboard/DashboardPrimitives";
 import { DashboardInlineMessage } from "../../components/dashboard/DashboardCards";
 import { getBookingAnalytics } from "../../api/bookingApi";
+import { useAuth } from "../../context/AuthContext";
+import { normalizeRoles } from "../../utils/getDashboardRoute";
 
 
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
+  const displayName = user?.name ?? "there";
+  const roles = user?.roles ?? (user?.role != null ? [user.role] : []);
+  const normalizedRoles = normalizeRoles(roles);
+
+  const roleLabel = normalizedRoles.has("ADMIN")
+    ? "Administrator"
+    : normalizedRoles.has("MANAGER")
+    ? "Facility Manager"
+    : "Staff";
+
+  const roleSubtitle = normalizedRoles.has("ADMIN")
+    ? "You have full system access — manage users, tickets, bookings, and facilities."
+    : normalizedRoles.has("MANAGER")
+    ? "You can manage facility bookings, scan QR codes, and oversee facility operations."
+    : "Welcome to the operations dashboard.";
+
   const bookingsQuery = useQuery({
   queryKey: ["admin", "bookings", "analytics"],
   queryFn: () => getBookingAnalytics().then((r) => r.data),
@@ -76,6 +95,13 @@ export default function AdminDashboard() {
       title="Operations control"
       subtitle="Cross-campus metrics. Ticket and user figures require an admin account; bookings total is sample data for now."
     >
+      <div className="mb-8 rounded-2xl border border-slate-200/80 bg-white px-6 py-5 shadow-sm ring-1 ring-slate-900/[0.03]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{roleLabel}</p>
+        <h2 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900">
+          Welcome back, {displayName}
+        </h2>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">{roleSubtitle}</p>
+      </div>
       <div className="grid gap-4 sm:grid-cols-3 lg:gap-6">
       <Link to="/admin/analytics" className="block">
   <DashboardStatCard
