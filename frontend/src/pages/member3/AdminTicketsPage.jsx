@@ -18,6 +18,7 @@ import { useAuth } from "../../context/AuthContext";
 import { normalizeRoles } from "../../utils/getDashboardRoute";
 import { isResolvedLikeTicket } from "../../utils/ticketStatusDisplay";
 import { technicianCategoryLabel } from "../../constants/technicianCategories";
+import { useTicketUpdates } from "../../hooks/useTicketUpdates";
 
 const PRIORITY_ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
 
@@ -37,6 +38,10 @@ export default function AdminTicketsPage() {
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  // Subscribe to real-time ticket updates via SSE
+  useTicketUpdates(true);
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [priorityFilter, setPriorityFilter] = useState("ALL");
@@ -55,9 +60,10 @@ export default function AdminTicketsPage() {
   const ticketsQuery = useQuery({
     queryKey: ["admin", "tickets", "list"],
     queryFn: () =>
-      ticketApi.getAllTickets({ page: 0, size: 200, sort: "createdAt,desc" }).then((r) => r.data),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000,
+      ticketApi.getAllTickets({ page: 0, size: 100, sort: "createdAt,desc" }).then((r) => r.data),
+    staleTime: 1 * 60 * 1000, // 1 minute - faster updates for admin view
+    gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
+    retry: 2, // Retry twice on timeout
   });
 
   const techniciansQuery = useQuery({

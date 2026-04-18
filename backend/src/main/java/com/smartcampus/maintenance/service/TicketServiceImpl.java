@@ -149,8 +149,13 @@ public class TicketServiceImpl implements TicketService {
                 "Status is required. Please provide a valid ticket status.");
         }
 
-        // Validate permissions: technicians can only update assigned tickets
-        if (isTechnician && !isAdmin) {
+        // Explicit permission check: admins can update any ticket, technicians only their assigned tickets
+        if (!isAdmin) {
+            if (!isTechnician) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Access denied. Only administrators and assigned technicians can update ticket status.");
+            }
+            // Technician-specific check: verify they are assigned to this ticket
             if (ticket.getAssignedTo() == null
                     || !ticket.getAssignedTo().getId().equals(currentUserId)) {
                 throw new ResponseStatusException(
@@ -168,14 +173,19 @@ public class TicketServiceImpl implements TicketService {
         // Validate the status transition is allowed
         validateStatusTransition(ticket.getStatus(), dto.getStatus());
 
-        // Require resolution notes when marking as RESOLVED
-        if (dto.getStatus() == TicketStatus.RESOLVED) {
+        // Require resolution notes when FIRST marking as RESOLVED (not already resolved)
+        if (dto.getStatus() == TicketStatus.RESOLVED && ticket.getStatus() != TicketStatus.RESOLVED) {
             if (dto.getResolutionNotes() == null || dto.getResolutionNotes().isBlank()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Resolution notes are required when marking a ticket as RESOLVED. Please provide details about how the issue was resolved.");
             }
             ticket.setResolutionNotes(dto.getResolutionNotes());
             ticket.setResolvedAt(LocalDateTime.now());
+        } else if (dto.getStatus() == TicketStatus.RESOLVED && ticket.getStatus() == TicketStatus.RESOLVED) {
+            // Already resolved - allow updating notes if provided
+            if (dto.getResolutionNotes() != null && !dto.getResolutionNotes().isBlank()) {
+                ticket.setResolutionNotes(dto.getResolutionNotes());
+            }
         }
 
         // Require rejection reason when marking as REJECTED
@@ -268,8 +278,8 @@ public class TicketServiceImpl implements TicketService {
                 "Access denied. Only the person who reported this ticket can close it. Contact the ticket reporter or an administrator.");
         }
 
-        // Ticket must be in RESOLVED state before a user can close it
-        if (ticket.getStatus() != TicketStatus.RESOLVED) {
+        // Ticket must be in RESOLVED or CLOSED state (allow idempotent close)
+        if (ticket.getStatus() != TicketStatus.RESOLVED && ticket.getStatus() != TicketStatus.CLOSED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                 String.format(
                     "Cannot close ticket. Only tickets with RESOLVED status can be closed by the reporter. Current status: %s. Please mark the ticket as resolved first or contact a technician.",
@@ -278,7 +288,10 @@ public class TicketServiceImpl implements TicketService {
 
         var previousStatus = ticket.getStatus();
         ticket.setStatus(TicketStatus.CLOSED);
-        ticket.setClosedAt(LocalDateTime.now());
+        // Only set closedAt on first close (RESOLVED→CLOSED), not on idempotent close (CLOSED→CLOSED)
+        if (previousStatus != TicketStatus.CLOSED) {
+            ticket.setClosedAt(LocalDateTime.now());
+        }
         var saved = ticketRepo.save(ticket);
 
         eventPublisher.publishEvent(
@@ -421,6 +434,11 @@ public class TicketServiceImpl implements TicketService {
     }
 
     private void validateStatusTransition(TicketStatus current, TicketStatus next) {
+        // Allow idempotent operations (updating to the same status)
+        if (current == next) {
+            return;
+        }
+        
         boolean valid = switch (current) {
             case OPEN -> next == TicketStatus.IN_PROGRESS || next == TicketStatus.REJECTED;
             case IN_PROGRESS -> next == TicketStatus.RESOLVED || next == TicketStatus.REJECTED;
