@@ -93,6 +93,8 @@ public class SecurityConfig {
                                 .permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/notifications/stream")
                                 .permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/bookings/public/**")
+                                .permitAll()
                                 .anyRequest()
                                 .authenticated());
         return http.build();
