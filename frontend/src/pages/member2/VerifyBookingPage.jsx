@@ -2,7 +2,7 @@ import { useParams } from "react-router-dom";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle, XCircle, Clock, AlertCircle, ArrowLeft } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "../../api/axiosInstance";
 
 export default function VerifyBookingPage() {
   const { id } = useParams();
@@ -12,7 +12,7 @@ export default function VerifyBookingPage() {
  const { data: booking, isLoading, isError } = useQuery({
     queryKey: ["verify-booking", id],
     queryFn: () =>
-      axios.get(`http://localhost:8081/api/bookings/public/${id}`)
+      axiosInstance.get(`/bookings/public/${id}`)
         .then((r) => r.data),
     refetchOnMount: true,
     staleTime: 0,

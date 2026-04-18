@@ -77,8 +77,25 @@ export default function MyBookingsPage() {
       </div>
 
 
+      {/* Status filter tabs */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {STATUS_TABS.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+              activeTab === tab
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
       {/* Bookings List */}
-      {bookings.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
           <p className="text-lg">No bookings found</p>
           <button
@@ -90,7 +107,7 @@ export default function MyBookingsPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {bookings.map((booking) => {
+          {filtered.map((booking) => {
             const isHighlighted = booking.id === highlightId;
             return (
             <div

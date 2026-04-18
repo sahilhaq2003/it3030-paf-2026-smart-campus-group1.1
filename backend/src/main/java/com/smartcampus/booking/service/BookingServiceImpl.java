@@ -11,6 +11,7 @@ import com.smartcampus.facilities.model.Facility;
 import com.smartcampus.facilities.repository.FacilityRepository;
 import com.smartcampus.user.model.User;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -248,6 +249,10 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponseDTO cancelBooking(Long bookingId, Long userId) {
         Booking booking = findOrThrow(bookingId);
 
+        if (!booking.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("You are not authorized to cancel this booking.");
+        }
+
         if (booking.getStatus() == BookingStatus.REJECTED ||
             booking.getStatus() == BookingStatus.CANCELLED) {
             throw new IllegalStateException("This booking cannot be cancelled.");
@@ -309,6 +314,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
 public Map<String, Object> getAnalytics() {
     List<Booking> all = bookingRepository.findAll();
 

@@ -4,6 +4,7 @@ import com.smartcampus.auth.model.UserPrincipal;
 import com.smartcampus.booking.dto.BookingRequestDTO;
 import com.smartcampus.booking.dto.BookingResponseDTO;
 import com.smartcampus.booking.dto.BookingReviewDTO;
+import com.smartcampus.booking.dto.PublicBookingDTO;
 import com.smartcampus.booking.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -127,7 +128,16 @@ public ResponseEntity<Map<String, Object>> getAnalytics() {
 }
 
 @GetMapping("/public/{id}")
-public ResponseEntity<BookingResponseDTO> getPublicBooking(@PathVariable Long id) {
-    return ResponseEntity.ok(bookingService.getBookingById(id));
+public ResponseEntity<PublicBookingDTO> getPublicBooking(@PathVariable Long id) {
+    BookingResponseDTO full = bookingService.getBookingById(id);
+    PublicBookingDTO pub = new PublicBookingDTO();
+    pub.setId(full.getId());
+    pub.setStatus(full.getStatus());
+    pub.setFacilityName(full.getFacilityName());
+    pub.setPurpose(full.getPurpose());
+    pub.setBookingDate(full.getBookingDate());
+    pub.setStartTime(full.getStartTime());
+    pub.setEndTime(full.getEndTime());
+    return ResponseEntity.ok(pub);
 }
 }
