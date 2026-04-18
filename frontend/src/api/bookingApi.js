@@ -17,10 +17,11 @@ export const getBookingById = (id) =>
   axiosInstance.get(`/bookings/${id}`);
 
 // Check availability
-export const checkAvailability = (facilityId, date, startTime, endTime) =>
-  axiosInstance.get('/bookings/availability', {
-    params: { facilityId, date, startTime, endTime }
-  });
+export const checkAvailability = (facilityId, date, startTime, endTime, excludeBookingId = null) => {
+  const params = { facilityId, date, startTime, endTime };
+  if (excludeBookingId) params.excludeBookingId = excludeBookingId;
+  return axiosInstance.get('/bookings/availability', { params });
+};
 
 // Approve booking (admin)
 export const approveBooking = (id) =>

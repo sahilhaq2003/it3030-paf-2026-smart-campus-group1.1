@@ -65,7 +65,7 @@ export default function AppRoutes() {
         <Route path="/facilities" element={<FacilitiesListPage />} />
         <Route path="/facilities/:id" element={<FacilityDetailPage />} />
         {/* Member 2 - Booking Routes */}
-        <Route path="/bookings/request" element={<BookingRequestPage />} />
+        <Route path="/facilities/:id/book" element={<BookingRequestPage />} />
         <Route path="/bookings/my" element={<MyBookingsPage />} />
         <Route path="/bookings/edit/:id" element={<EditBookingPage />} />
         <Route path="/bookings/:id" element={<BookingDetailPage />} />

@@ -155,7 +155,7 @@ export default function FacilityDetailPage() {
                 </div>
                 
                 <button 
-                  onClick={() => navigate(`/bookings/request?facilityId=${facility.id}`)}
+                  onClick={() => navigate(`/facilities/${facility.id}/book`)}
                   disabled={facility.status !== 'ACTIVE'}
                   className={`w-full py-5 rounded-2xl text-lg font-black uppercase tracking-widest shadow-xl transition-all duration-500 transform relative overflow-hidden group
                     ${facility.status === 'ACTIVE' 
