@@ -5,7 +5,7 @@ import { Calendar, Clock, FileText, Users } from "lucide-react";
 import toast from "react-hot-toast";
 
 // Imports from your API
-import { getBookingById, checkAvailability, updateBooking } from "../../api/bookingApi"; 
+import { getBookingById, checkAvailability, updateBooking } from "../../api/bookingApi";
 import axiosInstance from "../../api/axiosInstance";
 
 // --- Time Helper Functions ---
@@ -89,10 +89,10 @@ function Stepper({ value, min = 1, max, onChange }) {
     <div style={{ display: "flex", alignItems: "center" }}>
       <button type="button" onClick={() => onChange(Math.max(min, (Number(value) || min) - 1))} disabled={Number(value) <= min} style={{ width: 40, height: 40, border: "1px solid #e5e7eb", borderRadius: "8px 0 0 8px", background: "#fff", fontSize: 20, cursor: Number(value) <= min ? "not-allowed" : "pointer", color: Number(value) <= min ? "#d1d5db" : "#374151", fontWeight: 500 }}>−</button>
       <input type="text" inputMode="numeric" value={value} onChange={handleInput} onBlur={(e) => {
-          const num = parseInt(e.target.value, 10);
-          if (isNaN(num) || num < min) onChange(min);
-          else if (max !== undefined && num > max) onChange(max);
-        }} style={{ width: 56, height: 40, border: "1px solid #e5e7eb", borderLeft: "none", borderRight: "none", textAlign: "center", fontSize: 16, fontWeight: 600, color: "#111827", background: "#fff", outline: "none" }} />
+        const num = parseInt(e.target.value, 10);
+        if (isNaN(num) || num < min) onChange(min);
+        else if (max !== undefined && num > max) onChange(max);
+      }} style={{ width: 56, height: 40, border: "1px solid #e5e7eb", borderLeft: "none", borderRight: "none", textAlign: "center", fontSize: 16, fontWeight: 600, color: "#111827", background: "#fff", outline: "none" }} />
       <button type="button" onClick={() => onChange(Math.min(max ?? Infinity, (Number(value) || min) + 1))} disabled={max !== undefined && Number(value) >= max} style={{ width: 40, height: 40, border: "1px solid #e5e7eb", borderRadius: "0 8px 8px 0", background: "#fff", fontSize: 20, cursor: (max !== undefined && Number(value) >= max) ? "not-allowed" : "pointer", color: (max !== undefined && Number(value) >= max) ? "#d1d5db" : "#374151", fontWeight: 500 }}>+</button>
     </div>
   );
@@ -129,7 +129,7 @@ export default function EditBookingPage() {
     purpose: "",
     expectedAttendees: 1,
   });
-  
+
   const [isAvailable, setIsAvailable] = useState(null);
   const [checking, setChecking] = useState(false);
 
@@ -158,7 +158,7 @@ export default function EditBookingPage() {
         expectedAttendees: booking.expectedAttendees || 1,
       });
       // Existing time is inherently available
-      setIsAvailable(true); 
+      setIsAvailable(true);
     }
   }, [booking]);
 
@@ -200,7 +200,7 @@ export default function EditBookingPage() {
 
 
   // 5. Build mock updater (replace with your real edit API when ready)
-    const updateMutation = useMutation({
+  const updateMutation = useMutation({
     mutationFn: (data) => updateBooking(id, data), // <-- This actually calls your Spring Boot Server now!
     onSuccess: () => {
       toast.success("Booking updated!");
@@ -233,7 +233,7 @@ export default function EditBookingPage() {
 
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", padding: "0px 24px", fontFamily: "system-ui, sans-serif" }}>
-      
+
       {/* Header exactly like screenshot */}
       <div style={{ marginBottom: "32px", marginTop: "12px" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: "#111827", margin: "0 0 4px" }}>
@@ -263,7 +263,7 @@ export default function EditBookingPage() {
           </div>
         </div>
         <p style={{ fontSize: 13, color: "#6b7280", margin: "8px 0 0" }}>Available hours: 08:00 — 18:00</p>
-        
+
         {/* Availability Status Box */}
         {checking && <div style={{ marginTop: 10, padding: "10px 14px", background: "#f9fafb", borderRadius: 8, fontSize: 13, color: "#6b7280" }}>Checking availability...</div>}
         {!checking && isAvailable === true && !isPastTime && formData.startTime < formData.endTime && <div style={{ marginTop: 10, padding: "10px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, fontSize: 13, color: "#15803d" }}>✅ This time slot is available!</div>}
@@ -281,23 +281,23 @@ export default function EditBookingPage() {
       </SectionCard>
 
       <SectionCard icon={<FileText size={20} />} title="Purpose of Booking">
-        <textarea 
-          name="purpose" 
+        <textarea
+          name="purpose"
           value={formData.purpose}
           onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-          rows={5} 
+          rows={5}
           placeholder="Please describe the purpose of your booking..."
-          style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }} 
+          style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
         />
       </SectionCard>
 
       <SectionCard icon={<Users size={20} />} title="Expected Attendees">
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Stepper 
-            value={Number(formData.expectedAttendees)} 
-            min={1} 
-            max={maxAttendees || 5} 
-            onChange={(val) => setFormData({ ...formData, expectedAttendees: val })} 
+          <Stepper
+            value={Number(formData.expectedAttendees)}
+            min={1}
+            max={maxAttendees || 5}
+            onChange={(val) => setFormData({ ...formData, expectedAttendees: val })}
           />
           <span style={{ fontSize: 14, color: "#6b7280" }}>(Maximum: {maxAttendees || 5})</span>
         </div>
