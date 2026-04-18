@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -29,14 +30,27 @@ public class AttachmentService {
     private static final Set<String> ALLOWED_TYPES = Set.of(
         "image/jpeg", "image/png", "image/webp"
     );
+    private static final Map<String, String> EXTENSION_TO_MIME_TYPE = Map.of(
+        ".jpg", "image/jpeg",
+        ".jpeg", "image/jpeg",
+        ".png", "image/png",
+        ".webp", "image/webp"
+    );
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     private static final int MAX_FILES = 3;
+    private static final Pattern SANITIZE_FILENAME = Pattern.compile("[^a-zA-Z0-9._-]");
 
     public List<Attachment> saveAttachments(List<MultipartFile> files, Ticket ticket) {
         // Validate total number of files
+        if (files == null || files.isEmpty()) {
+            return Collections.emptyList();
+        }
+        
         if (files.size() > MAX_FILES) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "Maximum " + MAX_FILES + " attachments are allowed per ticket. You attempted to upload " + files.size());
+            String errorMsg = String.format(
+                "Too many files uploaded. Maximum %d files allowed per ticket, but %d files were provided. Please remove %d file(s) and try again.",
+                MAX_FILES, files.size(), files.size() - MAX_FILES);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, errorMsg);
         }
 
         List<Attachment> saved = new ArrayList<>();
@@ -54,8 +68,12 @@ public class AttachmentService {
         // Validate file before processing
         validateFile(file);
 
-        // Generate a unique filename using UUID to avoid collisions
-        String storedName = UUID.randomUUID() + getExtension(file.getOriginalFilename());
+        // Sanitize and get original filename
+        String sanitizedOriginalName = sanitizeFilename(file.getOriginalFilename());
+        
+        // Generate a unique filename using UUID to avoid collisions, preserving extension
+        String extension = getExtension(sanitizedOriginalName);
+        String storedName = UUID.randomUUID() + extension;
         String fileUrl = null;
 
         try {
@@ -72,7 +90,7 @@ public class AttachmentService {
         // Build and persist the attachment record
         var attachment = Attachment.builder()
             .ticket(ticket)
-            .originalName(file.getOriginalFilename())
+            .originalName(sanitizedOriginalName)
             .storedName(storedName)
             .mimeType(file.getContentType())
             .size(file.getSize())
@@ -129,27 +147,93 @@ public class AttachmentService {
     }
 
     public void validateFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "File is empty. Please select a valid file and try again.");
+        }
+        
+        String filename = file.getOriginalFilename();
+        if (filename == null || filename.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "File name is invalid. Please select a file with a valid name.");
+        }
+        
         // Check file size doesn't exceed maximum
         if (file.getSize() > MAX_FILE_SIZE) {
             long maxMB = MAX_FILE_SIZE / (1024 * 1024);
-            long fileSizeMB = file.getSize() / (1024 * 1024);
+            long fileSizeMB = (file.getSize() + 1024 * 1024 - 1) / (1024 * 1024); // Round up
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "File size exceeds limit: '" + file.getOriginalFilename() + "' is " + fileSizeMB + 
-                "MB but maximum allowed is " + maxMB + "MB");
+                String.format(
+                    "File '%s' is too large (%d MB). Maximum allowed file size is %d MB. Please compress or select a smaller file.",
+                    filename, fileSizeMB, maxMB));
         }
         
         // Check file type is in allowed list (images only: JPEG, PNG, WEBP)
-        if (!ALLOWED_TYPES.contains(file.getContentType())) {
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
+            String supportedTypes = "JPEG, PNG, WEBP";
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "File type not allowed: '" + file.getContentType() + "'. Only JPEG, PNG, and WEBP images are accepted.");
+                String.format(
+                    "File type '%s' is not supported. Supported formats are: %s",
+                    contentType != null ? contentType : "unknown", supportedTypes));
+        }
+        
+        // Validate that file extension matches the content-type (security check)
+        String fileExtension = getExtension(filename).toLowerCase();
+        String expectedMimeType = EXTENSION_TO_MIME_TYPE.get(fileExtension);
+        
+        if (expectedMimeType != null && !expectedMimeType.equals(contentType)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                String.format(
+                    "File extension '%s' does not match the file content type '%s'. Please ensure the file is a valid %s image.",
+                    fileExtension, contentType, expectedMimeType.replace("image/", "").toUpperCase()));
+        }
+        
+        if (!EXTENSION_TO_MIME_TYPE.containsKey(fileExtension)) {
+            String supportedExtensions = "jpg, jpeg, png, webp";
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                String.format(
+                    "File extension '%s' is not supported. Supported extensions are: %s",
+                    fileExtension, supportedExtensions));
         }
     }
 
     public void validateFileCount(List<MultipartFile> files, Ticket ticket) {
-        if (files.size() > MAX_FILES) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "Maximum " + MAX_FILES + " attachments allowed");
+        if (files == null || files.isEmpty()) {
+            return;
         }
+        
+        if (files.size() > MAX_FILES) {
+            String errorMsg = String.format(
+                "Too many files uploaded. Maximum %d files allowed per ticket, but %d files were provided. Please remove %d file(s) and try again.",
+                MAX_FILES, files.size(), files.size() - MAX_FILES);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, errorMsg);
+        }
+    }
+
+    /**
+     * Sanitizes filename by removing potentially dangerous characters.
+     * Keeps only alphanumeric, dots, underscores, and hyphens.
+     */
+    private String sanitizeFilename(String filename) {
+        if (filename == null || filename.isBlank()) {
+            return "file";
+        }
+        
+        // Remove any path components (e.g., "../" or "C:\\")
+        String sanitized = filename.replaceAll("[\\/]", "_");
+        
+        // Replace dangerous characters with underscores
+        sanitized = SANITIZE_FILENAME.matcher(sanitized).replaceAll("_");
+        
+        // Limit length to prevent filesystem issues
+        if (sanitized.length() > 255) {
+            String extension = getExtension(sanitized);
+            int maxNameLength = 255 - extension.length();
+            sanitized = sanitized.substring(0, maxNameLength) + extension;
+        }
+        
+        return sanitized;
     }
 
     private String getExtension(String filename) {

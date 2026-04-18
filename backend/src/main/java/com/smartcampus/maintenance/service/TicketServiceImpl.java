@@ -410,6 +410,7 @@ public class TicketServiceImpl implements TicketService {
                 .url(attachmentPublicOrApiUrl(t.getId(), a))
                 .mimeType(a.getMimeType())
                 .size(a.getSize())
+                .uploadDate(a.getUploadDate())
                 .build()).toList())
             .createdAt(t.getCreatedAt())
             .updatedAt(t.getUpdatedAt())
