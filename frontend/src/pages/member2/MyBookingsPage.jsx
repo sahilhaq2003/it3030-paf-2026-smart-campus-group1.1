@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { getMyBookings, cancelBooking } from "../../api/bookingApi";
 import StatusBadge from "../../components/StatusBadge";
-import { Trash2 } from "lucide-react";
+import { Trash2, Plus, Calendar, Clock, ArrowRight, Loader2, SearchX } from "lucide-react";
 
 
 const STATUS_TABS = ["ALL", "PENDING", "APPROVED", "REJECTED", "CANCELLED"];
@@ -36,8 +36,9 @@ export default function MyBookingsPage() {
   });
 
   const bookings = (data || []).sort((a, b) => 
-  new Date(b.createdAt) - new Date(a.createdAt)
-);
+    new Date(b.createdAt) - new Date(a.createdAt)
+  );
+  
   const filtered = activeTab === "ALL"
     ? bookings
     : bookings.filter((b) => b.status === activeTab);
@@ -53,108 +54,135 @@ export default function MyBookingsPage() {
   }, [highlightId, highlightRef.current]);
 
   if (isLoading) return (
-    <div className="p-6 text-center text-gray-500">Loading bookings...</div>
+    <div className="flex flex-col justify-center items-center min-h-screen bg-slate-50">
+      <Loader2 className="animate-spin text-indigo-600 w-14 h-14 mb-4" />
+      <p className="text-slate-500 font-medium">Loading your bookings...</p>
+    </div>
   );
 
   if (isError) return (
-    <div className="p-6 text-center text-red-500">Failed to load bookings.</div>
+    <div className="flex flex-col justify-center items-center min-h-screen bg-slate-50">
+      <p className="text-rose-500 font-bold text-lg mb-2">Failed to load bookings</p>
+      <button onClick={() => window.location.reload()} className="text-indigo-600 hover:underline">Try Again</button>
+    </div>
   );
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Bookings</h1>
-          <p className="text-gray-500 mt-1">View and manage your booking requests</p>
-        </div>
-        <button
-          onClick={() => navigate("/facilities")}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700"
-        >
-          + New Booking
-        </button>
-      </div>
-
-
-      {/* Status filter tabs */}
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-              activeTab === tab
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      {/* Bookings List */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
-          <p className="text-lg">No bookings found</p>
+    <div className="min-h-screen bg-slate-50 font-sans pb-24 pt-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 mt-2">
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">My Bookings</h1>
+            <p className="text-slate-500 font-medium text-sm mt-1">View and manage your current and past facility reservations.</p>
+          </div>
           <button
             onClick={() => navigate("/facilities")}
-            className="mt-4 text-blue-600 hover:underline text-sm"
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-bold uppercase tracking-widest text-xs shadow-lg shadow-indigo-200 transition-all hover:-translate-y-1 hover:shadow-indigo-300 shrink-0"
           >
-            Make your first booking
+            <Plus className="w-4 h-4 mr-1" /> New Booking
           </button>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {filtered.map((booking) => {
-            const isHighlighted = booking.id === highlightId;
-            return (
-            <div
-              key={booking.id}
-              ref={isHighlighted ? highlightRef : null}
-              className={`bg-white border rounded-xl p-5 hover:shadow-sm transition-all duration-700 ${
-                isHighlighted
-                  ? "border-blue-400 ring-2 ring-blue-300 shadow-md"
-                  : "border-gray-200"
+
+
+        {/* Status filter tabs */}
+        <div className="flex flex-wrap gap-2.5 mb-8">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold tracking-widest uppercase transition-all border ${
+                activeTab === tab
+                  ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm"
+                  : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-700"
               }`}
             >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold text-gray-900">
-                    {booking.facilityName}
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {booking.bookingDate} | {booking.startTime} — {booking.endTime}
-                  </p>
-                  <p className="text-sm text-gray-600 mt-1">
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Bookings List */}
+        {filtered.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center">
+            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-5">
+              <SearchX className="w-8 h-8 text-slate-300" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">No bookings found</h3>
+            <p className="text-slate-500 mb-6 text-sm max-w-md mx-auto">You don't have any requests matching this status. Want to reserve a room?</p>
+            <button
+              onClick={() => navigate("/facilities")}
+              className="text-indigo-600 font-bold hover:text-indigo-800 tracking-widest uppercase text-xs border-b-2 border-indigo-200 pb-1"
+            >
+              Make your first booking &rarr;
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filtered.map((booking) => {
+              const isHighlighted = booking.id === highlightId;
+              return (
+              <div
+                key={booking.id}
+                ref={isHighlighted ? highlightRef : null}
+                className={`bg-white rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-slate-200 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-50/40 transition-all duration-300 group ${
+                  isHighlighted
+                    ? "ring-2 ring-indigo-500 shadow-lg"
+                    : "shadow-sm"
+                }`}
+              >
+                <div className="flex-1 w-full">
+                  <div className="flex flex-wrap items-center gap-4 mb-3">
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                      {booking.facilityName}
+                    </h3>
+                    <StatusBadge status={booking.status} />
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5 bg-slate-50 rounded-xl mb-3 border border-slate-100 w-max max-w-full">
+                    <div className="flex items-center gap-2 text-[13px] font-bold text-slate-700">
+                      <Calendar className="w-4 h-4 text-indigo-500" />
+                      {booking.bookingDate}
+                    </div>
+                    <div className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block"></div>
+                    <div className="flex items-center gap-2 text-[13px] font-bold text-slate-700">
+                      <Clock className="w-4 h-4 text-indigo-500" />
+                      {booking.startTime} <span className="text-slate-400 mx-1">-</span> {booking.endTime}
+                    </div>
+                  </div>
+
+                  <p className="text-slate-600 leading-relaxed text-[13px] max-w-2xl">
+                    <span className="font-black text-slate-400 uppercase tracking-widest text-[9px] mr-2">Purpose</span>
                     {booking.purpose}
                   </p>
+
                   {booking.rejectionReason && (
-                    <p className="text-sm text-red-600 mt-1">
-                      Reason: {booking.rejectionReason}
-                    </p>
+                    <div className="mt-2 p-3 bg-rose-50 border border-rose-100 rounded-lg">
+                      <p className="text-rose-700 text-[13px]">
+                        <span className="font-black text-rose-400 uppercase tracking-widest text-[9px] mr-2">Denial Reason</span>
+                        {booking.rejectionReason}
+                      </p>
+                    </div>
                   )}
                 </div>
-                                <div className="flex flex-row items-center gap-4">
-                  <StatusBadge status={booking.status} />
-                  
+                
+                <div className="flex sm:flex-col gap-2 w-full sm:w-auto">
                   <button
                     onClick={() => navigate(`/bookings/${booking.id}`)}
-                    className="text-sm font-medium text-blue-600 hover:underline"
+                    className="flex-1 flex items-center justify-center gap-1.5 sm:px-6 py-3 bg-slate-50 hover:bg-slate-900 text-slate-700 hover:text-white rounded-xl font-bold text-xs tracking-widest uppercase transition-all duration-300 group/btn"
                   >
-                    View
+                    View 
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-1" />
                   </button>
-
-                  
                 </div>
 
               </div>
-            </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
