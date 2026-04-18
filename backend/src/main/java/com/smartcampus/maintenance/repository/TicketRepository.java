@@ -67,6 +67,21 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         @Param("category") TicketCategory category
     );
 
+    /**
+     * Search tickets by keyword in title or description.
+     * Case-insensitive full-text search.
+     */
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE LOWER(t.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+           OR LOWER(t.description) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        ORDER BY t.createdAt DESC
+    """)
+    Page<Ticket> searchByKeyword(
+        @Param("keyword") String keyword,
+        Pageable pageable
+    );
+
     @Query(
             value = """
                     SELECT t.assigned_to AS technician_id, u.name AS technician_name, COUNT(t.id) AS tickets_resolved,

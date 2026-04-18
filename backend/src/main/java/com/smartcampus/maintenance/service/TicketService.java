@@ -34,4 +34,12 @@ public interface TicketService {
     List<TechnicianPerformanceDTO> getTechnicianPerformance();
 
     byte[] exportTicketsCsv(TicketStatus status, TicketCategory category);
+
+    /**
+     * Search tickets by keyword in title or description.
+     * @param keyword Search term to look for in title/description
+     * @param pageable Pagination configuration
+     * @return Page of matching tickets
+     */
+    Page<TicketResponseDTO> searchTickets(String keyword, Pageable pageable);
 }
