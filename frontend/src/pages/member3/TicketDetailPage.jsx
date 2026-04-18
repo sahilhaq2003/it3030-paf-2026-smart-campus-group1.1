@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   CircleDot,
   Wrench,
+  RefreshCw,
 } from "lucide-react";
 import { ticketApi } from "../../api/ticketApi";
 import { useAuth } from "../../context/AuthContext";
@@ -79,15 +80,19 @@ export default function TicketDetailPage() {
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [resolutionNotes, setResolutionNotes] = useState("");
 
-  const { data: ticket, isLoading } = useQuery({
+  const { data: ticket, isLoading, refetch: refetchTicket } = useQuery({
     queryKey: ["ticket", id],
     queryFn: () => ticketApi.getTicketById(id).then((r) => r.data),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
   });
 
-  const { data: comments = [] } = useQuery({
+  const { data: comments = [], refetch: refetchComments } = useQuery({
     queryKey: ["comments", id],
     queryFn: () => ticketApi.getComments(id).then((r) => r.data),
     enabled: Boolean(id && ticket),
+    staleTime: 3 * 60 * 1000, // 3 minutes
+    gcTime: 5 * 60 * 1000,
   });
 
   const addComment = useMutation({
@@ -374,19 +379,37 @@ export default function TicketDetailPage() {
     resolveTicketMutation.mutate(resolutionNotes);
   };
 
+  const handleRefresh = () => {
+    refetchTicket();
+    refetchComments();
+    toast.success("Refreshed");
+  };
+
   return (
     <DashboardPageLayout
       eyebrow={`Ticket #${ticket.id}`}
       title={ticket.title}
       subtitle={[ticket.category, ticket.location].filter(Boolean).join(" · ")}
     >
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="mb-6 flex items-center text-sm font-medium text-campus-brand-hover transition hover:opacity-90"
-      >
-        <ChevronLeft size={16} className="mr-1" /> Back
-      </button>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="flex items-center text-sm font-medium text-campus-brand-hover transition hover:opacity-90"
+        >
+          <ChevronLeft size={16} className="mr-1" /> Back
+        </button>
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-200 disabled:opacity-60"
+          title="Refresh ticket details and comments"
+        >
+          <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
 
       <div className="mb-6 rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50 to-white px-5 py-4 shadow-sm ring-1 ring-slate-900/[0.04]">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">

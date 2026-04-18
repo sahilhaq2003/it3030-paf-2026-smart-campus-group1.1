@@ -39,6 +39,8 @@ export default function UserDashboard() {
       ticketApi
         .getMyTickets({ page: 0, size: 100, sort: "createdAt,desc" })
         .then((r) => r.data),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000,
   });
 
   const { data: facilitiesData, isLoading: facilitiesLoading } = useQuery({
@@ -47,6 +49,8 @@ export default function UserDashboard() {
       facilityApi
         .searchFacilities({ status: "ACTIVE", page: 0, size: 4 })
         .then((r) => r.data),
+    staleTime: 10 * 60 * 1000, // 10 minutes - facilities data rarely changes
+    gcTime: 30 * 60 * 1000,
   });
 
   const content = data?.content;
