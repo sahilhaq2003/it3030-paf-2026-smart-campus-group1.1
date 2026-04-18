@@ -11,7 +11,7 @@ import StatusBadge from "../../components/StatusBadge";
 import TicketCard from "../../components/TicketCard";
 import AssignTechnicianModal from "../../components/AssignTechnicianModal";
 import ConfirmModal from "../../components/ConfirmModal";
-import { Search, ChevronRight } from "lucide-react";
+import { Search, ChevronRight, RefreshCw } from "lucide-react";
 import { ticketApi } from "../../api/ticketApi";
 import { fetchTechnicians } from "../../api/userAdminApi";
 import { useAuth } from "../../context/AuthContext";
@@ -55,24 +55,36 @@ export default function AdminTicketsPage() {
   const ticketsQuery = useQuery({
     queryKey: ["admin", "tickets", "list"],
     queryFn: () =>
-      ticketApi.getAllTickets({ page: 0, size: 500, sort: "createdAt,desc" }).then((r) => r.data),
+      ticketApi.getAllTickets({ page: 0, size: 200, sort: "createdAt,desc" }).then((r) => r.data),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000,
   });
 
   const techniciansQuery = useQuery({
     queryKey: ["admin", "technicians"],
     queryFn: fetchTechnicians,
     enabled: isAdmin,
+    staleTime: 10 * 60 * 1000, // 10 minutes - technicians data changes infrequently
+    gcTime: 30 * 60 * 1000,
   });
 
   const performanceQuery = useQuery({
     queryKey: ["admin", "technician", "performance"],
     queryFn: () => ticketApi.getTechnicianPerformance().then((r) => r.data),
     enabled: isAdmin,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const tickets = ticketsQuery.data?.content ?? [];
   const technicians = techniciansQuery.data ?? [];
   const performanceData = performanceQuery.data ?? [];
+
+  const handleRefreshTickets = () => {
+    ticketsQuery.refetch();
+    performanceQuery.refetch();
+    toast.success("Tickets refreshed");
+  };
 
   // Sort performance data
   const sortedPerformanceData = useMemo(() => {
@@ -457,25 +469,37 @@ export default function AdminTicketsPage() {
             <option value="LOW">Low</option>
           </select>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <span className="self-center text-sm font-medium text-slate-600">Sort by:</span>
-          {[
-            ["created", "Date"],
-            ["priority", "Priority"],
-          ].map(([option, label]) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setSortBy(option)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                sortBy === option
-                  ? "bg-campus-brand text-white shadow-sm"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            <span className="self-center text-sm font-medium text-slate-600">Sort by:</span>
+            {[
+              ["created", "Date"],
+              ["priority", "Priority"],
+            ].map(([option, label]) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setSortBy(option)}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  sortBy === option
+                    ? "bg-campus-brand text-white shadow-sm"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleRefreshTickets}
+            disabled={ticketsQuery.isLoading}
+            className="flex items-center gap-1.5 rounded-lg bg-campus-brand/10 px-3 py-1.5 text-sm font-medium text-campus-brand transition hover:bg-campus-brand/20 disabled:opacity-60"
+            title="Refresh ticket list"
+          >
+            <RefreshCw size={16} className={ticketsQuery.isLoading ? "animate-spin" : ""} />
+            Refresh
+          </button>
         </div>
       </div>
 

@@ -36,14 +36,18 @@ export default function AdminDashboard() {
     : "Welcome to the operations dashboard.";
 
   const bookingsQuery = useQuery({
-  queryKey: ["admin", "bookings", "analytics"],
-  queryFn: () => getBookingAnalytics().then((r) => r.data),
-});
+    queryKey: ["admin", "bookings", "analytics"],
+    queryFn: () => getBookingAnalytics().then((r) => r.data),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 30 * 60 * 1000,
+  });
 
   const totalTicketsQuery = useQuery({
     queryKey: ["admin", "tickets", "countAll"],
     queryFn: () =>
       ticketApi.getAllTickets({ page: 0, size: 1 }).then((r) => r.data),
+    staleTime: 3 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const openTicketsQuery = useQuery({
@@ -52,6 +56,8 @@ export default function AdminDashboard() {
       ticketApi
         .getAllTickets({ status: "OPEN", page: 0, size: 1 })
         .then((r) => r.data),
+    staleTime: 3 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const inProgressTicketsQuery = useQuery({
@@ -60,21 +66,29 @@ export default function AdminDashboard() {
       ticketApi
         .getAllTickets({ status: "IN_PROGRESS", page: 0, size: 1 })
         .then((r) => r.data),
+    staleTime: 3 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const usersQuery = useQuery({
     queryKey: ["admin", "users", "count"],
     queryFn: fetchUsers,
+    staleTime: 15 * 60 * 1000, // 15 minutes - user list rarely changes
+    gcTime: 30 * 60 * 1000,
   });
 
   const facilitiesQuery = useQuery({
     queryKey: ["admin", "facilities", "count"],
-    queryFn: () => facilityApi.getAllFacilities({ page: 0, size: 1 })
+    queryFn: () => facilityApi.getAllFacilities({ page: 0, size: 1 }),
+    staleTime: 15 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   const techniciansQuery = useQuery({
     queryKey: ["admin", "technicians"],
     queryFn: fetchTechnicians,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   const openTickets =
