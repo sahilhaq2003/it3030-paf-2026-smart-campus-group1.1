@@ -151,6 +151,7 @@ function Sidebar() {
   const primaryDash = getDashboardRoute(roles);
   const isOpsAdmin =
     normalizeRoles(roles).has("ADMIN") || normalizeRoles(roles).has("MANAGER");
+  const isTechnician = normalizeRoles(roles).has("TECHNICIAN");
 
   const dash =
     primaryDash === DASHBOARD_PATHS.ADMIN
@@ -195,6 +196,9 @@ function Sidebar() {
       icon: Building,
       active: (p) => p.startsWith("/facilities"),
     });
+  }
+
+  if (!isOpsAdmin && !isTechnician) {
     items.push({
       to: "/bookings/my",
       label: "My Bookings",
@@ -227,6 +231,8 @@ function Sidebar() {
     });
   }
 
+  
+
   if (isOpsAdmin) {
     items.push({
       to: "/admin/users",
@@ -240,12 +246,18 @@ function Sidebar() {
       icon: ClipboardList,
       active: (p) => p.startsWith("/admin/bookings"),
     });
+  }
+
+  if (isOpsAdmin || isTechnician) {
     items.push({
       to: "/admin/scan",
       label: "Scan Booking QR",
       icon: Camera,
       active: (p) => p.startsWith("/admin/scan"),
     });
+  }
+
+  if (isOpsAdmin) {
     items.push({
       to: "/admin/facilities",
       label: "Facility Manager",

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Calendar, Ticket, Building, MapPin, Users, Loader2 } from "lucide-react";
 import { ticketApi } from "../../api/ticketApi";
 import { facilityApi } from "../../api/facilityApi";
+import { getMyBookings } from "../../api/bookingApi";
 import {
   DashboardPageLayout,
   campusTextLink,
@@ -15,13 +16,6 @@ import {
   DashboardTicketList,
 } from "../../components/dashboard/DashboardCards";
 
-/** Sample figures until a campus bookings API exists */
-const BOOKINGS_PLACEHOLDER = {
-  upcoming: 2,
-  completedThisMonth: 5,
-  cancelled: 0,
-};
-
 function summarizeMyTickets(content) {
   const list = content || [];
   const open = list.filter((t) => t.status === "OPEN").length;
@@ -33,6 +27,11 @@ function summarizeMyTickets(content) {
 }
 
 export default function UserDashboard() {
+  const { data: bookingsData, isLoading: bookingsLoading } = useQuery({
+    queryKey: ["dashboard", "myBookings"],
+    queryFn: () => getMyBookings().then((r) => r.data),
+  });
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard", "myTickets"],
     queryFn: () =>
@@ -59,6 +58,12 @@ export default function UserDashboard() {
   const total = typeof totalFromApi === "number" ? totalFromApi : list.length;
   const facilities = facilitiesData?.content || [];
 
+  const bookingsList = bookingsData || [];
+  const totalBookings = bookingsList.length;
+  const approvedBookings = bookingsList.filter(b => b.status === "APPROVED").length;
+  const rejectedBookings = bookingsList.filter(b => b.status === "REJECTED").length;
+  const cancelledBookings = bookingsList.filter(b => b.status === "CANCELLED").length;
+
   return (
     <DashboardPageLayout
       eyebrow="User · Dashboard"
@@ -71,30 +76,39 @@ export default function UserDashboard() {
           description="Rooms, labs, and shared spaces you have reserved."
           icon={Calendar}
           headerAction={
-            <span className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-900">
-              Sample
-            </span>
+            <Link to="/facilities" className={`text-sm ${campusTextLink}`}>
+              + New booking
+            </Link>
           }
         >
-          <DashboardSummaryStatGrid>
-            <DashboardSummaryStat
-              label="Upcoming"
-              value={BOOKINGS_PLACEHOLDER.upcoming}
-              hint="Placeholder until bookings service is live"
-            />
-            <DashboardSummaryStat
-              label="Completed (30 days)"
-              value={BOOKINGS_PLACEHOLDER.completedThisMonth}
-              hint="Historical placeholder"
-            />
-            <DashboardSummaryStat
-              label="Cancelled"
-              value={BOOKINGS_PLACEHOLDER.cancelled}
-            />
-          </DashboardSummaryStatGrid>
-          <p className="mt-4 text-xs leading-relaxed text-slate-400">
-            Connect the bookings module to replace these figures with live reservations.
-          </p>
+          <div className="my-auto">
+            <DashboardSummaryStatGrid columnsClass="grid-cols-2">
+              <DashboardSummaryStat
+                label="Total"
+                value={bookingsLoading ? "…" : totalBookings}
+              />
+              <DashboardSummaryStat
+                label="Approved"
+                value={bookingsLoading ? "…" : approvedBookings}
+              />
+              <DashboardSummaryStat
+                label="Rejected"
+                value={bookingsLoading ? "…" : rejectedBookings}
+              />
+              <DashboardSummaryStat
+                label="Cancelled"
+                value={bookingsLoading ? "…" : cancelledBookings}
+              />
+            </DashboardSummaryStatGrid>
+          </div>
+          <div className="mt-auto pt-6">
+            <Link
+              to="/bookings/my"
+              className={`inline-flex items-center gap-0.5 text-sm ${campusTextLink}`}
+            >
+              View my bookings &gt;
+            </Link>
+          </div>
         </DashboardSummaryCard>
 
         <DashboardSummaryCard

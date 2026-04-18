@@ -43,12 +43,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         AND b.status IN ('PENDING', 'APPROVED')
         AND b.startTime < :endTime
         AND b.endTime > :startTime
+        AND (:excludeBookingId IS NULL OR b.id != :excludeBookingId)
     """)
     boolean existsConflict(
         @Param("facilityId") Long facilityId,
         @Param("date") LocalDate date,
         @Param("startTime") LocalTime startTime,
-        @Param("endTime") LocalTime endTime
+        @Param("endTime") LocalTime endTime,
+        @Param("excludeBookingId") Long excludeBookingId
     );
 
     // Get all conflicting bookings (used in availability checker)
@@ -59,11 +61,13 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         AND b.status IN ('PENDING', 'APPROVED')
         AND b.startTime < :endTime
         AND b.endTime > :startTime
+        AND (:excludeBookingId IS NULL OR b.id != :excludeBookingId)
     """)
     List<Booking> findConflicts(
         @Param("facilityId") Long facilityId,
         @Param("date") LocalDate date,
         @Param("startTime") LocalTime startTime,
-        @Param("endTime") LocalTime endTime
+        @Param("endTime") LocalTime endTime,
+        @Param("excludeBookingId") Long excludeBookingId
     );
 }

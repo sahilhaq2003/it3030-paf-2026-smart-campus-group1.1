@@ -1,32 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calendar, Clock, FileText, Users } from "lucide-react";
+import { ArrowLeft, Clock, CalendarIcon, FileText, Users, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import toast from "react-hot-toast";
 
 // Imports from your API
-import { getBookingById, checkAvailability, updateBooking } from "../../api/bookingApi"; 
+import { getBookingById, checkAvailability, updateBooking } from "../../api/bookingApi";
 import axiosInstance from "../../api/axiosInstance";
 
-// --- Time Helper Functions ---
-function parseTo12(time24) {
-  if (!time24) return null;
-  const [h, m] = time24.split(":").map(Number);
-  return { hour12: h % 12 || 12, minute: m, period: h >= 12 ? "PM" : "AM" };
-}
-
-function toTime24({ hour12, minute, period }) {
-  let h = hour12 % 12;
-  if (period === "PM") h += 12;
-  return `${String(h).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-}
-
-function formatDisplay(parsed) {
-  if (!parsed) return "--:-- --";
-  return `${String(parsed.hour12).padStart(2, "0")}:${String(parsed.minute).padStart(2, "0")} ${parsed.period}`;
-}
-
-// --- Custom Pickers & Components from your Request Page ---
+// --- Custom Pickers & Components ---
 function Column({ items, selected, onSelect, format }) {
   const listRef = useRef(null);
   useEffect(() => {
@@ -40,10 +22,20 @@ function Column({ items, selected, onSelect, format }) {
   }, [selected, items]);
 
   return (
-    <div ref={listRef} style={{ overflowY: "auto", maxHeight: 200, padding: "8px 0", scrollbarWidth: "none" }}>
+    <div
+      ref={listRef}
+      className="overflow-y-auto max-h-[200px] py-2 scrollbar-none"
+    >
       {items.map((item) => (
-        <div key={item} onClick={() => onSelect(item)}
-          style={{ padding: "9px 18px", cursor: "pointer", fontWeight: item === selected ? 600 : 400, color: item === selected ? "#7c3aed" : "#374151", background: item === selected ? "#f5f3ff" : "transparent", borderRadius: 8, margin: "1px 6px", fontSize: 14, whiteSpace: "nowrap" }}>
+        <div
+          key={item}
+          onClick={() => onSelect(item)}
+          className={`px-4 py-2 cursor-pointer rounded-lg mx-1.5 my-0.5 text-sm whitespace-nowrap transition-colors ${
+            item === selected
+              ? "font-semibold text-indigo-700 bg-indigo-50"
+              : "font-normal text-slate-700 hover:bg-slate-100"
+          }`}
+        >
           {format(item)}
         </div>
       ))}
@@ -54,8 +46,13 @@ function Column({ items, selected, onSelect, format }) {
 function TimePicker({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  const parsed = parseTo12(value);
-  const hours = Array.from({ length: 12 }, (_, i) => i + 1);
+
+  const timeStr = value || "08:00";
+  const [hStr, mStr] = timeStr.split(":");
+  const currentHour = parseInt(hStr, 10);
+  const currentMinute = parseInt(mStr, 10);
+
+  const hours = Array.from({ length: 11 }, (_, i) => i + 8);
   const minutes = Array.from({ length: 60 }, (_, i) => i);
 
   useEffect(() => {
@@ -64,28 +61,25 @@ function TimePicker({ value, onChange }) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const parsedOrDefault = parsed || { hour12: 12, minute: 0, period: "AM" };
-  const update = (patch) => onChange(toTime24({ ...parsedOrDefault, ...patch }));
+  const update = (newHour, newMinute) => {
+    onChange(`${String(newHour).padStart(2, "0")}:${String(newMinute).padStart(2, "0")}`);
+  };
 
   return (
-    <div ref={ref} style={{ position: "relative", width: "100%" }}>
-      <div onClick={() => setOpen((o) => !o)} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: "12px 44px 12px 16px", fontSize: 15, color: "#111827", background: "#fff", cursor: "pointer", userSelect: "none", position: "relative" }}>
-        {formatDisplay(parsed)}
-        <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", fontSize: 15 }}>⏱</span>
+    <div ref={ref} className="relative w-full">
+      <div
+        onClick={() => setOpen((o) => !o)}
+        className="border border-slate-200 rounded-xl px-4 py-3 text-slate-800 bg-slate-50 cursor-pointer select-none relative focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all hover:bg-slate-100"
+      >
+        <span className="text-base font-semibold">{value ? value : "--:--"}</span>
+        <Clock className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
       </div>
+
       {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 100, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", display: "flex" }}>
-          <Column items={hours} selected={parsedOrDefault.hour12} onSelect={(h) => update({ hour12: h })} format={(h) => String(h).padStart(2, "0")} />
-          <div style={{ width: 1, background: "#f3f4f6", margin: "8px 0" }} />
-          <Column items={minutes} selected={parsedOrDefault.minute} onSelect={(m) => update({ minute: m })} format={(m) => String(m).padStart(2, "0")} />
-          <div style={{ width: 1, background: "#f3f4f6", margin: "8px 0" }} />
-          <div style={{ display: "flex", flexDirection: "column", padding: "8px 0" }}>
-            {["AM", "PM"].map((p) => (
-              <div key={p} onClick={() => update({ period: p })} style={{ padding: "10px 20px", cursor: "pointer", fontWeight: parsedOrDefault.period === p ? 600 : 400, color: parsedOrDefault.period === p ? "#7c3aed" : "#374151", background: parsedOrDefault.period === p ? "#f5f3ff" : "transparent", borderRadius: 8, margin: "2px 6px", fontSize: 14 }}>
-                {p}
-              </div>
-            ))}
-          </div>
+        <div className="absolute top-[110%] left-0 z-50 bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-200/50 flex overflow-hidden">
+          <Column items={hours} selected={currentHour} onSelect={(h) => update(h, currentMinute)} format={(h) => String(h).padStart(2, "0")} />
+          <div className="w-px bg-slate-100 my-2" />
+          <Column items={minutes} selected={currentMinute} onSelect={(m) => update(currentHour, m)} format={(m) => String(m).padStart(2, "0")} />
         </div>
       )}
     </div>
@@ -102,33 +96,58 @@ function Stepper({ value, min = 1, max, onChange }) {
     onChange(clamped);
   };
   return (
-    <div style={{ display: "flex", alignItems: "center" }}>
-      <button type="button" onClick={() => onChange(Math.max(min, (Number(value) || min) - 1))} disabled={Number(value) <= min} style={{ width: 40, height: 40, border: "1px solid #e5e7eb", borderRadius: "8px 0 0 8px", background: "#fff", fontSize: 20, cursor: Number(value) <= min ? "not-allowed" : "pointer", color: Number(value) <= min ? "#d1d5db" : "#374151", fontWeight: 500 }}>−</button>
-      <input type="text" inputMode="numeric" value={value} onChange={handleInput} onBlur={(e) => {
+    <div className="flex items-center">
+      <button
+        type="button"
+        onClick={() => onChange(Math.max(min, (Number(value) || min) - 1))}
+        disabled={Number(value) <= min}
+        className={`w-12 h-12 border border-slate-200 rounded-l-xl bg-slate-50 flex items-center justify-center text-xl font-medium transition-colors ${
+          Number(value) <= min ? "cursor-not-allowed text-slate-300" : "cursor-pointer text-slate-700 hover:bg-slate-100"
+        }`}
+      >
+        −
+      </button>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={value}
+        onChange={handleInput}
+        onBlur={(e) => {
           const num = parseInt(e.target.value, 10);
           if (isNaN(num) || num < min) onChange(min);
           else if (max !== undefined && num > max) onChange(max);
-        }} style={{ width: 56, height: 40, border: "1px solid #e5e7eb", borderLeft: "none", borderRight: "none", textAlign: "center", fontSize: 16, fontWeight: 600, color: "#111827", background: "#fff", outline: "none" }} />
-      <button type="button" onClick={() => onChange(Math.min(max ?? Infinity, (Number(value) || min) + 1))} disabled={max !== undefined && Number(value) >= max} style={{ width: 40, height: 40, border: "1px solid #e5e7eb", borderRadius: "0 8px 8px 0", background: "#fff", fontSize: 20, cursor: (max !== undefined && Number(value) >= max) ? "not-allowed" : "pointer", color: (max !== undefined && Number(value) >= max) ? "#d1d5db" : "#374151", fontWeight: 500 }}>+</button>
+        }}
+        className="w-16 h-12 border-y border-slate-200 text-center text-lg font-bold text-slate-800 bg-white focus:outline-none focus:ring-0"
+      />
+      <button
+        type="button"
+        onClick={() => onChange(Math.min(max ?? Infinity, (Number(value) || min) + 1))}
+        disabled={max !== undefined && Number(value) >= max}
+        className={`w-12 h-12 border border-slate-200 rounded-r-xl bg-slate-50 flex items-center justify-center text-xl font-medium transition-colors ${
+          (max !== undefined && Number(value) >= max) ? "cursor-not-allowed text-slate-300" : "cursor-pointer text-slate-700 hover:bg-slate-100"
+        }`}
+      >
+        +
+      </button>
     </div>
   );
 }
 
-function SectionCard({ icon, title, children }) {
+function InnerSection({ icon: Icon, title, children }) {
   return (
-    <div style={{ background: "#fff", border: "1px solid #f3f4f6", borderRadius: 16, padding: "28px 32px", marginBottom: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 8, background: "#f5f3ff", color: "#7c3aed" }}>
-          {icon}
+    <div className="mb-10 p-6 border border-slate-100 rounded-3xl bg-slate-50/50 hover:bg-white hover:shadow-xl hover:shadow-indigo-50 transition-all duration-300 group">
+      <div className="flex items-center gap-4 mb-6">
+        <div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl group-hover:scale-110 transition-transform">
+          <Icon className="w-5 h-5" />
         </div>
-        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: "#111827" }}>{title}</h2>
+        <h2 className="text-xl font-bold text-slate-900 tracking-tight">{title}</h2>
       </div>
-      {children}
+      <div className="pl-2 sm:pl-16">
+        {children}
+      </div>
     </div>
   );
 }
-
-const inputStyle = { width: "100%", border: "1px solid #e5e7eb", borderRadius: 10, padding: "12px 16px", fontSize: 15, color: "#111827", background: "#fff", outline: "none", boxSizing: "border-box", fontFamily: "inherit" };
 
 
 // --- Main Edit Page ---
@@ -145,7 +164,7 @@ export default function EditBookingPage() {
     purpose: "",
     expectedAttendees: 1,
   });
-  
+
   const [isAvailable, setIsAvailable] = useState(null);
   const [checking, setChecking] = useState(false);
 
@@ -173,12 +192,17 @@ export default function EditBookingPage() {
         purpose: booking.purpose || "",
         expectedAttendees: booking.expectedAttendees || 1,
       });
-      // Existing time is inherently available
-      setIsAvailable(true); 
+      setIsAvailable(true);
     }
   }, [booking]);
 
   // 4. Verify availability if the user alters the Date or Time
+  const getTodayStr = () => new Date().toISOString().split("T")[0];
+  const getLocalTimeStr = () => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+
   useEffect(() => {
     const isSameAsOriginal = booking &&
       booking.bookingDate === formData.bookingDate &&
@@ -192,18 +216,24 @@ export default function EditBookingPage() {
 
     const { facilityId, bookingDate, startTime, endTime } = formData;
     if (facilityId && bookingDate && startTime && endTime) {
+      if (startTime >= endTime) {
+        setIsAvailable(null);
+        return;
+      }
+      if (bookingDate === getTodayStr() && startTime < getLocalTimeStr()) {
+        setIsAvailable(null);
+        return;
+      }
       setChecking(true);
-      checkAvailability(facilityId, bookingDate, startTime, endTime)
+      checkAvailability(facilityId, bookingDate, startTime, endTime, id)
         .then((res) => setIsAvailable(res.data))
         .catch(() => setIsAvailable(null))
         .finally(() => setChecking(false));
     }
   }, [formData.facilityId, formData.bookingDate, formData.startTime, formData.endTime, booking]);
 
-
-  // 5. Build mock updater (replace with your real edit API when ready)
-    const updateMutation = useMutation({
-    mutationFn: (data) => updateBooking(id, data), // <-- This actually calls your Spring Boot Server now!
+  const updateMutation = useMutation({
+    mutationFn: (data) => updateBooking(id, data),
     onSuccess: () => {
       toast.success("Booking updated!");
       queryClient.invalidateQueries({ queryKey: ["booking", id] });
@@ -212,7 +242,6 @@ export default function EditBookingPage() {
     },
     onError: () => toast.error("Failed to update booking")
   });
-
 
   const handleSubmit = () => {
     updateMutation.mutate({
@@ -225,83 +254,190 @@ export default function EditBookingPage() {
     });
   };
 
-  const maxAttendees = facility?.capacity ?? undefined;
-  const canSubmit = formData.bookingDate && formData.startTime && formData.endTime && formData.purpose && isAvailable !== false;
+  const getFacilityImage = (type) => {
+    if (!type) return '/facilities/campus.png';
+    switch(type) {
+      case 'LECTURE_HALL': return '/facilities/lecture_hall.png';
+      case 'LAB': return '/facilities/lab.png';
+      case 'MEETING_ROOM': return '/facilities/meeting.png';
+      case 'EQUIPMENT': return '/facilities/equipment.png';
+      default: return '/facilities/campus.png';
+    }
+  };
 
-  if (isLoading) return <div className="p-6 text-center text-gray-500">Loading...</div>;
+  const maxAttendees = facility?.capacity ?? undefined;
+  const isValidTimeRange = formData.startTime && formData.endTime && (formData.startTime < formData.endTime);
+  const isPastTime = formData.bookingDate === getTodayStr() && formData.startTime && formData.startTime < getLocalTimeStr();
+  const canSubmit = formData.bookingDate && isValidTimeRange && !isPastTime && formData.purpose && isAvailable !== false;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col justify-center items-center min-h-screen bg-slate-50">
+        <Loader2 className="animate-spin text-indigo-600 w-14 h-14" />
+      </div>
+    );
+  }
 
   return (
-    <div style={{ maxWidth: 860, margin: "0 auto", padding: "0px 24px", fontFamily: "system-ui, sans-serif" }}>
-      
-      {/* Header exactly like screenshot */}
-      <div style={{ marginBottom: "32px", marginTop: "12px" }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: "#111827", margin: "0 0 4px" }}>
-          {booking?.facilityName || "Smart Campus Hub"}
-        </h1>
-        <p style={{ color: "#6b7280", margin: 0, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          Edit Booking
-        </p>
+    <div className="min-h-screen bg-slate-50 font-sans selection:bg-indigo-500 selection:text-white pb-24">
+      {/* Immersive Header Banner */}
+      <div className="relative h-[28rem] w-full bg-slate-900 overflow-hidden">
+        <img 
+          src={getFacilityImage(facility?.resourceType)} 
+          alt={facility?.name || 'Facility'}
+          className="absolute inset-0 w-full h-full object-cover opacity-60 animate-in fade-in zoom-in duration-1000" 
+         />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-slate-900/40 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/50 to-transparent"></div>
+        
+        {/* Header Content */}
+        <div className="absolute inset-0 flex flex-col justify-start pt-24 px-4 sm:px-10 lg:px-20 max-w-5xl mx-auto drop-shadow-xl">
+          <button 
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center text-white/80 hover:text-white mb-10 font-bold text-sm tracking-widest uppercase transition-colors w-max group"
+          >
+            <ArrowLeft className="w-5 h-5 mr-3 transition-transform group-hover:-translate-x-2" /> 
+            Back
+          </button>
+          
+          <h1 className="text-5xl sm:text-6xl font-black tracking-tighter text-white leading-tight mb-4">
+            {booking?.facilityName || "Facility"}
+          </h1>
+          
+          {facility && (
+            <p className="text-indigo-100 font-medium text-lg flex items-center gap-3">
+              <span>{facility.location}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+              <span>Up to {facility.capacity} {facility.capacity === 1 ? "Person" : "People"}</span>
+            </p>
+          )}
+        </div>
       </div>
 
-      <SectionCard icon={<Calendar size={20} />} title="Select Date">
-        <input type="date" name="bookingDate" value={formData.bookingDate}
-          onChange={(e) => setFormData({ ...formData, bookingDate: e.target.value })}
-          min={new Date().toISOString().split("T")[0]}
-          style={{ ...inputStyle, color: formData.bookingDate ? "#111827" : "#9ca3af" }} />
-      </SectionCard>
-
-      <SectionCard icon={<Clock size={20} />} title="Time Range">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 10 }}>
-          <div>
-            <label style={{ display: "block", fontSize: 13, color: "#6b7280", marginBottom: 6 }}>Start Time</label>
-            <TimePicker value={formData.startTime} onChange={(val) => setFormData({ ...formData, startTime: val })} />
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: 13, color: "#6b7280", marginBottom: 6 }}>End Time</label>
-            <TimePicker value={formData.endTime} onChange={(val) => setFormData({ ...formData, endTime: val })} />
-          </div>
-        </div>
-        <p style={{ fontSize: 13, color: "#6b7280", margin: "8px 0 0" }}>Available hours: 08:00 — 18:00</p>
+      {/* Main Single Overlapping Card */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-24 relative z-20">
+        <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl shadow-indigo-100/50 overflow-hidden border border-white p-6 sm:p-14">
         
-        {/* Availability Status Box */}
-        {checking && <div style={{ marginTop: 10, padding: "10px 14px", background: "#f9fafb", borderRadius: 8, fontSize: 13, color: "#6b7280" }}>Checking availability...</div>}
-        {!checking && isAvailable === true && <div style={{ marginTop: 10, padding: "10px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, fontSize: 13, color: "#15803d" }}>✅ This time slot is available!</div>}
-        {!checking && isAvailable === false && <div style={{ marginTop: 10, padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>❌ This slot is not available. Please choose a different time.</div>}
-      </SectionCard>
+          <div className="mb-10">
+            <h3 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">Edit Reservation Details</h3>
+            <p className="text-slate-500 font-medium text-base">Make changes to your booking request. Modifications are subject to facility availability.</p>
+          </div>
 
-      <SectionCard icon={<FileText size={20} />} title="Purpose of Booking">
-        <textarea 
-          name="purpose" 
-          value={formData.purpose}
-          onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-          rows={5} 
-          placeholder="Please describe the purpose of your booking..."
-          style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }} 
-        />
-      </SectionCard>
+          <InnerSection icon={CalendarIcon} title="Select Date">
+            <div className="relative max-w-sm">
+              <input 
+                type="date" 
+                name="bookingDate" 
+                value={formData.bookingDate}
+                onChange={(e) => setFormData({ ...formData, bookingDate: e.target.value })}
+                min={new Date().toISOString().split("T")[0]}
+                className={`w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-800 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-semibold ${!formData.bookingDate && 'text-slate-400 font-normal'} hover:bg-slate-100`}
+              />
+            </div>
+          </InnerSection>
 
-      <SectionCard icon={<Users size={20} />} title="Expected Attendees">
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Stepper 
-            value={Number(formData.expectedAttendees)} 
-            min={1} 
-            max={maxAttendees || 5} 
-            onChange={(val) => setFormData({ ...formData, expectedAttendees: val })} 
-          />
-          <span style={{ fontSize: 14, color: "#6b7280" }}>(Maximum: {maxAttendees || 5})</span>
+          <InnerSection icon={Clock} title="Time Range">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4 max-w-xl">
+              <div>
+                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Start Time</label>
+                <TimePicker value={formData.startTime} onChange={(val) => setFormData({ ...formData, startTime: val })} />
+              </div>
+              <div>
+                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">End Time</label>
+                <TimePicker value={formData.endTime} onChange={(val) => setFormData({ ...formData, endTime: val })} />
+              </div>
+            </div>
+            <p className="text-sm font-bold text-slate-500 mt-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-400"></span> Available hours: 08:00 — 18:00
+            </p>
+
+            <div className="mt-6 space-y-3 max-w-xl">
+              {checking && (
+                <div className="flex items-center gap-3 p-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-600 shadow-sm">
+                  <Loader2 className="w-5 h-5 animate-spin text-indigo-500" /> Checking availability...
+                </div>
+              )}
+              
+              {!checking && isAvailable === true && !isPastTime && formData.startTime < formData.endTime && (
+                <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-100 rounded-xl text-sm font-bold text-emerald-700 shadow-sm">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500" /> This slot is available!
+                </div>
+              )}
+              
+              {!checking && isAvailable === false && !isPastTime && formData.startTime < formData.endTime && (
+                <div className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-100 rounded-xl text-sm font-bold text-rose-700 shadow-sm">
+                  <XCircle className="w-5 h-5 text-rose-500" /> This slot is not available. Please choose a different time.
+                </div>
+              )}
+              
+              {formData.startTime && formData.endTime && formData.startTime >= formData.endTime && (
+                <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl text-sm font-bold text-amber-700 shadow-sm">
+                  <XCircle className="w-5 h-5 text-amber-500" /> Invalid time range. Start time must be before end time.
+                </div>
+              )}
+              
+              {isPastTime && (
+                <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl text-sm font-bold text-amber-700 shadow-sm">
+                  <XCircle className="w-5 h-5 text-amber-500" /> Cannot book for times in the past.
+                </div>
+              )}
+            </div>
+          </InnerSection>
+
+          <InnerSection icon={FileText} title="Purpose of Booking">
+            <textarea 
+              name="purpose" 
+              value={formData.purpose}
+              onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
+              rows={4} 
+              placeholder="Please describe the purpose of your academic or organizational booking..."
+              className="w-full max-w-2xl border border-slate-200 rounded-xl px-4 py-3 text-slate-800 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-base resize-y hover:bg-slate-100"
+            />
+          </InnerSection>
+
+          <InnerSection icon={Users} title="Expected Attendees">
+            <div className="flex items-center gap-6">
+              <Stepper 
+                value={Number(formData.expectedAttendees)} 
+                min={1} 
+                max={maxAttendees}
+                onChange={(val) => setFormData({ ...formData, expectedAttendees: val })} 
+              />
+              {maxAttendees && (
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Capacity Limit</span>
+                  <span className="text-base font-bold text-slate-700">Max {maxAttendees} persons</span>
+                </div>
+              )}
+            </div>
+          </InnerSection>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 mt-12 pt-8 border-t border-slate-100">
+            <button 
+              type="button" 
+              onClick={() => navigate(-1)}
+              className="sm:w-1/3 py-3.5 border border-slate-200 rounded-xl bg-white text-slate-600 text-sm font-bold uppercase tracking-widest hover:bg-slate-50 hover:border-slate-300 hover:shadow-lg transition-all"
+            >
+              Cancel
+            </button>
+            <button 
+              type="button" 
+              onClick={handleSubmit} 
+              disabled={!canSubmit || updateMutation.isPending}
+              className={`sm:w-2/3 py-3.5 rounded-xl text-sm font-black uppercase tracking-widest shadow-lg transition-all duration-300 relative overflow-hidden group
+                ${canSubmit && !updateMutation.isPending 
+                  ? 'bg-slate-900 text-white hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-900/30' 
+                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed shadow-none'}`}
+            >
+              {canSubmit && !updateMutation.isPending && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+              )}
+              {updateMutation.isPending ? "Saving Changes..." : "Save Changes"}
+            </button>
+          </div>
+
         </div>
-      </SectionCard>
-
-      {/* Buttons */}
-      <div style={{ display: "flex", gap: 12, marginTop: 24, marginBottom: 40 }}>
-        <button type="button" onClick={() => navigate(-1)}
-          style={{ flex: 1, padding: "14px", border: "1px solid #e5e7eb", borderRadius: 12, background: "#fff", color: "#374151", fontSize: 15, fontWeight: 500, cursor: "pointer" }}>
-          Cancel
-        </button>
-        <button type="button" onClick={handleSubmit} disabled={!canSubmit || updateMutation.isPending}
-          style={{ flex: 1, padding: "14px", border: "none", borderRadius: 12, background: (canSubmit && !updateMutation.isPending) ? "#7c3aed" : "#c4b5fd", color: "#fff", fontSize: 15, fontWeight: 600, cursor: (canSubmit && !updateMutation.isPending) ? "pointer" : "not-allowed" }}>
-          {updateMutation.isPending ? "Saving..." : "Save Changes"}
-        </button>
       </div>
     </div>
   );
