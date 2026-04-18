@@ -32,6 +32,8 @@ export default function TechnicianDashboard() {
       ticketApi
         .getAssignedTickets({ page: 0, size: 100, sort: "createdAt,desc" })
         .then((r) => r.data),
+    staleTime: 3 * 60 * 1000, // 3 minutes
+    gcTime: 10 * 60 * 1000,
   });
 
   const content = data?.content;

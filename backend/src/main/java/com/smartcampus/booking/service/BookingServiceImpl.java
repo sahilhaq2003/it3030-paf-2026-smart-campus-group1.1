@@ -11,6 +11,7 @@ import com.smartcampus.facilities.model.Facility;
 import com.smartcampus.facilities.repository.FacilityRepository;
 import com.smartcampus.user.model.User;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -51,7 +52,8 @@ public class BookingServiceImpl implements BookingService {
                 request.getFacilityId(),
                 request.getBookingDate(),
                 request.getStartTime(),
-                request.getEndTime()
+                request.getEndTime(),
+                null
         );
         if (conflict) {
             throw new IllegalStateException(
@@ -124,8 +126,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public boolean isAvailable(Long facilityId, LocalDate date,
-                                LocalTime startTime, LocalTime endTime) {
-        return !bookingRepository.existsConflict(facilityId, date, startTime, endTime);
+                                LocalTime startTime, LocalTime endTime, Long excludeBookingId) {
+        return !bookingRepository.existsConflict(facilityId, date, startTime, endTime, excludeBookingId);
     }
         @Override
     @Transactional
@@ -146,7 +148,8 @@ public class BookingServiceImpl implements BookingService {
                     request.getFacilityId(),
                     request.getBookingDate(),
                     request.getStartTime(),
-                    request.getEndTime()
+                    request.getEndTime(),
+                    bookingId
             );
             
             if (conflict) {
@@ -246,6 +249,10 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponseDTO cancelBooking(Long bookingId, Long userId) {
         Booking booking = findOrThrow(bookingId);
 
+        if (!booking.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("You are not authorized to cancel this booking.");
+        }
+
         if (booking.getStatus() == BookingStatus.REJECTED ||
             booking.getStatus() == BookingStatus.CANCELLED) {
             throw new IllegalStateException("This booking cannot be cancelled.");
@@ -307,6 +314,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
 public Map<String, Object> getAnalytics() {
     List<Booking> all = bookingRepository.findAll();
 

@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +20,7 @@ public class ConflictCheckService {
     public boolean hasConflict(Long facilityId, LocalDate date,
                                 LocalTime startTime, LocalTime endTime) {
         return bookingRepository.existsConflict(
-                facilityId, date, startTime, endTime);
+                facilityId, date, startTime, endTime, null);
     }
 
     /**
@@ -32,7 +31,7 @@ public class ConflictCheckService {
                                          LocalTime startTime, LocalTime endTime,
                                          Long excludeBookingId) {
         return bookingRepository.findConflicts(
-                facilityId, date, startTime, endTime)
+                facilityId, date, startTime, endTime, excludeBookingId)
                 .stream()
                 .anyMatch(b -> !b.getId().equals(excludeBookingId));
     }

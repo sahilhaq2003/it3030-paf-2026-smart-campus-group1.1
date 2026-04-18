@@ -2,6 +2,9 @@ package com.smartcampus.maintenance.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "attachments")
@@ -21,4 +24,7 @@ public class Attachment {
     private String mimeType;
     private Long size;           // in bytes
     private String fileUrl;      // Full Supabase public URL
+    
+    @CreationTimestamp
+    private LocalDateTime uploadDate;  // Timestamp when file was uploaded
 }

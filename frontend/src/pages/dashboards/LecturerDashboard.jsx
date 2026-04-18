@@ -37,6 +37,8 @@ export default function LecturerDashboard() {
       ticketApi
         .getMyTickets({ page: 0, size: 100, sort: "createdAt,desc" })
         .then((r) => r.data),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000,
   });
 
   const content = data?.content;

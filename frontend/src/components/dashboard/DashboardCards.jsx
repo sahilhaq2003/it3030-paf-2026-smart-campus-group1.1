@@ -23,7 +23,7 @@ export function DashboardSummaryCard({
   children,
 }) {
   return (
-    <section className={`${dashboardCardShell} p-6 sm:p-7`}>
+    <section className={`${dashboardCardShell} p-6 sm:p-7 flex flex-col h-full`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-4">
           {Icon ? (
@@ -40,7 +40,7 @@ export function DashboardSummaryCard({
         </div>
         {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
       </div>
-      <div className="mt-6">{children}</div>
+      <div className="mt-6 flex flex-col flex-1">{children}</div>
     </section>
   );
 }

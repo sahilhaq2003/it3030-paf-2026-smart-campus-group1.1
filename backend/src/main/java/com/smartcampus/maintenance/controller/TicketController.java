@@ -23,7 +23,7 @@ public class TicketController {
     private final TicketService ticketService;
     private final AttachmentService attachmentService;
 
-    // GET /api/tickets — ADMIN/TECH only
+    // GET /api/tickets — ADMIN/TECH only with filtering and pagination
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN', 'MANAGER')")
     public ResponseEntity<Page<TicketResponseDTO>> getAllTickets(
@@ -35,6 +35,16 @@ public class TicketController {
     ) {
         return ResponseEntity.ok(
             ticketService.getAllTickets(status, category, priority, assignedToId, pageable));
+    }
+
+    // GET /api/tickets/search — Search tickets by keyword
+    @GetMapping("/search")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Page<TicketResponseDTO>> searchTickets(
+        @RequestParam(required = false) String keyword,
+        Pageable pageable
+    ) {
+        return ResponseEntity.ok(ticketService.searchTickets(keyword, pageable));
     }
 
     // GET /api/tickets/my — current user's tickets

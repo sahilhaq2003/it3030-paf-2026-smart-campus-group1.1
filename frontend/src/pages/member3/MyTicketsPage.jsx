@@ -8,11 +8,12 @@ import {
 } from "../../components/dashboard/DashboardPrimitives";
 import StatusBadge from "../../components/StatusBadge";
 import TicketCard from "../../components/TicketCard";
-import { Search, Clock, CheckCircle, ChevronRight, AlertCircle } from "lucide-react";
+import { Search, Clock, CheckCircle, ChevronRight, AlertCircle, RefreshCw } from "lucide-react";
 import { ticketApi } from "../../api/ticketApi";
 import { isResolvedLikeTicket } from "../../utils/ticketStatusDisplay";
 import { useAuth } from "../../context/AuthContext";
 import { canCreateTickets } from "../../utils/getDashboardRoute";
+import toast from "react-hot-toast";
 
 const PRIORITY_ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
 
@@ -35,13 +36,20 @@ export default function MyTicketsPage() {
   const roles = user?.roles ?? (user?.role != null ? [user.role] : []);
   const showCreateTicket = canCreateTickets(roles);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch: refetchMyTickets } = useQuery({
     queryKey: ["tickets", "my"],
     queryFn: () =>
       ticketApi
-        .getMyTickets({ page: 0, size: 200, sort: "createdAt,desc" })
+        .getMyTickets({ page: 0, size: 100, sort: "createdAt,desc" })
         .then((r) => r.data),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000,
   });
+
+  const handleRefreshTickets = () => {
+    refetchMyTickets();
+    toast.success("Tickets refreshed");
+  };
 
   const tickets = useMemo(() => {
     const raw = data?.content ?? [];
@@ -196,26 +204,38 @@ export default function MyTicketsPage() {
             <option value="LOW">Low</option>
           </select>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <span className="self-center text-sm text-slate-600">Sort by:</span>
-          {[
-            ["created", "Date"],
-            ["priority", "Priority"],
-            ["daysOpen", "Days open"],
-          ].map(([option, label]) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setSortBy(option)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                sortBy === option
-                  ? "bg-campus-brand text-white shadow-sm"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            <span className="self-center text-sm text-slate-600">Sort by:</span>
+            {[
+              ["created", "Date"],
+              ["priority", "Priority"],
+              ["daysOpen", "Days open"],
+            ].map(([option, label]) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setSortBy(option)}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  sortBy === option
+                    ? "bg-campus-brand text-white shadow-sm"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleRefreshTickets}
+            disabled={isLoading}
+            className="flex items-center gap-1.5 rounded-lg bg-campus-brand/10 px-3 py-1.5 text-sm font-medium text-campus-brand transition hover:bg-campus-brand/20 disabled:opacity-60"
+            title="Refresh ticket list"
+          >
+            <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
+            Refresh
+          </button>
         </div>
       </div>
 

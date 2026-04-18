@@ -118,10 +118,36 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<TicketResponseDTO> searchTickets(String keyword, Pageable pageable) {
+        if (keyword == null || keyword.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Search keyword cannot be empty. Please provide a search term to find tickets.");
+        }
+        
+        if (keyword.length() < 2) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Search keyword must be at least 2 characters long.");
+        }
+        
+        if (keyword.length() > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Search keyword cannot exceed 100 characters.");
+        }
+        
+        return ticketRepo.searchByKeyword(keyword, pageable).map(this::mapToResponse);
+    }
+
+    @Override
     public TicketResponseDTO updateStatus(
             Long id, TicketStatusUpdateDTO dto, Long currentUserId, boolean isAdmin, boolean isTechnician) {
-        // Retrieve ticket; throw if not found
+        // Retrieve ticket; throw NOT_FOUND (404) if not found
         var ticket = findTicketOrThrow(id);
+        
+        if (dto == null || dto.getStatus() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Status is required. Please provide a valid ticket status.");
+        }
 
         // Validate permissions: technicians can only update assigned tickets
         if (isTechnician && !isAdmin) {
@@ -129,14 +155,13 @@ public class TicketServiceImpl implements TicketService {
                     || !ticket.getAssignedTo().getId().equals(currentUserId)) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN,
-                        "Only the assigned technician can update the ticket status");
+                        "Access denied. Only the assigned technician can update this ticket. If you believe this is an error, contact your administrator.");
             }
             // Technicians must mark tickets as RESOLVED with notes, not CLOSED (auto-closes after resolution)
             if (dto.getStatus() == TicketStatus.CLOSED) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN,
-                        "Technicians cannot directly close tickets. Mark as RESOLVED with resolution notes instead. " +
-                        "Tickets close automatically after the resolution period.");
+                        "Technicians cannot directly close tickets. Mark tickets as RESOLVED with resolution notes instead. Tickets automatically close after the resolution period has ended.");
             }
         }
 
@@ -146,8 +171,8 @@ public class TicketServiceImpl implements TicketService {
         // Require resolution notes when marking as RESOLVED
         if (dto.getStatus() == TicketStatus.RESOLVED) {
             if (dto.getResolutionNotes() == null || dto.getResolutionNotes().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
-                    "Resolution notes are required when marking a ticket as RESOLVED");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Resolution notes are required when marking a ticket as RESOLVED. Please provide details about how the issue was resolved.");
             }
             ticket.setResolutionNotes(dto.getResolutionNotes());
             ticket.setResolvedAt(LocalDateTime.now());
@@ -184,10 +209,16 @@ public class TicketServiceImpl implements TicketService {
         // Verify ticket exists
         var ticket = findTicketOrThrow(id);
         
+        // Verify technician ID is valid
+        if (technicianId == null || technicianId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Invalid technician ID. Please provide a valid positive integer.");
+        }
+        
         // Verify technician exists and is valid
         var tech = userRepo.findById(technicianId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
-                "Technician not found. Please verify the technician ID."));
+                String.format("Technician with ID %d not found. Please verify the technician ID and ensure the user exists in the system.", technicianId)));
 
         ticket.setAssignedTo(tech);
 
@@ -215,7 +246,14 @@ public class TicketServiceImpl implements TicketService {
     @Override
     public void deleteTicket(Long id) {
         var ticket = findTicketOrThrow(id);
-        // Clean up attachment files from disk
+        
+        // Prevent deletion of resolved or closed tickets
+        if (ticket.getStatus() == TicketStatus.CLOSED || ticket.getStatus() == TicketStatus.RESOLVED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Cannot delete a ticket that has been resolved or closed. Please contact an administrator if you need to remove this ticket.");
+        }
+        
+        // Clean up attachment files from storage
         attachmentService.deleteAttachments(ticket.getAttachments());
         ticketRepo.delete(ticket);
     }
@@ -227,13 +265,15 @@ public class TicketServiceImpl implements TicketService {
         // Only the reporter may close their own ticket
         if (!ticket.getReportedBy().getId().equals(currentUserId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Only the ticket reporter can close this ticket.");
+                "Access denied. Only the person who reported this ticket can close it. Contact the ticket reporter or an administrator.");
         }
 
         // Ticket must be in RESOLVED state before a user can close it
         if (ticket.getStatus() != TicketStatus.RESOLVED) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Ticket must be RESOLVED before it can be closed by the reporter.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                String.format(
+                    "Cannot close ticket. Only tickets with RESOLVED status can be closed by the reporter. Current status: %s. Please mark the ticket as resolved first or contact a technician.",
+                    ticket.getStatus()));
         }
 
         var previousStatus = ticket.getStatus();
@@ -255,6 +295,16 @@ public class TicketServiceImpl implements TicketService {
     @Override
     @Transactional(readOnly = true)
     public Page<TicketResponseDTO> getTicketsByTechnician(Long techId, Pageable pageable) {
+        if (techId == null || techId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Invalid technician ID. Please provide a valid positive integer.");
+        }
+        
+        // Verify technician exists
+        userRepo.findById(techId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                String.format("Technician with ID %d not found. Please verify the technician ID.", techId)));
+        
         return ticketRepo.findByAssignedToId(techId, pageable).map(this::mapToResponse);
     }
 
@@ -359,9 +409,15 @@ public class TicketServiceImpl implements TicketService {
     }
 
     private Ticket findTicketOrThrow(Long id) {
+        if (id == null || id <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Invalid ticket ID. Please provide a valid positive integer.");
+        }
         return ticketRepo.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
-                "Ticket with ID " + id + " not found. It may have been deleted or does not exist."));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                String.format(
+                    "Ticket #%d not found. The ticket may have been deleted or does not exist in the system. Please check the ticket ID and try again.",
+                    id)));
     }
 
     private void validateStatusTransition(TicketStatus current, TicketStatus next) {
@@ -410,6 +466,7 @@ public class TicketServiceImpl implements TicketService {
                 .url(attachmentPublicOrApiUrl(t.getId(), a))
                 .mimeType(a.getMimeType())
                 .size(a.getSize())
+                .uploadDate(a.getUploadDate())
                 .build()).toList())
             .createdAt(t.getCreatedAt())
             .updatedAt(t.getUpdatedAt())
