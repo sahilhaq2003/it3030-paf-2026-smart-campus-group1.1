@@ -9,10 +9,9 @@ import {
   LogOut,
   PlusCircle,
   Ticket,
-  UserRound,
   Users,
   Building,
-  Settings, 
+  Settings,
   Camera,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -26,8 +25,6 @@ import {
   getDashboardRoute,
   normalizeRoles
 } from "../utils/getDashboardRoute";
-
-
 
 function routeTitle(pathname) {
   if (pathname === "/home") return "Home";
@@ -44,10 +41,6 @@ function routeTitle(pathname) {
   if (pathname.startsWith("/admin/tickets")) return "Admin tickets";
   if (pathname === "/facilities") return "Facility Directory";
   if (pathname.startsWith("/admin/facilities")) return "Facility Management";
-  if (pathname.startsWith("/bookings/request")) return "New Booking";
-  if (pathname.startsWith("/bookings/my")) return "My Bookings";
-  if (pathname.startsWith("/bookings/")) return "Booking Details";
-  if (pathname.startsWith("/admin/bookings")) return "Manage Bookings";
   if (pathname.startsWith("/admin/users")) return "User management";
   if (pathname === "/profile") return "Profile";
   return "Workspace";
@@ -145,7 +138,6 @@ function AppHeader() {
         onMarkRead={markRead}
         onDelete={deleteNotification}
         markAllPending={isMarkingAllRead}
-        user={user}
       />
     </>
   );
@@ -229,8 +221,8 @@ function Sidebar() {
               key={to}
               to={to}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${on
-                  ? "bg-white/12 text-white shadow-sm ring-1 ring-white/10"
-                  : "text-zinc-300 hover:bg-white/8 hover:text-white"
+                ? "bg-white/12 text-white shadow-sm ring-1 ring-white/10"
+                : "text-zinc-300 hover:bg-white/8 hover:text-white"
                 }`}
             >
               <Icon className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2} />

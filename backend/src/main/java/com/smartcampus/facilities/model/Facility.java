@@ -8,6 +8,11 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
 
+/**
+ * Entity class representing a Facility in the Smart Campus system.
+ * Maps to the "facilities" table and holds details such as name, 
+ * resource type, capacity, location, and availability.
+ */
 @Entity
 @Table(name = "facilities")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder

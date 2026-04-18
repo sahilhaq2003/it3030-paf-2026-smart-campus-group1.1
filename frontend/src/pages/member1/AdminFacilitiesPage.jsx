@@ -4,6 +4,13 @@ import { facilityApi } from '../../api/facilityApi';
 import { Edit2, Trash2, Plus, CheckCircle, XCircle, AlertTriangle, Loader2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+/**
+ * AdminFacilitiesPage Component
+ * 
+ * Dedicated interface for administrators to manage campus facilities.
+ * Allows creation, updating, active status toggling, and safely deleting
+ * facility resources through interactive tables and modals.
+ */
 export default function AdminFacilitiesPage() {
   const queryClient = useQueryClient();
 
@@ -189,8 +196,8 @@ export default function AdminFacilitiesPage() {
                         onClick={() => handleToggleStatus(facility)}
                         disabled={toggleStatusMutation.isPending}
                         className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all ${facility.status === 'ACTIVE'
-                            ? 'bg-green-100 text-green-700 hover:ring-green-300'
-                            : 'bg-red-100 text-red-700 hover:ring-red-300'
+                          ? 'bg-green-100 text-green-700 hover:ring-green-300'
+                          : 'bg-red-100 text-red-700 hover:ring-red-300'
                           }`}
                       >
                         {facility.status === 'ACTIVE' ? <CheckCircle className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
@@ -298,6 +305,18 @@ export default function AdminFacilitiesPage() {
                         value={formData.availabilityEnd} onChange={(e) => setFormData({ ...formData, availabilityEnd: e.target.value })}
                         className="w-full border-gray-300 bg-gray-50 border focus:bg-white rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
                       />
+                    </div>
+
+                    <div className="col-span-2">
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Current Status</label>
+                      <select
+                        value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                        className="w-full border-gray-300 bg-gray-50 border focus:bg-white rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
+                      >
+                        <option value="ACTIVE">Active (Available)</option>
+                        <option value="OUT_OF_SERVICE">Out of Service</option>
+                        <option value="UNDER_MAINTENANCE">Under Maintenance</option>
+                      </select>
                     </div>
 
                     <div className="col-span-2">

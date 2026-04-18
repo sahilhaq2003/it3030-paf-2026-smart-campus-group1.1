@@ -16,55 +16,82 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 import com.smartcampus.facilities.exception.ActiveBookingsExistException;
 
-@Service
-@RequiredArgsConstructor
+/**
+ * Implementation of the FacilityService interface.
+ * Handles the business logic for creating, updating, retrieving,
+ * deleting, and searching facilities in the campus system.
+ */
+@Service // marks as service layer
+@RequiredArgsConstructor // auto constructor for final fields
 public class FacilityServiceImpl implements FacilityService {
 
-    private final FacilityRepository facilityRepository;
+    private final FacilityRepository facilityRepository; // database access
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    @Transactional
+    @Transactional // write operation
     public FacilityDto createFacility(FacilityDto facilityDto) {
-        // Prevent empty locations
+        // check location is not empty
         if (!StringUtils.hasText(facilityDto.getLocation())) {
             throw new IllegalArgumentException("Physical location cannot be empty.");
         }
 
-        // Enforce Physical Location String Uniqueness
+        // check duplicate location
         if (facilityDto.getLocation() != null
                 && facilityRepository.existsByLocationIgnoreCase(facilityDto.getLocation().trim())) {
             throw new IllegalArgumentException(
                     "A facility with this exact physical location already exists in the registry.");
         }
 
+        // convert dto to entity
         Facility facility = mapToEntity(facilityDto);
+
+        // save to database
         Facility savedFacility = facilityRepository.save(facility);
+
+        // return dto
         return mapToDto(savedFacility);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true) // read only
     public FacilityDto getFacilityById(Long id) {
+
+        // find by id or throw error
         Facility facility = facilityRepository.findById(id)
                 .orElseThrow(() -> new FacilityNotFoundException("Facility not found with id: " + id));
         return mapToDto(facility);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<FacilityDto> getAllFacilities(Pageable pageable) {
+
+        // get all with pagination and map to dto
         return facilityRepository.findAll(pageable)
                 .map(this::mapToDto);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public FacilityDto updateFacility(Long id, FacilityDto facilityDto) {
-        // Prevent empty locations
+        // check location not empty
         if (!StringUtils.hasText(facilityDto.getLocation())) {
             throw new IllegalArgumentException("Physical location cannot be empty.");
         }
 
+        // find existing facility
         Facility facility = facilityRepository.findById(id)
                 .orElseThrow(() -> new FacilityNotFoundException("Facility not found with id: " + id));
 
@@ -79,6 +106,7 @@ public class FacilityServiceImpl implements FacilityService {
             }
         }
 
+        // update fields
         facility.setName(facilityDto.getName());
         facility.setResourceType(facilityDto.getResourceType());
         facility.setCapacity(facilityDto.getCapacity());
@@ -88,70 +116,97 @@ public class FacilityServiceImpl implements FacilityService {
         facility.setAvailabilityEnd(facilityDto.getAvailabilityEnd());
         facility.setStatus(facilityDto.getStatus());
 
+        // save updated entity
         Facility updatedFacility = facilityRepository.save(facility);
         return mapToDto(updatedFacility);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public void deleteFacility(Long id) {
+
+        // find facility
         Facility facility = facilityRepository.findById(id)
                 .orElseThrow(() -> new FacilityNotFoundException("Facility not found with id: " + id));
 
+        // check active bookings
         if (hasActiveBookings(id)) {
             throw new ActiveBookingsExistException("Cannot delete facility because active bookings exist.");
         }
-
+        // delete facility
         facilityRepository.delete(facility);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public FacilityDto updateFacilityStatus(Long id, Status status) {
+        // find facility
         Facility facility = facilityRepository.findById(id)
                 .orElseThrow(() -> new FacilityNotFoundException("Facility not found with id: " + id));
+        // update only status
         facility.setStatus(status);
+        // save changes
         Facility updatedFacility = facilityRepository.save(facility);
         return mapToDto(updatedFacility);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<FacilityDto> searchFacilities(String name, ResourceType type, Integer capacity, String location,
             Status status,
             Pageable pageable) {
+        // start empty specification
         Specification<Facility> spec = Specification.where(null);
 
+        // filter by name (multiple words)
         if (StringUtils.hasText(name)) {
             String normalizedName = name.trim().replaceAll("\\s+", " ").toLowerCase();
             for (String term : normalizedName.split(" ")) {
                 spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("name")), "%" + term + "%"));
             }
         }
-
+        // filter by type
         if (type != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("resourceType"), type));
         }
+        // filter by capacity
         if (capacity != null) {
             spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("capacity"), capacity));
         }
+        // filter by location
         if (StringUtils.hasText(location)) {
             spec = spec.and(
                     (root, query, cb) -> cb.like(cb.lower(root.get("location")), "%" + location.toLowerCase() + "%"));
         }
+        // filter by status
         if (status != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
         }
-
+        // execute query and map to dto
         return facilityRepository.findAll(spec, pageable).map(this::mapToDto);
     }
 
     private boolean hasActiveBookings(Long id) {
-        // TODO: Integrate actual Booking module dependency when available
-        // Return false statically allowing deletions for now
         return false;
     }
 
+    /**
+     * Helper method to map a FacilityDto to a Facility entity.
+     *
+     * @param dto the DTO to map
+     * @return the mapped Facility entity
+     */
+
+    // convert dto to entity
     private Facility mapToEntity(FacilityDto dto) {
         return Facility.builder()
                 .name(dto.getName())
@@ -165,6 +220,14 @@ public class FacilityServiceImpl implements FacilityService {
                 .build();
     }
 
+    /**
+     * Helper method to map a Facility entity to a FacilityDto.
+     *
+     * @param facility the entity to map
+     * @return the mapped FacilityDto
+     */
+
+    // convert entity to dto
     private FacilityDto mapToDto(Facility facility) {
         FacilityDto dto = new FacilityDto();
         dto.setId(facility.getId());
