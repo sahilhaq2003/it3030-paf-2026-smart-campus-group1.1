@@ -14,6 +14,7 @@ import {
   DashboardSummaryStatGrid,
   DashboardTicketList,
 } from "../../components/dashboard/DashboardCards";
+import { useTicketUpdates } from "../../hooks/useTicketUpdates";
 
 /** Sample figures until a campus bookings API exists */
 const BOOKINGS_PLACEHOLDER = {
@@ -33,14 +34,18 @@ function summarizeMyTickets(content) {
 }
 
 export default function UserDashboard() {
+  // Subscribe to real-time ticket updates via SSE
+  useTicketUpdates(true);
+  
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard", "myTickets"],
     queryFn: () =>
       ticketApi
-        .getMyTickets({ page: 0, size: 100, sort: "createdAt,desc" })
+        .getMyTickets({ page: 0, size: 50, sort: "createdAt,desc" })
         .then((r) => r.data),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000,
+    staleTime: 1 * 60 * 1000, // 1 minute - faster updates
+    gcTime: 5 * 60 * 1000,
+    retry: 2, // Retry twice on timeout
   });
 
   const { data: facilitiesData, isLoading: facilitiesLoading } = useQuery({
