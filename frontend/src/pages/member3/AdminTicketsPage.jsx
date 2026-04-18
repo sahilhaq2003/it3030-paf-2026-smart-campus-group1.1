@@ -1,17 +1,18 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
   DashboardPageLayout,
   campusInputFocus,
   campusBtnPrimary,
+  dashboardBtnSecondary,
 } from "../../components/dashboard/DashboardPrimitives";
 import StatusBadge from "../../components/StatusBadge";
 import TicketCard from "../../components/TicketCard";
 import AssignTechnicianModal from "../../components/AssignTechnicianModal";
 import ConfirmModal from "../../components/ConfirmModal";
-import { Search, ChevronRight, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, BarChart3 } from "lucide-react";
 import { ticketApi } from "../../api/ticketApi";
 import { fetchTechnicians } from "../../api/userAdminApi";
 import { useAuth } from "../../context/AuthContext";
@@ -36,7 +37,6 @@ export default function AdminTicketsPage() {
   const roleSet = normalizeRoles(user?.roles ?? (user?.role != null ? [user.role] : []));
   const isAdmin = roleSet.has("ADMIN");
 
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   
   // Subscribe to real-time ticket updates via SSE
@@ -410,6 +410,15 @@ export default function AdminTicketsPage() {
         isAdmin
           ? "Assign technicians, update status, and triage campus maintenance requests."
           : "Review tickets and move assigned work through the workflow. Only admins can assign technicians or delete tickets."
+      }
+      headerActions={
+        <Link
+          to="/admin/tickets/stats"
+          className={`${dashboardBtnSecondary} gap-2 !py-2.5 text-sm ring-1 ring-campus-brand/15 hover:ring-campus-brand/25`}
+        >
+          <BarChart3 className="h-4 w-4 text-campus-brand" strokeWidth={2} />
+          Stats
+        </Link>
       }
     >
       {errMsg ? (

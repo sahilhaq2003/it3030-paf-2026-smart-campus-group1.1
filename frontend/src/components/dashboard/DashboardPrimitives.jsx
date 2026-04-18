@@ -24,7 +24,7 @@ export const dashboardBtnSecondary =
 export const dashboardCardShell =
   "relative overflow-hidden rounded-2xl border border-white/60 bg-white/65 shadow-lg shadow-slate-900/[0.08] ring-1 ring-white/40 backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:border-white/80 hover:bg-white/75 hover:shadow-xl hover:ring-campus-brand/20";
 
-export function DashboardPageLayout({ eyebrow = "Dashboard", title, subtitle, children }) {
+export function DashboardPageLayout({ eyebrow = "Dashboard", title, subtitle, children, headerActions }) {
   return (
     <div className="relative min-h-full bg-slate-100">
       <div
@@ -42,15 +42,22 @@ export function DashboardPageLayout({ eyebrow = "Dashboard", title, subtitle, ch
               className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-campus-brand/10 blur-2xl"
               aria-hidden
             />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-              {eyebrow}
-            </p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-zinc-900 sm:text-[1.75rem] sm:leading-[1.2]">
-              {title}
-            </h1>
-            {subtitle ? (
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">{subtitle}</p>
-            ) : null}
+            <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  {eyebrow}
+                </p>
+                <h1 className="mt-2 text-2xl font-bold tracking-tight text-zinc-900 sm:text-[1.75rem] sm:leading-[1.2]">
+                  {title}
+                </h1>
+                {subtitle ? (
+                  <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">{subtitle}</p>
+                ) : null}
+              </div>
+              {headerActions ? (
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:pt-1">{headerActions}</div>
+              ) : null}
+            </div>
           </div>
         </header>
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">{children}</div>

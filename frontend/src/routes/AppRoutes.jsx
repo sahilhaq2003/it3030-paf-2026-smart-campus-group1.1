@@ -4,6 +4,7 @@ import MyTicketsPage from "../pages/member3/MyTicketsPage";
 import CreateTicketPage from "../pages/member3/CreateTicketPage";
 import TicketDetailPage from "../pages/member3/TicketDetailPage";
 import AdminTicketsPage from "../pages/member3/AdminTicketsPage";
+import AdminTicketStatsPage from "../pages/member3/AdminTicketStatsPage";
 import AdminTechnicianPage from "../pages/member3/AdminTechnicianPage";
 import LoginPage from "../pages/member4/LoginPage";
 import LoginHelpPage from "../pages/member4/LoginHelpPage";
@@ -154,6 +155,14 @@ export default function AppRoutes() {
           element={
             <StaffTicketsRoute>
               <AdminTicketsPage />
+            </StaffTicketsRoute>
+          }
+        />
+        <Route
+          path="/admin/tickets/stats"
+          element={
+            <StaffTicketsRoute>
+              <AdminTicketStatsPage />
             </StaffTicketsRoute>
           }
         />
