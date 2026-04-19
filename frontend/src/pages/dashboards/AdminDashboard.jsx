@@ -14,6 +14,7 @@ import { DashboardInlineMessage } from "../../components/dashboard/DashboardCard
 import { getBookingAnalytics } from "../../api/bookingApi";
 import { useAuth } from "../../context/AuthContext";
 import { normalizeRoles } from "../../utils/getDashboardRoute";
+import { useTicketUpdates } from "../../hooks/useTicketUpdates";
 
 
 
@@ -22,6 +23,9 @@ export default function AdminDashboard() {
   const displayName = user?.name ?? "there";
   const roles = user?.roles ?? (user?.role != null ? [user.role] : []);
   const normalizedRoles = normalizeRoles(roles);
+
+  // Subscribe to real-time ticket updates via SSE
+  useTicketUpdates(true);
 
   const roleLabel = normalizedRoles.has("ADMIN")
     ? "Administrator"

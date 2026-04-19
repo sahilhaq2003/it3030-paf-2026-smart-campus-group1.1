@@ -83,15 +83,15 @@ export default function TicketDetailPage() {
   const { data: ticket, isLoading, refetch: refetchTicket } = useQuery({
     queryKey: ["ticket", id],
     queryFn: () => ticketApi.getTicketById(id).then((r) => r.data),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    staleTime: 0, // Refetch immediately when invalidated (for immediate UI updates on status changes)
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
   });
 
   const { data: comments = [], refetch: refetchComments } = useQuery({
     queryKey: ["comments", id],
     queryFn: () => ticketApi.getComments(id).then((r) => r.data),
     enabled: Boolean(id && ticket),
-    staleTime: 3 * 60 * 1000, // 3 minutes
+    staleTime: 0, // Refetch immediately when invalidated
     gcTime: 5 * 60 * 1000,
   });
 
@@ -131,12 +131,17 @@ export default function TicketDetailPage() {
   const startWorkMutation = useMutation({
     mutationFn: () => ticketApi.updateStatus(id, { status: "IN_PROGRESS" }),
     onMutate: async () => {
-      // Cancel ongoing queries
+      // Cancel all related queries
       await qc.cancelQueries({ queryKey: ["ticket", id] });
+      await qc.cancelQueries({ queryKey: ["tickets", "my"] });
+      await qc.cancelQueries({ queryKey: ["dashboard", "myTickets"] });
+      await qc.cancelQueries({ queryKey: ["dashboard", "assignedTickets"] });
       await qc.cancelQueries({ queryKey: ["admin", "tickets", "list"] });
       
       // Snapshot the previous values
       const previousTicket = qc.getQueryData(["ticket", id]);
+      const previousMyTickets = qc.getQueryData(["tickets", "my"]);
+      const previousDashboardTickets = qc.getQueryData(["dashboard", "myTickets"]);
       const previousAdminTickets = qc.getQueryData(["admin", "tickets", "list"]);
       
       // Optimistically update the ticket detail cache
@@ -146,6 +151,40 @@ export default function TicketDetailPage() {
           ...old,
           status: "IN_PROGRESS",
           updatedAt: new Date().toISOString(),
+        };
+      });
+      
+      // Optimistically update the My Tickets page cache
+      qc.setQueryData(["tickets", "my"], (old) => {
+        if (!old?.content) return old;
+        return {
+          ...old,
+          content: old.content.map((ticket) =>
+            ticket.id == id
+              ? {
+                  ...ticket,
+                  status: "IN_PROGRESS",
+                  updatedAt: new Date().toISOString(),
+                }
+              : ticket
+          ),
+        };
+      });
+      
+      // Optimistically update the dashboard My Tickets cache
+      qc.setQueryData(["dashboard", "myTickets"], (old) => {
+        if (!old?.content) return old;
+        return {
+          ...old,
+          content: old.content.map((ticket) =>
+            ticket.id == id
+              ? {
+                  ...ticket,
+                  status: "IN_PROGRESS",
+                  updatedAt: new Date().toISOString(),
+                }
+              : ticket
+          ),
         };
       });
       
@@ -166,19 +205,26 @@ export default function TicketDetailPage() {
         };
       });
       
-      return { previousTicket, previousAdminTickets };
+      return { previousTicket, previousMyTickets, previousDashboardTickets, previousAdminTickets };
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["ticket", id] });
-      qc.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
-      qc.invalidateQueries({ queryKey: ["dashboard", "assignedTickets"] });
-      qc.invalidateQueries({ queryKey: ["tickets", "my"] });
+      qc.invalidateQueries({ queryKey: ["ticket", id], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ["tickets", "my"], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ["dashboard", "myTickets"], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ["dashboard", "assignedTickets"], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ["admin", "tickets", "list"], refetchType: 'all' });
       toast.success("Work started — ticket is now in progress");
     },
     onError: (err, variables, context) => {
       // Revert to previous values on error
       if (context?.previousTicket) {
         qc.setQueryData(["ticket", id], context.previousTicket);
+      }
+      if (context?.previousMyTickets) {
+        qc.setQueryData(["tickets", "my"], context.previousMyTickets);
+      }
+      if (context?.previousDashboardTickets) {
+        qc.setQueryData(["dashboard", "myTickets"], context.previousDashboardTickets);
       }
       if (context?.previousAdminTickets) {
         qc.setQueryData(["admin", "tickets", "list"], context.previousAdminTickets);
@@ -195,12 +241,17 @@ export default function TicketDetailPage() {
     mutationFn: (notes) =>
       ticketApi.updateStatus(id, { status: "RESOLVED", resolutionNotes: notes.trim() }),
     onMutate: async (notes) => {
-      // Cancel ongoing queries
+      // Cancel all related queries to prevent race conditions
       await qc.cancelQueries({ queryKey: ["ticket", id] });
+      await qc.cancelQueries({ queryKey: ["tickets", "my"] });
+      await qc.cancelQueries({ queryKey: ["dashboard", "myTickets"] });
+      await qc.cancelQueries({ queryKey: ["dashboard", "assignedTickets"] });
       await qc.cancelQueries({ queryKey: ["admin", "tickets", "list"] });
       
       // Snapshot the previous values
       const previousTicket = qc.getQueryData(["ticket", id]);
+      const previousMyTickets = qc.getQueryData(["tickets", "my"]);
+      const previousDashboardTickets = qc.getQueryData(["dashboard", "myTickets"]);
       const previousAdminTickets = qc.getQueryData(["admin", "tickets", "list"]);
       
       // Optimistically update the ticket detail cache
@@ -211,6 +262,42 @@ export default function TicketDetailPage() {
           status: "RESOLVED",
           resolutionNotes: notes.trim(),
           updatedAt: new Date().toISOString(),
+        };
+      });
+      
+      // Optimistically update the My Tickets page cache
+      qc.setQueryData(["tickets", "my"], (old) => {
+        if (!old?.content) return old;
+        return {
+          ...old,
+          content: old.content.map((ticket) =>
+            ticket.id == id
+              ? {
+                  ...ticket,
+                  status: "RESOLVED",
+                  resolutionNotes: notes.trim(),
+                  updatedAt: new Date().toISOString(),
+                }
+              : ticket
+          ),
+        };
+      });
+      
+      // Optimistically update the dashboard My Tickets cache
+      qc.setQueryData(["dashboard", "myTickets"], (old) => {
+        if (!old?.content) return old;
+        return {
+          ...old,
+          content: old.content.map((ticket) =>
+            ticket.id == id
+              ? {
+                  ...ticket,
+                  status: "RESOLVED",
+                  resolutionNotes: notes.trim(),
+                  updatedAt: new Date().toISOString(),
+                }
+              : ticket
+          ),
         };
       });
       
@@ -232,14 +319,15 @@ export default function TicketDetailPage() {
         };
       });
       
-      return { previousTicket, previousAdminTickets };
+      return { previousTicket, previousMyTickets, previousDashboardTickets, previousAdminTickets };
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["ticket", id] });
-      qc.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
-      qc.invalidateQueries({ queryKey: ["dashboard", "assignedTickets"] });
-      qc.invalidateQueries({ queryKey: ["tickets", "my"] });
-      qc.invalidateQueries({ queryKey: ["admin", "technician", "performance"] });
+      qc.invalidateQueries({ queryKey: ["ticket", id], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ["tickets", "my"], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ["dashboard", "myTickets"], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ["dashboard", "assignedTickets"], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ["admin", "tickets", "list"], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ["admin", "technician", "performance"], refetchType: 'all' });
       setResolutionNotes("");
       toast.success("Ticket marked resolved");
     },
@@ -247,6 +335,12 @@ export default function TicketDetailPage() {
       // Revert to previous values on error
       if (context?.previousTicket) {
         qc.setQueryData(["ticket", id], context.previousTicket);
+      }
+      if (context?.previousMyTickets) {
+        qc.setQueryData(["tickets", "my"], context.previousMyTickets);
+      }
+      if (context?.previousDashboardTickets) {
+        qc.setQueryData(["dashboard", "myTickets"], context.previousDashboardTickets);
       }
       if (context?.previousAdminTickets) {
         qc.setQueryData(["admin", "tickets", "list"], context.previousAdminTickets);
@@ -262,12 +356,17 @@ export default function TicketDetailPage() {
   const closeTicketMutation = useMutation({
     mutationFn: () => ticketApi.closeTicket(id),
     onMutate: async () => {
-      // Cancel ongoing queries
+      // Cancel all related queries to prevent race conditions
       await qc.cancelQueries({ queryKey: ["ticket", id] });
+      await qc.cancelQueries({ queryKey: ["tickets", "my"] });
+      await qc.cancelQueries({ queryKey: ["dashboard", "myTickets"] });
       await qc.cancelQueries({ queryKey: ["admin", "tickets", "list"] });
+      await qc.cancelQueries({ queryKey: ["profile", "myTickets"] });
       
       // Snapshot the previous values
       const previousTicket = qc.getQueryData(["ticket", id]);
+      const previousMyTickets = qc.getQueryData(["tickets", "my"]);
+      const previousDashboardTickets = qc.getQueryData(["dashboard", "myTickets"]);
       const previousAdminTickets = qc.getQueryData(["admin", "tickets", "list"]);
       
       // Optimistically update the ticket detail cache
@@ -277,6 +376,40 @@ export default function TicketDetailPage() {
           ...old,
           status: "CLOSED",
           updatedAt: new Date().toISOString(),
+        };
+      });
+      
+      // Optimistically update the My Tickets page cache
+      qc.setQueryData(["tickets", "my"], (old) => {
+        if (!old?.content) return old;
+        return {
+          ...old,
+          content: old.content.map((ticket) =>
+            ticket.id == id
+              ? {
+                  ...ticket,
+                  status: "CLOSED",
+                  updatedAt: new Date().toISOString(),
+                }
+              : ticket
+          ),
+        };
+      });
+      
+      // Optimistically update the dashboard My Tickets cache
+      qc.setQueryData(["dashboard", "myTickets"], (old) => {
+        if (!old?.content) return old;
+        return {
+          ...old,
+          content: old.content.map((ticket) =>
+            ticket.id == id
+              ? {
+                  ...ticket,
+                  status: "CLOSED",
+                  updatedAt: new Date().toISOString(),
+                }
+              : ticket
+          ),
         };
       });
       
@@ -297,19 +430,28 @@ export default function TicketDetailPage() {
         };
       });
       
-      return { previousTicket, previousAdminTickets };
+      return { previousTicket, previousMyTickets, previousDashboardTickets, previousAdminTickets };
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["ticket", id] });
-      qc.invalidateQueries({ queryKey: ["tickets", "my"] });
-      qc.invalidateQueries({ queryKey: ["admin", "technician", "performance"] });
-      qc.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
+      // Invalidate all related caches to ensure fresh data from server
+      qc.invalidateQueries({ queryKey: ["ticket", id], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ["tickets", "my"], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ["dashboard", "myTickets"], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ["admin", "tickets", "list"], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ["admin", "technician", "performance"], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ["profile", "myTickets"], refetchType: 'all' });
       toast.success("Ticket successfully closed");
     },
     onError: (err, variables, context) => {
       // Revert to previous values on error
       if (context?.previousTicket) {
         qc.setQueryData(["ticket", id], context.previousTicket);
+      }
+      if (context?.previousMyTickets) {
+        qc.setQueryData(["tickets", "my"], context.previousMyTickets);
+      }
+      if (context?.previousDashboardTickets) {
+        qc.setQueryData(["dashboard", "myTickets"], context.previousDashboardTickets);
       }
       if (context?.previousAdminTickets) {
         qc.setQueryData(["admin", "tickets", "list"], context.previousAdminTickets);

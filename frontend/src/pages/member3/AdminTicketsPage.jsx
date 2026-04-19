@@ -1,23 +1,25 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
   DashboardPageLayout,
   campusInputFocus,
   campusBtnPrimary,
+  dashboardBtnSecondary,
 } from "../../components/dashboard/DashboardPrimitives";
 import StatusBadge from "../../components/StatusBadge";
 import TicketCard from "../../components/TicketCard";
 import AssignTechnicianModal from "../../components/AssignTechnicianModal";
 import ConfirmModal from "../../components/ConfirmModal";
-import { Search, ChevronRight, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, BarChart3 } from "lucide-react";
 import { ticketApi } from "../../api/ticketApi";
 import { fetchTechnicians } from "../../api/userAdminApi";
 import { useAuth } from "../../context/AuthContext";
 import { normalizeRoles } from "../../utils/getDashboardRoute";
 import { isResolvedLikeTicket } from "../../utils/ticketStatusDisplay";
 import { technicianCategoryLabel } from "../../constants/technicianCategories";
+import { useTicketUpdates } from "../../hooks/useTicketUpdates";
 
 const PRIORITY_ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
 
@@ -35,8 +37,11 @@ export default function AdminTicketsPage() {
   const roleSet = normalizeRoles(user?.roles ?? (user?.role != null ? [user.role] : []));
   const isAdmin = roleSet.has("ADMIN");
 
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  // Subscribe to real-time ticket updates via SSE
+  useTicketUpdates(true);
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [priorityFilter, setPriorityFilter] = useState("ALL");
@@ -55,9 +60,10 @@ export default function AdminTicketsPage() {
   const ticketsQuery = useQuery({
     queryKey: ["admin", "tickets", "list"],
     queryFn: () =>
-      ticketApi.getAllTickets({ page: 0, size: 200, sort: "createdAt,desc" }).then((r) => r.data),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000,
+      ticketApi.getAllTickets({ page: 0, size: 100, sort: "createdAt,desc" }).then((r) => r.data),
+    staleTime: 1 * 60 * 1000, // 1 minute - faster updates for admin view
+    gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
+    retry: 2, // Retry twice on timeout
   });
 
   const techniciansQuery = useQuery({
@@ -180,7 +186,13 @@ export default function AdminTicketsPage() {
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
     },
-    onError: () => toast.error("Delete failed"),
+    onError: (err) => {
+      const msg =
+        err?.response?.data?.message ||
+        (typeof err?.response?.data === "string" ? err.response.data : null) ||
+        "Delete failed";
+      toast.error(typeof msg === "string" ? msg : "Delete failed");
+    },
   });
 
   const resolveMutation = useMutation({
@@ -404,6 +416,15 @@ export default function AdminTicketsPage() {
         isAdmin
           ? "Assign technicians, update status, and triage campus maintenance requests."
           : "Review tickets and move assigned work through the workflow. Only admins can assign technicians or delete tickets."
+      }
+      headerActions={
+        <Link
+          to="/admin/tickets/stats"
+          className={`${dashboardBtnSecondary} gap-2 !py-2.5 text-sm ring-1 ring-campus-brand/15 hover:ring-campus-brand/25`}
+        >
+          <BarChart3 className="h-4 w-4 text-campus-brand" strokeWidth={2} />
+          Stats
+        </Link>
       }
     >
       {errMsg ? (

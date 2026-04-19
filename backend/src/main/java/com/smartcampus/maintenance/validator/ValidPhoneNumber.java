@@ -5,18 +5,8 @@ import jakarta.validation.Payload;
 import java.lang.annotation.*;
 
 /**
- * Validates phone numbers with the following format rules:
- * - Optional +94 country code (or +)
- * - 10 digits starting with 0 (e.g., 0771234567)
- * - OR 9 digits starting with 7 (e.g., 771234567)
- * - OR +94 followed by 9 digits starting with 7 (e.g., +94771234567)
- * - OR +94 followed by 10 digits starting with 0 (e.g., +94071234567)
- *
- * Examples of valid phone numbers:
- * - 0771234567
- * - 771234567
- * - +94771234567
- * - +94071234567
+ * Validates phone numbers:
+ 
  */
 @Target({ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)

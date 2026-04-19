@@ -54,7 +54,12 @@ export default function CreateTicketPage() {
       return data;
     },
     onMutate: () => {
-      // Immediately show success and navigate without waiting for response
+      // Immediately invalidate all ticket caches before navigating for instant updates
+      queryClient.invalidateQueries({ queryKey: ["tickets", "my"], refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "myTickets"], refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets", "list"], refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"], refetchType: 'active' });
+      
       toast.success(
         "Request submitted. An admin will assign a technician — open your ticket anytime to follow progress and chat.",
       );
@@ -62,8 +67,10 @@ export default function CreateTicketPage() {
       setTimeout(() => navigate("/tickets"), 100);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tickets", "my"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard", "myTickets"] });
+      // Force refetch all active queries to ensure latest data
+      queryClient.invalidateQueries({ queryKey: ["tickets", "my"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "myTickets"], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ["admin", "tickets", "list"], refetchType: 'all' });
     },
     onError: (err) => {
       const msg =
