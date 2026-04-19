@@ -4,14 +4,7 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import java.util.regex.Pattern;
 
-/**
- * Validates phone numbers according to the following rules:
- * - Optional +94 country code followed by:
- *   - 10 digits starting with 0 (e.g., 0771234567)
- *   - OR 9 digits starting with 7 (e.g., 771234567)
- * - OR 10 digits starting with 0 without country code
- * - OR 9 digits starting with 7 without country code
- */
+
 public class PhoneNumberValidator implements ConstraintValidator<ValidPhoneNumber, String> {
     
     // Pattern: optional +94, then either (0 + 9 digits) or (7 + 8 digits)
