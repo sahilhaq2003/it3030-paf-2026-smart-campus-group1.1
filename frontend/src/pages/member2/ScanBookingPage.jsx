@@ -1,30 +1,30 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";//QR code scanning library
 import { Camera, CheckCircle, Info } from "lucide-react";
 
 export default function ScanBookingPage() {
   const navigate = useNavigate();
   const scannerRef = useRef(null);
-  const [scanning, setScanning] = useState(false);
+  const [scanning, setScanning] = useState(false);// camera active or not
   const [error, setError] = useState(null);
-  const [scanned, setScanned] = useState(false);
+  const [scanned, setScanned] = useState(false); // QR successfully scanned
 
   useEffect(() => {
     const html5QrCode = new Html5Qrcode("qr-reader");
-    scannerRef.current = html5QrCode;
+    scannerRef.current = html5QrCode;// Create scanner instance
 
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
     html5QrCode
       .start(
-        { facingMode: "environment" },
+        { facingMode: "environment" },//use back camera
         config,
         (decodedText) => {
           if (scanned) return;
           setScanned(true);
 
-          html5QrCode.stop().catch(() => {});
+          html5QrCode.stop().catch(() => { });
 
           try {
             const url = new URL(decodedText);
@@ -33,7 +33,7 @@ export default function ScanBookingPage() {
             window.location.href = decodedText;
           }
         },
-        () => {} 
+        () => { }
       )
       .then(() => setScanning(true))
       .catch((err) => {
@@ -41,14 +41,14 @@ export default function ScanBookingPage() {
       });
 
     return () => {
-      html5QrCode.stop().catch(() => {});
+      html5QrCode.stop().catch(() => { });
     };
   }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-24 pt-6">
       <div className="max-w-lg mx-auto px-4 sm:px-6">
-        
+
         {/* Header */}
         <div className="mb-8 mt-2 text-center">
           <div className="w-16 h-16 bg-white border border-slate-200 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-sm">

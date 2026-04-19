@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
 
+//The Full Receipt ,Data flowing OUT to React
 @Data
 public class BookingResponseDTO {
 

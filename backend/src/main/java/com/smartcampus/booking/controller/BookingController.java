@@ -34,7 +34,7 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getAllBookings());
     }
 
-    // GET /api/bookings/my — STUDENT, LECTURER
+    // GET /api/bookings/my — STUDENT, LECTURER(only the logged-in user's bookings)
     @GetMapping("/my")
     @PreAuthorize("hasAnyRole('USER', 'LECTURER')")
     public ResponseEntity<List<BookingResponseDTO>> getMyBookings(
@@ -43,6 +43,7 @@ public class BookingController {
     }
 
     // GET /api/bookings/{id} — STUDENT, LECTURER, ADMIN
+    //Returns a single booking by ID
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('USER', 'LECTURER', 'ADMIN')")
     public ResponseEntity<BookingResponseDTO> getBookingById(
@@ -127,6 +128,7 @@ public ResponseEntity<Map<String, Object>> getAnalytics() {
     return ResponseEntity.ok(bookingService.getAnalytics());
 }
 
+// public endpoint that returns booking details without requiring login, used by the QR verification page
 @GetMapping("/public/{id}")
 public ResponseEntity<PublicBookingDTO> getPublicBooking(@PathVariable Long id) {
     BookingResponseDTO full = bookingService.getBookingById(id);

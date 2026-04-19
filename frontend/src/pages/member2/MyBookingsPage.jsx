@@ -20,7 +20,7 @@ export default function MyBookingsPage() {
     ? Number(searchParams.get("highlight"))
     : null;
   const highlightRef = useRef(null);
-
+  // Data Fetching
   const { data, isLoading, isError } = useQuery({
     queryKey: ["myBookings"],
     queryFn: () => getMyBookings().then((r) => r.data),
@@ -34,11 +34,11 @@ export default function MyBookingsPage() {
     },
     onError: () => toast.error("Failed to cancel booking"),
   });
-
-  const bookings = (data || []).sort((a, b) => 
+  //Sorts bookings newest first by createdAt date.
+  const bookings = (data || []).sort((a, b) =>
     new Date(b.createdAt) - new Date(a.createdAt)
   );
-  
+
   const filtered = activeTab === "ALL"
     ? bookings
     : bookings.filter((b) => b.status === activeTab);
@@ -70,7 +70,7 @@ export default function MyBookingsPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-24 pt-6">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 mt-2">
           <div>
@@ -92,11 +92,10 @@ export default function MyBookingsPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold tracking-widest uppercase transition-all border ${
-                activeTab === tab
+              className={`px-4 py-2 rounded-xl text-xs font-bold tracking-widest uppercase transition-all border ${activeTab === tab
                   ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm"
                   : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-700"
-              }`}
+                }`}
             >
               {tab}
             </button>
@@ -123,61 +122,60 @@ export default function MyBookingsPage() {
             {filtered.map((booking) => {
               const isHighlighted = booking.id === highlightId;
               return (
-              <div
-                key={booking.id}
-                ref={isHighlighted ? highlightRef : null}
-                className={`bg-white rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-slate-200 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-50/40 transition-all duration-300 group ${
-                  isHighlighted
-                    ? "ring-2 ring-indigo-500 shadow-lg"
-                    : "shadow-sm"
-                }`}
-              >
-                <div className="flex-1 w-full">
-                  <div className="flex flex-wrap items-center gap-4 mb-3">
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight">
-                      {booking.facilityName}
-                    </h3>
-                    <StatusBadge status={booking.status} />
+                <div
+                  key={booking.id}
+                  ref={isHighlighted ? highlightRef : null}
+                  className={`bg-white rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-slate-200 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-50/40 transition-all duration-300 group ${isHighlighted
+                      ? "ring-2 ring-indigo-500 shadow-lg"
+                      : "shadow-sm"
+                    }`}
+                >
+                  <div className="flex-1 w-full">
+                    <div className="flex flex-wrap items-center gap-4 mb-3">
+                      <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                        {booking.facilityName}
+                      </h3>
+                      <StatusBadge status={booking.status} />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5 bg-slate-50 rounded-xl mb-3 border border-slate-100 w-max max-w-full">
+                      <div className="flex items-center gap-2 text-[13px] font-bold text-slate-700">
+                        <Calendar className="w-4 h-4 text-indigo-500" />
+                        {booking.bookingDate}
+                      </div>
+                      <div className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block"></div>
+                      <div className="flex items-center gap-2 text-[13px] font-bold text-slate-700">
+                        <Clock className="w-4 h-4 text-indigo-500" />
+                        {booking.startTime} <span className="text-slate-400 mx-1">-</span> {booking.endTime}
+                      </div>
+                    </div>
+
+                    <p className="text-slate-600 leading-relaxed text-[13px] max-w-2xl">
+                      <span className="font-black text-slate-400 uppercase tracking-widest text-[9px] mr-2">Purpose</span>
+                      {booking.purpose}
+                    </p>
+
+                    {booking.rejectionReason && (
+                      <div className="mt-2 p-3 bg-rose-50 border border-rose-100 rounded-lg">
+                        <p className="text-rose-700 text-[13px]">
+                          <span className="font-black text-rose-400 uppercase tracking-widest text-[9px] mr-2">Denial Reason</span>
+                          {booking.rejectionReason}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5 bg-slate-50 rounded-xl mb-3 border border-slate-100 w-max max-w-full">
-                    <div className="flex items-center gap-2 text-[13px] font-bold text-slate-700">
-                      <Calendar className="w-4 h-4 text-indigo-500" />
-                      {booking.bookingDate}
-                    </div>
-                    <div className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block"></div>
-                    <div className="flex items-center gap-2 text-[13px] font-bold text-slate-700">
-                      <Clock className="w-4 h-4 text-indigo-500" />
-                      {booking.startTime} <span className="text-slate-400 mx-1">-</span> {booking.endTime}
-                    </div>
+
+                  <div className="flex sm:flex-col gap-2 w-full sm:w-auto">
+                    <button
+                      onClick={() => navigate(`/bookings/${booking.id}`)}
+                      className="flex-1 flex items-center justify-center gap-1.5 sm:px-6 py-3 bg-slate-50 hover:bg-slate-900 text-slate-700 hover:text-white rounded-xl font-bold text-xs tracking-widest uppercase transition-all duration-300 group/btn"
+                    >
+                      View
+                      <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-1" />
+                    </button>
                   </div>
 
-                  <p className="text-slate-600 leading-relaxed text-[13px] max-w-2xl">
-                    <span className="font-black text-slate-400 uppercase tracking-widest text-[9px] mr-2">Purpose</span>
-                    {booking.purpose}
-                  </p>
-
-                  {booking.rejectionReason && (
-                    <div className="mt-2 p-3 bg-rose-50 border border-rose-100 rounded-lg">
-                      <p className="text-rose-700 text-[13px]">
-                        <span className="font-black text-rose-400 uppercase tracking-widest text-[9px] mr-2">Denial Reason</span>
-                        {booking.rejectionReason}
-                      </p>
-                    </div>
-                  )}
                 </div>
-                
-                <div className="flex sm:flex-col gap-2 w-full sm:w-auto">
-                  <button
-                    onClick={() => navigate(`/bookings/${booking.id}`)}
-                    className="flex-1 flex items-center justify-center gap-1.5 sm:px-6 py-3 bg-slate-50 hover:bg-slate-900 text-slate-700 hover:text-white rounded-xl font-bold text-xs tracking-widest uppercase transition-all duration-300 group/btn"
-                  >
-                    View 
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-1" />
-                  </button>
-                </div>
-
-              </div>
               );
             })}
           </div>

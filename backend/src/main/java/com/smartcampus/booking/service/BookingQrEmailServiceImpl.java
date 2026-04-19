@@ -58,13 +58,13 @@ public class BookingQrEmailServiceImpl implements BookingQrEmailService {
         }
 
         try {
-            // 1. Build verify URL
+            // Build verify URL,URL that gets encoded into the QR code image.
             String verifyUrl = frontendUrl + "/verify/" + bookingId;
 
-            // 2. Generate QR code image
+            // Generate QR code image
             byte[] qrBytes = generateQrCode(verifyUrl, 200);
 
-            // 3. Load and fill HTML template
+            // Load and fill HTML template
             String html = new String(
                     qrTemplate.getInputStream().readAllBytes(), StandardCharsets.UTF_8)
                     .replace("{{recipientName}}", escapeHtml(recipientName))
@@ -74,7 +74,8 @@ public class BookingQrEmailServiceImpl implements BookingQrEmailService {
                     .replace("{{endTime}}", escapeHtml(endTime))
                     .replace("{{reference}}", "BOOKING#" + bookingId);
 
-            // 4. Build and send email with inline QR image
+            // Build and send email with inline QR image
+            //Creates an empty email object that can hold HTML content and attachments.
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
             helper.setFrom(effectiveFrom);
@@ -82,7 +83,8 @@ public class BookingQrEmailServiceImpl implements BookingQrEmailService {
             helper.setSubject("Your Booking QR Code — " + facilityName);
             helper.setText(html, true);
             helper.addInline("qrcode", new ByteArrayResource(qrBytes), "image/png");
-
+            
+            //sends the email through the SMTP server configured in application.properties
             mailSender.send(mimeMessage);
             log.info("QR email sent to {} for bookingId={}", recipientEmail, bookingId);
 
