@@ -4,6 +4,7 @@ import com.smartcampus.booking.model.BookingStatus;
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
+//an internal message for the system.
 @Getter
 public class BookingStatusChangedEvent extends ApplicationEvent {
 

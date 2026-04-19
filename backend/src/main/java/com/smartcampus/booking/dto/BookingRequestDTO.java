@@ -8,6 +8,7 @@ import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+//The Student's Form, Data flowing IN from React
 @Data
 public class BookingRequestDTO {
 

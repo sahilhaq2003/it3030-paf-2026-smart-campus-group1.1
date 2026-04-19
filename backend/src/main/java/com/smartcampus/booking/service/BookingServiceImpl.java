@@ -41,7 +41,7 @@ public class BookingServiceImpl implements BookingService {
     
     private final BookingQrEmailService bookingQrEmailService;
     private final UserRepository userRepository;
-    // ─── Create ───────────────────────────────────────────────────────────────
+    // Create
 
     @Override
     @Transactional
@@ -74,7 +74,7 @@ public class BookingServiceImpl implements BookingService {
         .startTime(request.getStartTime())
         .endTime(request.getEndTime())
         .purpose(request.getPurpose())
-        .expectedAttendees(request.getExpectedAttendees()) // ADD THIS
+        .expectedAttendees(request.getExpectedAttendees()) 
         .status(BookingStatus.PENDING)
         .build();
         Booking saved = bookingRepository.save(booking);
@@ -98,7 +98,7 @@ public class BookingServiceImpl implements BookingService {
         return mapToResponse(saved);
     }
 
-    // ─── Read ─────────────────────────────────────────────────────────────────
+    // Read
 
     @Override
     @Transactional(readOnly = true)
@@ -170,7 +170,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
 
-    // ─── Admin Actions ────────────────────────────────────────────────────────
+    // Admin Actions
 
     @Override
     @Transactional
@@ -282,7 +282,7 @@ public class BookingServiceImpl implements BookingService {
         bookingRepository.delete(booking);
     }
 
-    // ─── Helpers ──────────────────────────────────────────────────────────────
+    //  Helpers 
 
     private Booking findOrThrow(Long bookingId) {
         return bookingRepository.findByIdWithDetails(bookingId)

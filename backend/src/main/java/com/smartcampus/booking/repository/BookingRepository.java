@@ -12,6 +12,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
+//handles all direct communication with the database.
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 

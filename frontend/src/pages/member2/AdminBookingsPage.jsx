@@ -14,7 +14,7 @@ export default function AdminBookingsPage() {
 
   const queryClient = useQueryClient();
 
-   const deleteMutation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: (id) => deleteBooking(id),
     onSuccess: () => {
       queryClient.invalidateQueries(["allBookings"]);
@@ -32,7 +32,7 @@ export default function AdminBookingsPage() {
       deleteMutation.mutate(bookingToDelete);
     }
   };
-
+  //gets ALL bookings in the system.
   const { data: bookings = [], isLoading, isError } = useQuery({
     queryKey: ["allBookings"],
     queryFn: () => getAllBookings().then((r) => r.data),
@@ -42,12 +42,12 @@ export default function AdminBookingsPage() {
   const filtered = bookings.filter((b) => {
     const matchStatus = filterStatus === "ALL" || b.status === filterStatus;
     const term = searchTerm.toLowerCase();
-    const matchSearch = term === "" || 
+    const matchSearch = term === "" ||
       (b.facilityName && b.facilityName.toLowerCase().includes(term)) ||
       (b.purpose && b.purpose.toLowerCase().includes(term));
     return matchStatus && matchSearch;
   })
-   .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   if (isLoading) return <div className="min-h-screen bg-slate-50 p-6 text-center text-slate-500 font-medium">Loading bookings...</div>;
   if (isError) return <div className="min-h-screen bg-slate-50 p-6 text-center text-rose-500 font-bold">Failed to load bookings.</div>;
@@ -55,7 +55,7 @@ export default function AdminBookingsPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-24 pt-6">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 mt-2">
           <div>
@@ -86,11 +86,10 @@ export default function AdminBookingsPage() {
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold tracking-widest uppercase transition-all border ${
-                  filterStatus === status
+                className={`px-4 py-2 rounded-xl text-xs font-bold tracking-widest uppercase transition-all border ${filterStatus === status
                     ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm"
                     : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-700"
-                }`}
+                  }`}
               >
                 {status}
               </button>
@@ -139,9 +138,9 @@ export default function AdminBookingsPage() {
                       <td className="px-6 py-5">
                         <div className="text-[13px] font-bold text-slate-700 mb-0.5">{booking.bookingDate}</div>
                         <div className="text-[11px] font-bold tracking-wider text-slate-500 flex items-center gap-1">
-                          {booking.startTime ? booking.startTime.substring(0,5) : ''} 
-                          <span className="text-slate-300">—</span> 
-                          {booking.endTime ? booking.endTime.substring(0,5) : ''}
+                          {booking.startTime ? booking.startTime.substring(0, 5) : ''}
+                          <span className="text-slate-300">—</span>
+                          {booking.endTime ? booking.endTime.substring(0, 5) : ''}
                         </div>
                       </td>
                       <td className="px-6 py-5">
@@ -178,7 +177,7 @@ export default function AdminBookingsPage() {
             </table>
           </div>
         </div>
-        
+
         {/* Delete Confirmation Modal */}
         {bookingToDelete && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
@@ -190,16 +189,16 @@ export default function AdminBookingsPage() {
               <p className="text-slate-500 text-sm font-medium leading-relaxed mb-8">
                 Are you absolutely sure you want to permanently delete this booking request? This action cannot be undone and the user's request will be removed from the system.
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-3">
-                <button 
+                <button
                   onClick={() => setBookingToDelete(null)}
                   className="flex-1 py-3.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all bg-slate-100 hover:bg-slate-200 text-slate-600"
                   disabled={deleteMutation.isPending}
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={confirmDelete}
                   className="flex-1 py-3.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all shadow-lg bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20 disabled:opacity-50 flex justify-center items-center gap-2"
                   disabled={deleteMutation.isPending}
@@ -216,4 +215,4 @@ export default function AdminBookingsPage() {
   );
 }
 
-   
+

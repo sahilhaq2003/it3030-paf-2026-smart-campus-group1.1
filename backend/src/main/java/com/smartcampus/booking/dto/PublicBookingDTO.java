@@ -6,6 +6,7 @@ import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+//The Safe QR Ticket,Data flowing OUT to the Scanner
 @Data
 public class PublicBookingDTO {
     private Long id;

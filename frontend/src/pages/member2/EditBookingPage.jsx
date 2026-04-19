@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import { getBookingById, checkAvailability, updateBooking } from "../../api/bookingApi";
 import axiosInstance from "../../api/axiosInstance";
 
-// --- Custom Pickers & Components ---
+//  Custom Pickers & Components
 function Column({ items, selected, onSelect, format }) {
   const listRef = useRef(null);
   useEffect(() => {
@@ -30,11 +30,10 @@ function Column({ items, selected, onSelect, format }) {
         <div
           key={item}
           onClick={() => onSelect(item)}
-          className={`px-4 py-2 cursor-pointer rounded-lg mx-1.5 my-0.5 text-sm whitespace-nowrap transition-colors ${
-            item === selected
+          className={`px-4 py-2 cursor-pointer rounded-lg mx-1.5 my-0.5 text-sm whitespace-nowrap transition-colors ${item === selected
               ? "font-semibold text-indigo-700 bg-indigo-50"
               : "font-normal text-slate-700 hover:bg-slate-100"
-          }`}
+            }`}
         >
           {format(item)}
         </div>
@@ -101,9 +100,8 @@ function Stepper({ value, min = 1, max, onChange }) {
         type="button"
         onClick={() => onChange(Math.max(min, (Number(value) || min) - 1))}
         disabled={Number(value) <= min}
-        className={`w-12 h-12 border border-slate-200 rounded-l-xl bg-slate-50 flex items-center justify-center text-xl font-medium transition-colors ${
-          Number(value) <= min ? "cursor-not-allowed text-slate-300" : "cursor-pointer text-slate-700 hover:bg-slate-100"
-        }`}
+        className={`w-12 h-12 border border-slate-200 rounded-l-xl bg-slate-50 flex items-center justify-center text-xl font-medium transition-colors ${Number(value) <= min ? "cursor-not-allowed text-slate-300" : "cursor-pointer text-slate-700 hover:bg-slate-100"
+          }`}
       >
         −
       </button>
@@ -123,9 +121,8 @@ function Stepper({ value, min = 1, max, onChange }) {
         type="button"
         onClick={() => onChange(Math.min(max ?? Infinity, (Number(value) || min) + 1))}
         disabled={max !== undefined && Number(value) >= max}
-        className={`w-12 h-12 border border-slate-200 rounded-r-xl bg-slate-50 flex items-center justify-center text-xl font-medium transition-colors ${
-          (max !== undefined && Number(value) >= max) ? "cursor-not-allowed text-slate-300" : "cursor-pointer text-slate-700 hover:bg-slate-100"
-        }`}
+        className={`w-12 h-12 border border-slate-200 rounded-r-xl bg-slate-50 flex items-center justify-center text-xl font-medium transition-colors ${(max !== undefined && Number(value) >= max) ? "cursor-not-allowed text-slate-300" : "cursor-pointer text-slate-700 hover:bg-slate-100"
+          }`}
       >
         +
       </button>
@@ -168,20 +165,20 @@ export default function EditBookingPage() {
   const [isAvailable, setIsAvailable] = useState(null);
   const [checking, setChecking] = useState(false);
 
-  // 1. Fetch existing Booking Data
+  // Fetch existing Booking Data
   const { data: booking, isLoading } = useQuery({
     queryKey: ["booking", id],
     queryFn: () => getBookingById(id).then((r) => r.data),
   });
 
-  // 2. Fetch Facility info (to get max capacity size)
+  // Fetch Facility info (to get max capacity size)
   const { data: facility } = useQuery({
     queryKey: ["facility", formData.facilityId],
     queryFn: () => axiosInstance.get(`/facilities/${formData.facilityId}`).then((r) => r.data),
     enabled: !!formData.facilityId,
   });
 
-  // 3. Pre-fill the form once the booking is loaded
+  // Pre-fill the form once the booking is loaded
   useEffect(() => {
     if (booking) {
       setFormData({
@@ -196,7 +193,7 @@ export default function EditBookingPage() {
     }
   }, [booking]);
 
-  // 4. Verify availability if the user alters the Date or Time
+  // Verify availability if the user alters the Date or Time
   const getTodayStr = () => new Date().toISOString().split("T")[0];
   const getLocalTimeStr = () => {
     const d = new Date();
@@ -256,7 +253,7 @@ export default function EditBookingPage() {
 
   const getFacilityImage = (type) => {
     if (!type) return '/facilities/campus.png';
-    switch(type) {
+    switch (type) {
       case 'LECTURE_HALL': return '/facilities/lecture_hall.png';
       case 'LAB': return '/facilities/lab.png';
       case 'MEETING_ROOM': return '/facilities/meeting.png';
@@ -282,28 +279,28 @@ export default function EditBookingPage() {
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-indigo-500 selection:text-white pb-24">
       {/* Immersive Header Banner */}
       <div className="relative h-[28rem] w-full bg-slate-900 overflow-hidden">
-        <img 
-          src={getFacilityImage(facility?.resourceType)} 
+        <img
+          src={getFacilityImage(facility?.resourceType)}
           alt={facility?.name || 'Facility'}
-          className="absolute inset-0 w-full h-full object-cover opacity-60 animate-in fade-in zoom-in duration-1000" 
-         />
+          className="absolute inset-0 w-full h-full object-cover opacity-60 animate-in fade-in zoom-in duration-1000"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-slate-900/40 to-transparent"></div>
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/50 to-transparent"></div>
-        
+
         {/* Header Content */}
         <div className="absolute inset-0 flex flex-col justify-start pt-24 px-4 sm:px-10 lg:px-20 max-w-5xl mx-auto drop-shadow-xl">
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="inline-flex items-center text-white/80 hover:text-white mb-10 font-bold text-sm tracking-widest uppercase transition-colors w-max group"
           >
-            <ArrowLeft className="w-5 h-5 mr-3 transition-transform group-hover:-translate-x-2" /> 
+            <ArrowLeft className="w-5 h-5 mr-3 transition-transform group-hover:-translate-x-2" />
             Back
           </button>
-          
+
           <h1 className="text-5xl sm:text-6xl font-black tracking-tighter text-white leading-tight mb-4">
             {booking?.facilityName || "Facility"}
           </h1>
-          
+
           {facility && (
             <p className="text-indigo-100 font-medium text-lg flex items-center gap-3">
               <span>{facility.location}</span>
@@ -317,7 +314,7 @@ export default function EditBookingPage() {
       {/* Main Single Overlapping Card */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-24 relative z-20">
         <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl shadow-indigo-100/50 overflow-hidden border border-white p-6 sm:p-14">
-        
+
           <div className="mb-10">
             <h3 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">Edit Reservation Details</h3>
             <p className="text-slate-500 font-medium text-base">Make changes to your booking request. Modifications are subject to facility availability.</p>
@@ -325,9 +322,9 @@ export default function EditBookingPage() {
 
           <InnerSection icon={CalendarIcon} title="Select Date">
             <div className="relative max-w-sm">
-              <input 
-                type="date" 
-                name="bookingDate" 
+              <input
+                type="date"
+                name="bookingDate"
                 value={formData.bookingDate}
                 onChange={(e) => setFormData({ ...formData, bookingDate: e.target.value })}
                 min={new Date().toISOString().split("T")[0]}
@@ -357,25 +354,25 @@ export default function EditBookingPage() {
                   <Loader2 className="w-5 h-5 animate-spin text-indigo-500" /> Checking availability...
                 </div>
               )}
-              
+
               {!checking && isAvailable === true && !isPastTime && formData.startTime < formData.endTime && (
                 <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-100 rounded-xl text-sm font-bold text-emerald-700 shadow-sm">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500" /> This slot is available!
                 </div>
               )}
-              
+
               {!checking && isAvailable === false && !isPastTime && formData.startTime < formData.endTime && (
                 <div className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-100 rounded-xl text-sm font-bold text-rose-700 shadow-sm">
                   <XCircle className="w-5 h-5 text-rose-500" /> This slot is not available. Please choose a different time.
                 </div>
               )}
-              
+
               {formData.startTime && formData.endTime && formData.startTime >= formData.endTime && (
                 <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl text-sm font-bold text-amber-700 shadow-sm">
                   <XCircle className="w-5 h-5 text-amber-500" /> Invalid time range. Start time must be before end time.
                 </div>
               )}
-              
+
               {isPastTime && (
                 <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl text-sm font-bold text-amber-700 shadow-sm">
                   <XCircle className="w-5 h-5 text-amber-500" /> Cannot book for times in the past.
@@ -385,11 +382,11 @@ export default function EditBookingPage() {
           </InnerSection>
 
           <InnerSection icon={FileText} title="Purpose of Booking">
-            <textarea 
-              name="purpose" 
+            <textarea
+              name="purpose"
               value={formData.purpose}
               onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-              rows={4} 
+              rows={4}
               placeholder="Please describe the purpose of your academic or organizational booking..."
               className="w-full max-w-2xl border border-slate-200 rounded-xl px-4 py-3 text-slate-800 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-base resize-y hover:bg-slate-100"
             />
@@ -397,11 +394,11 @@ export default function EditBookingPage() {
 
           <InnerSection icon={Users} title="Expected Attendees">
             <div className="flex items-center gap-6">
-              <Stepper 
-                value={Number(formData.expectedAttendees)} 
-                min={1} 
+              <Stepper
+                value={Number(formData.expectedAttendees)}
+                min={1}
                 max={maxAttendees}
-                onChange={(val) => setFormData({ ...formData, expectedAttendees: val })} 
+                onChange={(val) => setFormData({ ...formData, expectedAttendees: val })}
               />
               {maxAttendees && (
                 <div className="flex flex-col">
@@ -414,20 +411,20 @@ export default function EditBookingPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mt-12 pt-8 border-t border-slate-100">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => navigate(-1)}
               className="sm:w-1/3 py-3.5 border border-slate-200 rounded-xl bg-white text-slate-600 text-sm font-bold uppercase tracking-widest hover:bg-slate-50 hover:border-slate-300 hover:shadow-lg transition-all"
             >
               Cancel
             </button>
-            <button 
-              type="button" 
-              onClick={handleSubmit} 
+            <button
+              type="button"
+              onClick={handleSubmit}
               disabled={!canSubmit || updateMutation.isPending}
               className={`sm:w-2/3 py-3.5 rounded-xl text-sm font-black uppercase tracking-widest shadow-lg transition-all duration-300 relative overflow-hidden group
-                ${canSubmit && !updateMutation.isPending 
-                  ? 'bg-slate-900 text-white hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-900/30' 
+                ${canSubmit && !updateMutation.isPending
+                  ? 'bg-slate-900 text-white hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-900/30'
                   : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed shadow-none'}`}
             >
               {canSubmit && !updateMutation.isPending && (

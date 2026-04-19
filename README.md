@@ -42,6 +42,14 @@ Authentication uses **JWT** (Google OAuth and email/password). File attachments 
 - **Role-based access**: `USER`, `TECHNICIAN`, `ADMIN` (see `backend/AUTHENTICATION.md`)
 - Frontend **role-aware routing** (user vs staff dashboards, protected ticket routes)
 
+### Facility Booking & QR Verification
+
+- **Book facilities** with real-time availability checking and conflict detection.
+- **Booking Lifecycle**: Request transitions (PENDING → APPROVED / REJECTED / CANCELLED) with detailed rejection notes.
+- **Automated QR Tickets**: Generates QR codes via Google ZXing and embeds them inline into HTML emails upon approval.
+- **Public Scanner API**: Secure endpoint (`/api/bookings/public/{id}`) to quickly verify tickets via mobile scanners without exposing sensitive data.
+- **Admin Analytics**: Centralized dashboard to track total bookings, peak hours, and top facilities.
+
 ### Maintenance tickets
 
 - Create tickets with category, priority, location, optional facility link, and **multipart attachments**
