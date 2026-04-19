@@ -257,14 +257,11 @@ public class TicketServiceImpl implements TicketService {
     public void deleteTicket(Long id) {
         var ticket = findTicketOrThrow(id);
         
-        // Prevent deletion of resolved or closed tickets
-        if (ticket.getStatus() == TicketStatus.CLOSED || ticket.getStatus() == TicketStatus.RESOLVED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "Cannot delete a ticket that has been resolved or closed. Please contact an administrator if you need to remove this ticket.");
-        }
-        
-        // Clean up attachment files from storage
+        // Clean up attachment files from storage before deleting ticket
+        // This removes all associated files from Supabase Storage
         attachmentService.deleteAttachments(ticket.getAttachments());
+        
+        // Delete ticket from database (cascades to comments and attachments records)
         ticketRepo.delete(ticket);
     }
 

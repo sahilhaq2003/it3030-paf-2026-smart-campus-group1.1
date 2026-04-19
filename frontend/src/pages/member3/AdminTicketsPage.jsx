@@ -186,7 +186,13 @@ export default function AdminTicketsPage() {
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets", "list"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "tickets"] });
     },
-    onError: () => toast.error("Delete failed"),
+    onError: (err) => {
+      const msg =
+        err?.response?.data?.message ||
+        (typeof err?.response?.data === "string" ? err.response.data : null) ||
+        "Delete failed";
+      toast.error(typeof msg === "string" ? msg : "Delete failed");
+    },
   });
 
   const resolveMutation = useMutation({
