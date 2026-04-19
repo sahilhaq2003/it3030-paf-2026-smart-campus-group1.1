@@ -8,15 +8,16 @@ const handleApiError = (error) => {
   if (error.response && error.response.data) {
     const errorData = error.response.data;
     
+    // Validation errors (ex. from MethodArgumentNotValidException maps fieldErrors)
+    const validationDetails = errorData.details || errorData.errors;
+    if (validationDetails && Object.keys(validationDetails).length > 0) {
+      const firstFieldErr = Object.values(validationDetails)[0];
+      throw new Error(firstFieldErr);
+    }
+
     // Attempt extracting the global exception handler error message nicely
     if (errorData.message) {
       throw new Error(errorData.message);
-    }
-    
-    // Validation errors (ex. from MethodArgumentNotValidException maps fieldErrors)
-    if (errorData.errors && Object.keys(errorData.errors).length > 0) {
-      const firstFieldErr = Object.values(errorData.errors)[0];
-      throw new Error(`Validation failed: ${firstFieldErr}`);
     }
 
     // Fallback for basic HTTP status
