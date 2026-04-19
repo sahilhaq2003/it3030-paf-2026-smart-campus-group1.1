@@ -46,8 +46,8 @@ public class SupabaseStorageService {
 
     /**
      * Upload file to Supabase Storage
-     * @param file MultipartFile to upload
-     * @param storedName UUID filename
+       @param file 
+       @param storedName 
      * @return Public URL of uploaded file
      */
     public String uploadFile(MultipartFile file, String storedName) throws IOException {
