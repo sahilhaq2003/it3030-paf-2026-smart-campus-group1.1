@@ -13,6 +13,7 @@ import { ticketApi } from "../../api/ticketApi";
 import { isResolvedLikeTicket } from "../../utils/ticketStatusDisplay";
 import { useAuth } from "../../context/AuthContext";
 import { canCreateTickets } from "../../utils/getDashboardRoute";
+import { useTicketUpdates } from "../../hooks/useTicketUpdates";
 import toast from "react-hot-toast";
 
 const PRIORITY_ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
@@ -36,14 +37,18 @@ export default function MyTicketsPage() {
   const roles = user?.roles ?? (user?.role != null ? [user.role] : []);
   const showCreateTicket = canCreateTickets(roles);
 
+  // Subscribe to real-time ticket updates via SSE
+  useTicketUpdates(true);
+
   const { data, isLoading, error, refetch: refetchMyTickets } = useQuery({
     queryKey: ["tickets", "my"],
     queryFn: () =>
       ticketApi
         .getMyTickets({ page: 0, size: 100, sort: "createdAt,desc" })
         .then((r) => r.data),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000,
+    staleTime: 1 * 60 * 1000, // 1 minute - faster refresh when pages visible
+    gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
+    retry: 2, // Retry twice on timeout
   });
 
   const handleRefreshTickets = () => {

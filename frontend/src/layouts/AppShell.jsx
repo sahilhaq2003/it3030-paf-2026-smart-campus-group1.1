@@ -39,6 +39,7 @@ function routeTitle(pathname) {
   if (pathname.startsWith("/tickets/create")) return "New ticket";
   if (pathname.startsWith("/tickets/") && pathname !== "/tickets") return "Ticket details";
   if (pathname === "/tickets") return "My tickets";
+  if (pathname === "/admin/tickets/stats") return "Ticket statistics";
   if (pathname.startsWith("/admin/tickets")) return "Admin tickets";
   if (pathname === "/facilities") return "Facility Directory";
   if (pathname.startsWith("/admin/facilities")) return "Facility Management";
