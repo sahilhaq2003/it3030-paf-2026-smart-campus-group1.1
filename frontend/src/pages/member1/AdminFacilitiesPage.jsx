@@ -283,7 +283,7 @@ export default function AdminFacilitiesPage() {
                     <div className="col-span-2">
                       <label className="block text-sm font-bold text-gray-700 mb-1">Exact Location String</label>
                       <input
-                        type="text"
+                        required type="text"
                         value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                         className="w-full border-gray-300 bg-gray-50 border focus:bg-white rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
                       />
